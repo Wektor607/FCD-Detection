@@ -1,10 +1,12 @@
 import os
+import re
 import nibabel as nib
 import numpy as np
 from fsl.wrappers import flirt
 from nilearn import datasets
 from nilearn.image import resample_to_img
 from atlasreader import create_output
+import pandas as pd
 
 os.environ['FSLDIR'] = '/home/german-rivman/fsl'
 os.environ['PATH'] = os.environ['FSLDIR'] + '/bin:' + os.environ['PATH']
@@ -14,7 +16,7 @@ os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 def find_file_with_suffix(folder, include, exclude=None):
     matches = [
         f for f in os.listdir(folder)
-        if f.endswith('.nii.gz') and include in f and (exclude is None or exclude not in f)
+        if (f.endswith('.nii.gz') or f.endswith('.csv')) and include in f and (exclude is None or exclude not in f)
     ]
     return os.path.join(folder, matches[0])
 
@@ -84,4 +86,58 @@ def process_single_subject(subj_path, output_dir, base_name='sub-00016', standar
 
     print(f"Processing complete. Reports saved in: {output_dir}")
 
-process_single_subject('sub-00016/anat', 'sub-00016/anat/report', 'sub-00016')
+def clean_region_string(text):
+    """Remove 'Unlabeled' and normalize spacing/punctuation"""
+    if not isinstance(text, str):
+        return text
+    # Remove 'Unlabeled' and 'no labels' entries
+    text = re.sub(r'\s*\d+(\.\d+)?\s*percent of (Unlabeled region|no labels)', '', text)
+    # Normalize semicolons
+    text = re.sub(r';{2,}', ';', text).strip('; ').strip()
+    return text
+
+def apply_region_aliases(series, aliases):
+    """Replace region name tokens in a Series using provided mapping"""
+    for short, full in aliases.items():
+        series = series.str.replace(short, full, regex=True)
+    return series
+
+def generate_full_data(list_paths, result_file):
+    new_csv = pd.DataFrame(columns=['T1w_path', 'FLAIR_path', 'FLAIR_ROI_path', 'harvard_oxford', 'aal'])
+
+    region_aliases = {
+        '%': ' percent of',
+        '_': ' ',
+        'Angular R': 'Right Angular Gyrus',
+        'SupraMarginal R': 'Right Supramarginal Gyrus',
+        'Parietal Inf R': 'Right Inferior Parietal Lobule (including supramarginal and angular gyri)',
+        'Postcentral R': 'Right Postcentral Gyrus',
+        'Temporal Sup R': 'Right Superior Temporal Gyrus',
+        'Parietal Sup R': 'Right Superior Parietal Gyrus',
+        'no label': 'Unlabeled region'
+    }
+
+    for path in list_paths:
+        t1_path = find_file_with_suffix(path, 'T1w')
+        flair_path = find_file_with_suffix(path, 'FLAIR', exclude='roi')
+        roi_path = find_file_with_suffix(path, 'FLAIR_roi')
+        print(f"Processing report for: {path}")
+
+        report_path = find_file_with_suffix(os.path.join(path, 'report'), 'clusters')
+        data = pd.read_csv(report_path)
+
+        for col_name in ['aal', 'harvard_oxford']:
+            data[col_name] = apply_region_aliases(data[col_name], region_aliases)
+            data[col_name] = data[col_name].apply(clean_region_string)
+
+        new_csv.loc[len(new_csv)] = [
+            t1_path,
+            flair_path,
+            roi_path,
+            data['harvard_oxford'].iloc[0],
+            data['aal'].iloc[0]
+        ]
+
+    new_csv.to_csv(result_file, index=False)
+
+generate_full_data(['sub-00016/anat'], 'sub-00016/anat/Finall_file.csv')
