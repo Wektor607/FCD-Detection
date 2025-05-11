@@ -148,7 +148,7 @@ def generate_full_data(list_paths, result_file):
 
         # Frontal lobe
         ## Lateral surface
-        'Fronal Sup': 'Superior Frontal Gyrus',
+        'Frontal Sup': 'Superior Frontal Gyrus',
         'Frontal Mid': 'Middle Frontal Gyrus',
         'Frontal Inf Oper': 'Inferior Frontal Gyrus, Opercular part',
         'Frontal Inf Tri': 'Inferior Frontal Gyrus, Triangular part',
@@ -182,7 +182,7 @@ def generate_full_data(list_paths, result_file):
         'Occipital Mid': 'Middle Occipital Gyrus',
         'Occipital Inf': 'Inferior Occipital Gyrus',
         ## Medial and inferior surfaces
-        ' Calcarine ': 'Calcarine fissure and surrounding cortex ',
+        ' Calcarine ': ' Calcarine fissure and surrounding cortex ',
         'Lingual': 'Lingual Gyrus',
         'Fusiform Left': 'Fusiform Gyrus Left',
         'Fusiform Right': 'Fusiform Gyrus Right',
