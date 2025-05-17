@@ -1,0 +1,10 @@
+.*
+!.gitignore
+*.egg-info
+*__pycache__
+*.out
+*.npy
+meld_experiments_graph
+scripts/wandb
+scripts/config_files/reproducibility
+data
