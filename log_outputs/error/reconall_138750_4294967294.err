@@ -1,0 +1,7 @@
+
+CondaError: Run 'conda init' before 'conda activate'
+
+Traceback (most recent call last):
+  File "/home/s17gmikh/FCD-Detection/LanGuideMedSeg-MICCAI2023/utils/dataset_bonn.py", line 3, in <module>
+    import torch
+ModuleNotFoundError: No module named 'torch'

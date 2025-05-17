@@ -1,0 +1,14 @@
+Setting MELD_DATA_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data
+Setting EXPERIMENT_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/models
+Setting FS_SUBJECTS_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/meld_params
+Namespace(harmo_code='bonn', fastsurfer=True, parallelise=True, debug_mode=False)
+['sub-00001']
+STEP: Start processing sub-00001
+00001
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+INFO - sub-00001: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00001/anat/sub-00001_acq-iso08_T1w.nii.gz 
+INFO - sub-00001: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00001/anat/sub-00001_acq-T2sel_FLAIR.nii.gz 
+ERROR - sub-00001: Fastsurfer outputs already exists for subject sub-00001 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00001 and reran
+ERROR - sub-00001: One step of the pipeline has failed. Process has been aborted for this subject

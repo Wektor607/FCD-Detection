@@ -1,0 +1,36 @@
+Setting MELD_DATA_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data
+Setting EXPERIMENT_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/models
+Setting FS_SUBJECTS_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/meld_params
+Namespace(harmo_code='bonn', fastsurfer=True, parallelise=False, debug_mode=False)
+['sub-00001']
+STEP: Start processing sub-00001
+00001
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+INFO - sub-00001: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00001/anat/sub-00001_acq-iso08_T1w.nii.gz 
+INFO - sub-00001: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00001/anat/sub-00001_acq-T2sel_FLAIR.nii.gz 
+INFO - sub-00001: Segmentation using T1 only with FastSurfer
+python3.9
+INFO - sub-00001: Start cortical parcellation (up to 2h). Please wait
+INFO - sub-00001: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00001
+INFO - sub-00001: Finished cortical parcellation
+INFO - sub-00001: Starting FLAIRpial
+INFO - sub-00001: Finished FLAIRpial reconstruction
+STEP 2 - sub-00001: Extract surface-based features
+INFO - sub-00001: Creating registration to template surface
+INFO - sub-00001: Sampling features in native space
+INFO - sub-00001: Sample FLAIR features : [('rh', 0.5), ('rh', 0.25), ('rh', 0.75), ('rh', 0), ('lh', 0.5), ('lh', 0.25), ('lh', 0.75), ('lh', 0)]
+INFO - sub-00001: Sample FLAIR features : [('rh', 0.5), ('rh', 1), ('lh', 0.5), ('lh', 1)]
+INFO - sub-00001: Calculate curvatures
+INFO - sub-00001: Compute gaussian curvature
+INFO - sub-00001: Get thickness and white-grey matter contrast
+INFO - sub-00001: Calculate curvatures
+INFO - sub-00001: Compute gaussian curvature
+INFO - sub-00001: Get thickness and white-grey matter contrast
+INFO - sub-00001: Moving features to template surface
+INFO - sub-00001: Move feature to xhemi flip
+INFO - sub-00001: Moving lesion masks to template surface
+INFO - sub-00001: Creating final training data matrix
+scanner for subject sub-00001is set as default XT
+INFO - sub-00001: All features have been extracted and saved in /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data/MELD_bonn

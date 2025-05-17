@@ -1,0 +1,36 @@
+Setting MELD_DATA_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data
+Setting EXPERIMENT_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/models
+Setting FS_SUBJECTS_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/meld_params
+Namespace(harmo_code='noHarmo', fastsurfer=True, parallelise=False, debug_mode=False)
+['sub-00032']
+2025-05-14 11:13:36 | STEP - : Start processing sub-00032
+00032
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-14 11:13:41 | INFO - sub-00032: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00032/anat/sub-00032_acq-sag111_T1w.nii.gz 
+2025-05-14 11:13:41 | INFO - sub-00032: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00032/anat/sub-00032_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-14 11:13:41 | INFO - sub-00032: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-14 11:13:41 | INFO - sub-00032: Start cortical parcellation (up to 2h). Please wait
+2025-05-14 11:13:41 | INFO - sub-00032: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00032
+2025-05-14 12:55:49 | INFO - sub-00032: Finished cortical parcellation
+2025-05-14 12:55:49 | INFO - sub-00032: Starting FLAIRpial
+2025-05-14 14:35:38 | INFO - sub-00032: Finished FLAIRpial reconstruction
+2025-05-14 14:35:38 | STEP 2 - sub-00032: Extract surface-based features
+2025-05-14 14:35:38 | INFO - sub-00032: Creating registration to template surface
+2025-05-14 14:52:21 | INFO - sub-00032: Sampling features in native space
+2025-05-14 14:52:21 | INFO - sub-00032: Sample FLAIR features : [('rh', 0.5), ('rh', 0.25), ('rh', 0.75), ('rh', 0), ('lh', 0.5), ('lh', 0.25), ('lh', 0.75), ('lh', 0)]
+2025-05-14 14:52:30 | INFO - sub-00032: Sample FLAIR features : [('rh', 0.5), ('rh', 1), ('lh', 0.5), ('lh', 1)]
+2025-05-14 14:52:34 | INFO - sub-00032: Calculate curvatures
+2025-05-14 14:52:40 | INFO - sub-00032: Compute gaussian curvature
+2025-05-14 14:52:41 | INFO - sub-00032: Get thickness and white-grey matter contrast
+2025-05-14 14:52:42 | INFO - sub-00032: Calculate curvatures
+2025-05-14 14:52:48 | INFO - sub-00032: Compute gaussian curvature
+2025-05-14 14:52:49 | INFO - sub-00032: Get thickness and white-grey matter contrast
+2025-05-14 14:52:50 | INFO - sub-00032: Moving features to template surface
+2025-05-14 14:52:50 | INFO - sub-00032: Move feature to xhemi flip
+2025-05-14 14:53:48 | INFO - sub-00032: Moving lesion masks to template surface
+2025-05-14 14:53:48 | INFO - sub-00032: Creating final training data matrix
+scanner for subject sub-00032is set as default XT
+2025-05-14 14:53:49 | INFO - sub-00032: All features have been extracted and saved in /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data/MELD_noHarmo

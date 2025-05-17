@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/s17gmikh/FCD-Detection/meld_graph/scripts/new_patient_pipeline/run_script_segmentation.py", line 422, in <module>
+    raise()
+TypeError: exceptions must derive from BaseException
