@@ -1,6 +1,3 @@
-[submodule "LanGuideMedSeg-MICCAI2023"]
-	path = LanGuideMedSeg-MICCAI2023
-	url = https://github.com/Junelin2333/LanGuideMedSeg-MICCAI2023.git
 [submodule "meld_graph"]
 	path = meld_graph
 	url = https://github.com/MELDProject/meld_graph.git
