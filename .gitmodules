@@ -1,8 +1,3 @@
-[submodule "data/ds004199"]
-	path = data/ds004199
-	url = https://github.com/OpenNeuroDatasets/ds004199.git
-	datalad-id = 0698f6af-ab4a-4002-a6aa-dd866a9dec8e
-	datalad-url = https://github.com/OpenNeuroDatasets/ds004199.git
 [submodule "LanGuideMedSeg-MICCAI2023"]
 	path = LanGuideMedSeg-MICCAI2023
 	url = https://github.com/Junelin2333/LanGuideMedSeg-MICCAI2023.git
