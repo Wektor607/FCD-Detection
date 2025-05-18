@@ -1,0 +1,2 @@
+cluster_id,peak_x,peak_y,peak_z,cluster_mean,volume_mm,aal,desikan_killiany,harvard_oxford
+1.0,39.0,-21.0,17.0,96.0,3073.0,39.08% Rolandic_Oper_R; 31.76% Insula_R; 11.94% no_label; 9.76% Heschl_R; 7.45% Temporal_Sup_R,38.01% Unknown; 22.91% Right-Cerebral-White-Matter; 14.55% ctx-rh-insula; 11.85% ctx-rh-supramarginal; 5.99% ctx-rh-postcentral,30.98% Right_Central_Opercular_Cortex; 26.16% Right_Parietal_Operculum_Cortex; 25.28% Right_Insular_Cortex; 10.38% Right_Planum_Temporale

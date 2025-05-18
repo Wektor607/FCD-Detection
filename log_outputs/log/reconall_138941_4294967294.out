@@ -1,0 +1,587 @@
+Setting MELD_DATA_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data
+Setting EXPERIMENT_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/models
+Setting FS_SUBJECTS_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/meld_params
+Namespace(harmo_code='noHarmo', fastsurfer=True, parallelise=False, debug_mode=False, inv=True)
+2025-05-18 09:46:17 | STEP - : Start processing sub-00120
+00120
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 09:46:20 | INFO - sub-00120: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00120/anat/sub-00120_acq-sag111_T1w.nii.gz 
+2025-05-18 09:46:20 | INFO - sub-00120: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00120/anat/sub-00120_acq-corAcpc4mm_FLAIR.nii.gz 
+2025-05-18 09:46:20 | INFO - sub-00120: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 09:46:20 | INFO - sub-00120: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 09:46:20 | INFO - sub-00120: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00120
+2025-05-18 11:03:37 | INFO - sub-00120: Finished cortical parcellation
+2025-05-18 11:03:37 | INFO - sub-00120: Starting FLAIRpial
+2025-05-18 11:31:30 | ERROR - sub-00120: FLAIRpial reconstruction failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00120/scripts/recon-all.log
+2025-05-18 11:31:30 | ERROR - : COMMAND failing : recon-all -sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs -subject sub-00120 -FLAIR /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00120/anat/sub-00120_acq-corAcpc4mm_FLAIR.nii.gz -FLAIRpial -autorecon3 with error 
+2025-05-18 11:31:30 | ERROR - sub-00120: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 11:31:30 | STEP - : Start processing sub-00116
+00116
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 11:31:32 | INFO - sub-00116: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00116/anat/sub-00116_acq-sag111_T1w.nii.gz 
+2025-05-18 11:31:32 | INFO - sub-00116: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00116/anat/sub-00116_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 11:31:32 | INFO - sub-00116: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 11:31:32 | INFO - sub-00116: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 11:31:32 | INFO - sub-00116: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00116
+2025-05-18 13:05:41 | INFO - sub-00116: Finished cortical parcellation
+2025-05-18 13:05:41 | INFO - sub-00116: Starting FLAIRpial
+2025-05-18 14:21:46 | INFO - sub-00116: Finished FLAIRpial reconstruction
+2025-05-18 14:21:46 | STEP 2 - sub-00116: Extract surface-based features
+2025-05-18 14:21:46 | INFO - sub-00116: Creating registration to template surface
+2025-05-18 14:38:29 | INFO - sub-00116: Sampling features in native space
+2025-05-18 14:38:29 | INFO - sub-00116: Sample FLAIR features : [('rh', 0.5), ('rh', 0.25), ('rh', 0.75), ('rh', 0), ('lh', 0.5), ('lh', 0.25), ('lh', 0.75), ('lh', 0)]
+2025-05-18 14:38:37 | INFO - sub-00116: Sample FLAIR features : [('rh', 0.5), ('rh', 1), ('lh', 0.5), ('lh', 1)]
+2025-05-18 14:38:41 | INFO - sub-00116: Calculate curvatures
+2025-05-18 14:38:47 | INFO - sub-00116: Compute gaussian curvature
+2025-05-18 14:38:48 | INFO - sub-00116: Get thickness and white-grey matter contrast
+2025-05-18 14:38:49 | INFO - sub-00116: Calculate curvatures
+2025-05-18 14:38:54 | INFO - sub-00116: Compute gaussian curvature
+2025-05-18 14:38:56 | INFO - sub-00116: Get thickness and white-grey matter contrast
+2025-05-18 14:38:56 | INFO - sub-00116: Moving features to template surface
+2025-05-18 14:38:56 | INFO - sub-00116: Move feature to xhemi flip
+2025-05-18 14:39:53 | INFO - sub-00116: Moving lesion masks to template surface
+2025-05-18 14:39:53 | INFO - sub-00116: Creating final training data matrix
+scanner for subject sub-00116is set as default XT
+2025-05-18 14:39:54 | INFO - sub-00116: All features have been extracted and saved in /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data/MELD_noHarmo
+2025-05-18 14:39:54 | STEP - : Start processing sub-00115
+00115
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:39:56 | INFO - sub-00115: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00115/anat/sub-00115_acq-iso08_T1w.nii.gz 
+2025-05-18 14:39:56 | INFO - sub-00115: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00115/anat/sub-00115_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:39:56 | INFO - sub-00115: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:39:56 | INFO - sub-00115: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:39:56 | INFO - sub-00115: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00115
+2025-05-18 14:40:00 | ERROR - sub-00115: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00115/scripts/recon-all.log
+2025-05-18 14:40:00 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00115 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00115/anat/sub-00115_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:00 | ERROR - sub-00115: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:00 | STEP - : Start processing sub-00112
+00112
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:01 | INFO - sub-00112: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00112/anat/sub-00112_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:01 | INFO - sub-00112: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00112/anat/sub-00112_acq-tra4mm_FLAIR.nii.gz 
+2025-05-18 14:40:01 | INFO - sub-00112: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:01 | INFO - sub-00112: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:01 | INFO - sub-00112: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00112
+2025-05-18 14:40:02 | ERROR - sub-00112: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00112/scripts/recon-all.log
+2025-05-18 14:40:02 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00112 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00112/anat/sub-00112_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:02 | ERROR - sub-00112: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:02 | STEP - : Start processing sub-00109
+00109
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:04 | INFO - sub-00109: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00109/anat/sub-00109_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:04 | INFO - sub-00109: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00109/anat/sub-00109_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:04 | INFO - sub-00109: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:04 | INFO - sub-00109: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:04 | INFO - sub-00109: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00109
+2025-05-18 14:40:05 | ERROR - sub-00109: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00109/scripts/recon-all.log
+2025-05-18 14:40:05 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00109 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00109/anat/sub-00109_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:05 | ERROR - sub-00109: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:05 | STEP - : Start processing sub-00108
+00108
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:06 | INFO - sub-00108: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00108/anat/sub-00108_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:06 | INFO - sub-00108: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00108/anat/sub-00108_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:06 | INFO - sub-00108: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:06 | INFO - sub-00108: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:06 | INFO - sub-00108: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00108
+2025-05-18 14:40:07 | ERROR - sub-00108: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00108/scripts/recon-all.log
+2025-05-18 14:40:07 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00108 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00108/anat/sub-00108_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:07 | ERROR - sub-00108: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:07 | STEP - : Start processing sub-00107
+00107
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:09 | INFO - sub-00107: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00107/anat/sub-00107_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:09 | INFO - sub-00107: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00107/anat/sub-00107_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:09 | INFO - sub-00107: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:09 | INFO - sub-00107: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:09 | INFO - sub-00107: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00107
+2025-05-18 14:40:10 | ERROR - sub-00107: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00107/scripts/recon-all.log
+2025-05-18 14:40:10 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00107 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00107/anat/sub-00107_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:10 | ERROR - sub-00107: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:10 | STEP - : Start processing sub-00105
+00105
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:11 | INFO - sub-00105: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00105/anat/sub-00105_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:11 | INFO - sub-00105: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00105/anat/sub-00105_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:11 | INFO - sub-00105: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:11 | INFO - sub-00105: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:11 | INFO - sub-00105: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00105
+2025-05-18 14:40:12 | ERROR - sub-00105: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00105/scripts/recon-all.log
+2025-05-18 14:40:12 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00105 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00105/anat/sub-00105_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:12 | ERROR - sub-00105: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:12 | STEP - : Start processing sub-00103
+00103
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:13 | INFO - sub-00103: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00103/anat/sub-00103_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:13 | INFO - sub-00103: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00103/anat/sub-00103_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:13 | INFO - sub-00103: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:13 | INFO - sub-00103: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:13 | INFO - sub-00103: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00103
+2025-05-18 14:40:14 | ERROR - sub-00103: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00103/scripts/recon-all.log
+2025-05-18 14:40:14 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00103 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00103/anat/sub-00103_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:14 | ERROR - sub-00103: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:14 | STEP - : Start processing sub-00101
+00101
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:16 | INFO - sub-00101: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00101/anat/sub-00101_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:16 | INFO - sub-00101: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00101/anat/sub-00101_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:16 | INFO - sub-00101: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:16 | INFO - sub-00101: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:16 | INFO - sub-00101: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00101
+2025-05-18 14:40:17 | ERROR - sub-00101: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00101/scripts/recon-all.log
+2025-05-18 14:40:17 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00101 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00101/anat/sub-00101_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:17 | ERROR - sub-00101: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:17 | STEP - : Start processing sub-00100
+00100
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:18 | INFO - sub-00100: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00100/anat/sub-00100_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:18 | INFO - sub-00100: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00100/anat/sub-00100_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:18 | INFO - sub-00100: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:18 | INFO - sub-00100: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:18 | INFO - sub-00100: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00100
+2025-05-18 14:40:19 | ERROR - sub-00100: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00100/scripts/recon-all.log
+2025-05-18 14:40:19 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00100 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00100/anat/sub-00100_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:19 | ERROR - sub-00100: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:19 | STEP - : Start processing sub-00099
+00099
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:21 | INFO - sub-00099: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00099/anat/sub-00099_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:21 | INFO - sub-00099: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00099/anat/sub-00099_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:21 | INFO - sub-00099: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:21 | INFO - sub-00099: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:21 | INFO - sub-00099: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00099
+2025-05-18 14:40:22 | ERROR - sub-00099: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00099/scripts/recon-all.log
+2025-05-18 14:40:22 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00099 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00099/anat/sub-00099_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:22 | ERROR - sub-00099: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:22 | STEP - : Start processing sub-00098
+00098
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:23 | INFO - sub-00098: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00098/anat/sub-00098_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:23 | INFO - sub-00098: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00098/anat/sub-00098_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:23 | INFO - sub-00098: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:23 | INFO - sub-00098: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:23 | INFO - sub-00098: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00098
+2025-05-18 14:40:24 | ERROR - sub-00098: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00098/scripts/recon-all.log
+2025-05-18 14:40:24 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00098 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00098/anat/sub-00098_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:24 | ERROR - sub-00098: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:24 | STEP - : Start processing sub-00097
+00097
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:26 | INFO - sub-00097: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00097/anat/sub-00097_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:26 | INFO - sub-00097: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00097/anat/sub-00097_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:26 | INFO - sub-00097: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:26 | INFO - sub-00097: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:26 | INFO - sub-00097: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00097
+2025-05-18 14:40:27 | ERROR - sub-00097: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00097/scripts/recon-all.log
+2025-05-18 14:40:27 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00097 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00097/anat/sub-00097_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:27 | ERROR - sub-00097: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:27 | STEP - : Start processing sub-00095
+00095
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:28 | INFO - sub-00095: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00095/anat/sub-00095_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:28 | INFO - sub-00095: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00095/anat/sub-00095_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:28 | INFO - sub-00095: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:28 | INFO - sub-00095: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:28 | INFO - sub-00095: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00095
+2025-05-18 14:40:29 | ERROR - sub-00095: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00095/scripts/recon-all.log
+2025-05-18 14:40:29 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00095 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00095/anat/sub-00095_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:29 | ERROR - sub-00095: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:29 | STEP - : Start processing sub-00092
+00092
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:30 | INFO - sub-00092: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00092/anat/sub-00092_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:30 | INFO - sub-00092: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00092/anat/sub-00092_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:30 | INFO - sub-00092: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:30 | INFO - sub-00092: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:30 | INFO - sub-00092: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00092
+2025-05-18 14:40:31 | ERROR - sub-00092: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00092/scripts/recon-all.log
+2025-05-18 14:40:31 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00092 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00092/anat/sub-00092_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:31 | ERROR - sub-00092: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:31 | STEP - : Start processing sub-00091
+00091
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:33 | INFO - sub-00091: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00091/anat/sub-00091_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:33 | INFO - sub-00091: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00091/anat/sub-00091_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:33 | INFO - sub-00091: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:33 | INFO - sub-00091: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:33 | INFO - sub-00091: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00091
+2025-05-18 14:40:34 | ERROR - sub-00091: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00091/scripts/recon-all.log
+2025-05-18 14:40:34 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00091 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00091/anat/sub-00091_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:34 | ERROR - sub-00091: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:34 | STEP - : Start processing sub-00090
+00090
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:35 | INFO - sub-00090: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00090/anat/sub-00090_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:35 | INFO - sub-00090: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00090/anat/sub-00090_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:35 | INFO - sub-00090: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:35 | INFO - sub-00090: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:35 | INFO - sub-00090: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00090
+2025-05-18 14:40:36 | ERROR - sub-00090: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00090/scripts/recon-all.log
+2025-05-18 14:40:36 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00090 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00090/anat/sub-00090_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:36 | ERROR - sub-00090: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:36 | STEP - : Start processing sub-00089
+00089
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:38 | INFO - sub-00089: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00089/anat/sub-00089_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:38 | INFO - sub-00089: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00089/anat/sub-00089_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:38 | INFO - sub-00089: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:38 | INFO - sub-00089: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:38 | INFO - sub-00089: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00089
+2025-05-18 14:40:39 | ERROR - sub-00089: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00089/scripts/recon-all.log
+2025-05-18 14:40:39 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00089 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00089/anat/sub-00089_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:39 | ERROR - sub-00089: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:39 | STEP - : Start processing sub-00087
+00087
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:40 | INFO - sub-00087: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00087/anat/sub-00087_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:40 | INFO - sub-00087: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00087/anat/sub-00087_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:40 | INFO - sub-00087: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:40 | INFO - sub-00087: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:40 | INFO - sub-00087: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00087
+2025-05-18 14:40:41 | ERROR - sub-00087: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00087/scripts/recon-all.log
+2025-05-18 14:40:41 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00087 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00087/anat/sub-00087_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:41 | ERROR - sub-00087: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:41 | STEP - : Start processing sub-00083
+00083
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:42 | INFO - sub-00083: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00083/anat/sub-00083_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:42 | INFO - sub-00083: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00083/anat/sub-00083_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:42 | INFO - sub-00083: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:42 | INFO - sub-00083: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:42 | INFO - sub-00083: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00083
+2025-05-18 14:40:43 | ERROR - sub-00083: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00083/scripts/recon-all.log
+2025-05-18 14:40:43 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00083 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00083/anat/sub-00083_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:43 | ERROR - sub-00083: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:43 | STEP - : Start processing sub-00081
+00081
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:45 | INFO - sub-00081: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00081/anat/sub-00081_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:45 | INFO - sub-00081: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00081/anat/sub-00081_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:45 | INFO - sub-00081: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:45 | INFO - sub-00081: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:45 | INFO - sub-00081: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00081
+2025-05-18 14:40:46 | ERROR - sub-00081: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00081/scripts/recon-all.log
+2025-05-18 14:40:46 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00081 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00081/anat/sub-00081_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:46 | ERROR - sub-00081: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:46 | STEP - : Start processing sub-00080
+00080
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:48 | INFO - sub-00080: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00080/anat/sub-00080_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:48 | INFO - sub-00080: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00080/anat/sub-00080_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:48 | INFO - sub-00080: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:48 | INFO - sub-00080: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:48 | INFO - sub-00080: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00080
+2025-05-18 14:40:48 | ERROR - sub-00080: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00080/scripts/recon-all.log
+2025-05-18 14:40:48 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00080 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00080/anat/sub-00080_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:48 | ERROR - sub-00080: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:48 | STEP - : Start processing sub-00078
+00078
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:50 | INFO - sub-00078: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00078/anat/sub-00078_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:50 | INFO - sub-00078: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00078/anat/sub-00078_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:50 | INFO - sub-00078: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:50 | INFO - sub-00078: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:50 | INFO - sub-00078: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00078
+2025-05-18 14:40:51 | ERROR - sub-00078: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00078/scripts/recon-all.log
+2025-05-18 14:40:51 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00078 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00078/anat/sub-00078_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:51 | ERROR - sub-00078: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:51 | STEP - : Start processing sub-00077
+00077
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:52 | INFO - sub-00077: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00077/anat/sub-00077_acq-iso08_T1w.nii.gz 
+2025-05-18 14:40:52 | INFO - sub-00077: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00077/anat/sub-00077_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:40:52 | INFO - sub-00077: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:52 | INFO - sub-00077: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:52 | INFO - sub-00077: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00077
+2025-05-18 14:40:53 | ERROR - sub-00077: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00077/scripts/recon-all.log
+2025-05-18 14:40:53 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00077 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00077/anat/sub-00077_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:53 | ERROR - sub-00077: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:53 | STEP - : Start processing sub-00076
+00076
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:55 | INFO - sub-00076: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00076/anat/sub-00076_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:55 | INFO - sub-00076: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00076/anat/sub-00076_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:40:55 | INFO - sub-00076: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:55 | INFO - sub-00076: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:55 | INFO - sub-00076: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00076
+2025-05-18 14:40:56 | ERROR - sub-00076: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00076/scripts/recon-all.log
+2025-05-18 14:40:56 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00076 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00076/anat/sub-00076_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:56 | ERROR - sub-00076: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:56 | STEP - : Start processing sub-00074
+00074
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:40:57 | INFO - sub-00074: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00074/anat/sub-00074_acq-sag111_T1w.nii.gz 
+2025-05-18 14:40:57 | INFO - sub-00074: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00074/anat/sub-00074_acq-cor3mmOPT_FLAIR.nii.gz 
+2025-05-18 14:40:57 | INFO - sub-00074: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:40:57 | INFO - sub-00074: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:40:57 | INFO - sub-00074: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00074
+2025-05-18 14:40:58 | ERROR - sub-00074: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00074/scripts/recon-all.log
+2025-05-18 14:40:58 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00074 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00074/anat/sub-00074_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:40:58 | ERROR - sub-00074: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:40:58 | STEP - : Start processing sub-00073
+00073
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:00 | INFO - sub-00073: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00073/anat/sub-00073_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:00 | INFO - sub-00073: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00073/anat/sub-00073_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:00 | INFO - sub-00073: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:00 | INFO - sub-00073: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:00 | INFO - sub-00073: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00073
+2025-05-18 14:41:01 | ERROR - sub-00073: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00073/scripts/recon-all.log
+2025-05-18 14:41:01 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00073 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00073/anat/sub-00073_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:01 | ERROR - sub-00073: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:01 | STEP - : Start processing sub-00072
+00072
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:02 | INFO - sub-00072: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00072/anat/sub-00072_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:02 | INFO - sub-00072: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00072/anat/sub-00072_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:02 | INFO - sub-00072: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:02 | INFO - sub-00072: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:02 | INFO - sub-00072: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00072
+2025-05-18 14:41:03 | ERROR - sub-00072: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00072/scripts/recon-all.log
+2025-05-18 14:41:03 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00072 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00072/anat/sub-00072_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:03 | ERROR - sub-00072: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:03 | STEP - : Start processing sub-00071
+00071
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:05 | INFO - sub-00071: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00071/anat/sub-00071_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:05 | INFO - sub-00071: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00071/anat/sub-00071_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:05 | INFO - sub-00071: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:05 | INFO - sub-00071: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:05 | INFO - sub-00071: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00071
+2025-05-18 14:41:06 | ERROR - sub-00071: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00071/scripts/recon-all.log
+2025-05-18 14:41:06 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00071 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00071/anat/sub-00071_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:06 | ERROR - sub-00071: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:06 | STEP - : Start processing sub-00068
+00068
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:07 | INFO - sub-00068: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00068/anat/sub-00068_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:07 | INFO - sub-00068: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00068/anat/sub-00068_acq-32ch10_FLAIR.nii.gz 
+2025-05-18 14:41:07 | INFO - sub-00068: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:07 | INFO - sub-00068: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:07 | INFO - sub-00068: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00068
+2025-05-18 14:41:08 | ERROR - sub-00068: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00068/scripts/recon-all.log
+2025-05-18 14:41:08 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00068 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00068/anat/sub-00068_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:08 | ERROR - sub-00068: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:08 | STEP - : Start processing sub-00066
+00066
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:10 | INFO - sub-00066: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00066/anat/sub-00066_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:10 | INFO - sub-00066: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00066/anat/sub-00066_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:10 | INFO - sub-00066: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:10 | INFO - sub-00066: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:10 | INFO - sub-00066: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00066
+2025-05-18 14:41:11 | ERROR - sub-00066: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00066/scripts/recon-all.log
+2025-05-18 14:41:11 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00066 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00066/anat/sub-00066_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:11 | ERROR - sub-00066: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:11 | STEP - : Start processing sub-00065
+00065
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:12 | INFO - sub-00065: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00065/anat/sub-00065_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:12 | INFO - sub-00065: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00065/anat/sub-00065_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:12 | INFO - sub-00065: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:12 | INFO - sub-00065: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:12 | INFO - sub-00065: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00065
+2025-05-18 14:41:13 | ERROR - sub-00065: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00065/scripts/recon-all.log
+2025-05-18 14:41:13 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00065 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00065/anat/sub-00065_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:13 | ERROR - sub-00065: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:13 | STEP - : Start processing sub-00064
+00064
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:15 | INFO - sub-00064: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00064/anat/sub-00064_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:15 | INFO - sub-00064: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00064/anat/sub-00064_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:15 | INFO - sub-00064: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:15 | INFO - sub-00064: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:15 | INFO - sub-00064: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00064
+2025-05-18 14:41:15 | ERROR - sub-00064: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00064/scripts/recon-all.log
+2025-05-18 14:41:15 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00064 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00064/anat/sub-00064_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:15 | ERROR - sub-00064: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:16 | STEP - : Start processing sub-00063
+00063
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:17 | INFO - sub-00063: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00063/anat/sub-00063_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:17 | INFO - sub-00063: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00063/anat/sub-00063_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:17 | INFO - sub-00063: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:17 | INFO - sub-00063: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:17 | INFO - sub-00063: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00063
+2025-05-18 14:41:18 | ERROR - sub-00063: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00063/scripts/recon-all.log
+2025-05-18 14:41:18 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00063 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00063/anat/sub-00063_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:18 | ERROR - sub-00063: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:18 | STEP - : Start processing sub-00062
+00062
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:19 | INFO - sub-00062: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00062/anat/sub-00062_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:19 | INFO - sub-00062: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00062/anat/sub-00062_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:19 | INFO - sub-00062: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:19 | INFO - sub-00062: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:19 | INFO - sub-00062: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00062
+2025-05-18 14:41:20 | ERROR - sub-00062: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00062/scripts/recon-all.log
+2025-05-18 14:41:20 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00062 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00062/anat/sub-00062_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:20 | ERROR - sub-00062: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:20 | STEP - : Start processing sub-00061
+00061
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:22 | INFO - sub-00061: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00061/anat/sub-00061_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:22 | INFO - sub-00061: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00061/anat/sub-00061_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:22 | INFO - sub-00061: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:22 | INFO - sub-00061: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:22 | INFO - sub-00061: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00061
+2025-05-18 14:41:23 | ERROR - sub-00061: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00061/scripts/recon-all.log
+2025-05-18 14:41:23 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00061 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00061/anat/sub-00061_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:23 | ERROR - sub-00061: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:23 | STEP - : Start processing sub-00060
+00060
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:24 | INFO - sub-00060: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00060/anat/sub-00060_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:24 | INFO - sub-00060: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00060/anat/sub-00060_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:24 | INFO - sub-00060: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:24 | INFO - sub-00060: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:24 | INFO - sub-00060: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00060
+2025-05-18 14:41:25 | ERROR - sub-00060: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00060/scripts/recon-all.log
+2025-05-18 14:41:25 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00060 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00060/anat/sub-00060_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:25 | ERROR - sub-00060: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:25 | STEP - : Start processing sub-00059
+00059
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:27 | INFO - sub-00059: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00059/anat/sub-00059_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:27 | INFO - sub-00059: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00059/anat/sub-00059_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:27 | INFO - sub-00059: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:27 | INFO - sub-00059: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:27 | INFO - sub-00059: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00059
+2025-05-18 14:41:27 | ERROR - sub-00059: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00059/scripts/recon-all.log
+2025-05-18 14:41:27 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00059 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00059/anat/sub-00059_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:27 | ERROR - sub-00059: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:27 | STEP - : Start processing sub-00058
+00058
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:29 | INFO - sub-00058: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00058/anat/sub-00058_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:29 | INFO - sub-00058: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00058/anat/sub-00058_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:29 | INFO - sub-00058: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:29 | INFO - sub-00058: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:29 | INFO - sub-00058: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00058
+2025-05-18 14:41:30 | ERROR - sub-00058: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00058/scripts/recon-all.log
+2025-05-18 14:41:30 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00058 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00058/anat/sub-00058_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:30 | ERROR - sub-00058: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:30 | STEP - : Start processing sub-00055
+00055
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:31 | INFO - sub-00055: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00055/anat/sub-00055_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:31 | INFO - sub-00055: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00055/anat/sub-00055_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:31 | INFO - sub-00055: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:31 | INFO - sub-00055: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:31 | INFO - sub-00055: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00055
+2025-05-18 14:41:32 | ERROR - sub-00055: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00055/scripts/recon-all.log
+2025-05-18 14:41:32 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00055 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00055/anat/sub-00055_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:32 | ERROR - sub-00055: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:32 | STEP - : Start processing sub-00053
+00053
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:34 | INFO - sub-00053: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00053/anat/sub-00053_acq-sag111VNS_T1w.nii.gz 
+2025-05-18 14:41:34 | INFO - sub-00053: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00053/anat/sub-00053_acq-traacpcVNS_FLAIR.nii.gz 
+2025-05-18 14:41:34 | INFO - sub-00053: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:34 | INFO - sub-00053: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:34 | INFO - sub-00053: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00053
+2025-05-18 14:41:35 | ERROR - sub-00053: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00053/scripts/recon-all.log
+2025-05-18 14:41:35 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00053 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00053/anat/sub-00053_acq-sag111VNS_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:35 | ERROR - sub-00053: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:35 | STEP - : Start processing sub-00050
+00050
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:36 | INFO - sub-00050: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00050/anat/sub-00050_acq-sag111_T1w.nii.gz 
+2025-05-18 14:41:36 | INFO - sub-00050: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00050/anat/sub-00050_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 14:41:36 | INFO - sub-00050: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:36 | INFO - sub-00050: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:36 | INFO - sub-00050: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00050
+2025-05-18 14:41:37 | ERROR - sub-00050: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00050/scripts/recon-all.log
+2025-05-18 14:41:37 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00050 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00050/anat/sub-00050_acq-sag111_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:37 | ERROR - sub-00050: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:37 | STEP - : Start processing sub-00048
+00048
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:39 | INFO - sub-00048: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00048/anat/sub-00048_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:39 | INFO - sub-00048: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00048/anat/sub-00048_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:39 | INFO - sub-00048: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 14:41:39 | INFO - sub-00048: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 14:41:39 | INFO - sub-00048: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00048
+2025-05-18 14:41:40 | ERROR - sub-00048: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00048/scripts/recon-all.log
+2025-05-18 14:41:40 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00048 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00048/anat/sub-00048_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 14:41:40 | ERROR - sub-00048: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:40 | STEP - : Start processing sub-00047
+00047
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:41 | INFO - sub-00047: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00047/anat/sub-00047_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:41 | INFO - sub-00047: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00047/anat/sub-00047_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:41 | STEP 1 - sub-00047: Fastsurfer outputs already exists for subject sub-00047. Freesurfer will be skipped
+2025-05-18 14:41:41 | INFO - sub-00047: Starting FLAIRpial
+2025-05-18 14:41:42 | ERROR - sub-00047: FLAIRpial reconstruction failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00047/scripts/recon-all.log
+2025-05-18 14:41:42 | ERROR - : COMMAND failing : recon-all -sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs -subject sub-00047 -FLAIR /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00047/anat/sub-00047_acq-T2sel_FLAIR.nii.gz -FLAIRpial -autorecon3 with error 
+2025-05-18 14:41:42 | ERROR - sub-00047: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 14:41:42 | STEP - : Start processing sub-00044
+00044
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 14:41:43 | INFO - sub-00044: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00044/anat/sub-00044_acq-iso08_T1w.nii.gz 
+2025-05-18 14:41:43 | INFO - sub-00044: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00044/anat/sub-00044_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 14:41:43 | STEP 1 - sub-00044: Fastsurfer outputs already exists for subject sub-00044. Freesurfer will be skipped
+2025-05-18 14:41:43 | STEP 1 - sub-00044: Freesurfer FLAIR reconstruction outputs already exists. FLAIRpial will be skipped
+2025-05-18 14:41:43 | STEP 2 - sub-00044: Extract surface-based features
+2025-05-18 14:41:43 | INFO - sub-00044: Creating registration to template surface
+2025-05-18 14:41:43 | INFO - sub-00044: Sampling features in native space
+2025-05-18 14:41:43 | INFO - sub-00044: Sample FLAIR features : []
+2025-05-18 14:41:43 | INFO - sub-00044: Sample FLAIR features : []
+2025-05-18 14:41:43 | INFO - sub-00044: Calculate curvatures
+2025-05-18 14:41:49 | INFO - sub-00044: Compute gaussian curvature
+2025-05-18 14:41:50 | INFO - sub-00044: Get thickness and white-grey matter contrast
+2025-05-18 14:41:51 | INFO - sub-00044: Calculate curvatures
+2025-05-18 14:41:56 | INFO - sub-00044: Compute gaussian curvature
+2025-05-18 14:41:58 | INFO - sub-00044: Get thickness and white-grey matter contrast
+2025-05-18 14:41:58 | INFO - sub-00044: Moving features to template surface
+2025-05-18 14:41:58 | INFO - sub-00044: Move feature to xhemi flip
+2025-05-18 14:41:58 | INFO - sub-00044: Moving lesion masks to template surface
+2025-05-18 14:41:58 | INFO - sub-00044: Creating final training data matrix
+scanner for subject sub-00044is set as default XT
+2025-05-18 14:41:59 | INFO - sub-00044: All features have been extracted and saved in /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data/MELD_noHarmo

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import numpy as np
 import nibabel as nb
 from scipy import sparse
@@ -36,7 +37,9 @@ class IcoSpheres:
     ):
         # TODO already gets combine_hemis as input, can use that to choose edges file
         self.log = logging.getLogger(__name__)
-        self.icosphere_path = icosphere_path
+        root_path = Path(__file__).resolve().parent.parent  # meld_graph/
+        self.icosphere_path = os.path.join(root_path, icosphere_path)
+
         self.icospheres = {}
         self.conv_type = conv_type
         self.distance_type = distance_type

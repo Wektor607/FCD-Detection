@@ -7,6 +7,8 @@
 ## The saliency reports include the z-scored feature values and how "salient" they were to the classifier
 
 ## To run : python run_script_prediction.py -ids <text_file_with_ids> -harmo_code <harmo_code>
+import faulthandler
+faulthandler.enable()
 
 
 import os
@@ -98,7 +100,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
             sub_list_df=pd.read_csv(list_ids)
             subject_ids=np.array(sub_list_df.ID.values)
         except:
-                print(get_m(f'⚠️ Could not open CSV with pandas, trying loadtxt: {e}', None, 'WARNING'))
+                print(get_m(f'⚠️ Could not open CSV with pandas, trying loadtxt', None, 'WARNING'))
                 try:
                     subject_ids = np.loadtxt(list_ids, dtype='str', ndmin=1)
                 except Exception as e2:
@@ -121,7 +123,8 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     prediction_file = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
     
     subject_ids_failed=[]
-    
+    print(subjects_dir)
+
     #predict on new subjects
     if not skip_prediction:
         print(get_m(f'Run predictions', subject_ids, 'STEP 1'))
@@ -236,7 +239,7 @@ if __name__ == '__main__':
                 sub_list_df=pd.read_csv(list_ids)
                 subject_ids=np.array(sub_list_df.ID.values)
             except:
-                print(get_m(f'⚠️ Could not open CSV with pandas, trying loadtxt: {e}', None, 'WARNING'))
+                print(get_m(f'⚠️ Could not open CSV with pandas, trying loadtxt', None, 'WARNING'))
                 try:
                     subject_ids = np.loadtxt(list_ids, dtype='str', ndmin=1)
                 except Exception as e2:

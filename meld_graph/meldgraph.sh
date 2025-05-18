@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=re_desc
-#SBATCH --partition=A100medium
-#SBATCH --time=24:00:00
+#SBATCH --job-name=re_asc
+#SBATCH --partition=A40short
+#SBATCH --time=8:00:00
 #SBATCH --gpus=2
 #SBATCH --cpus-per-task=2
 #SBATCH --nodes=1
@@ -33,5 +33,5 @@ export PATH=$FASTSURFER_HOME:$PATH
 if [ $1 = 'pytest' ]; then
   pytest ${@:2}
 else
-  python scripts/new_patient_pipeline/$1 ${@:2}
+  python ../../scripts/new_patient_pipeline/$1 ${@:2}
 fi

@@ -1,0 +1,365 @@
+Setting MELD_DATA_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data
+Setting EXPERIMENT_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/models
+Setting FS_SUBJECTS_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/meld_params
+Namespace(harmo_code='noHarmo', fastsurfer=True, parallelise=False, debug_mode=False, inv=False)
+2025-05-18 09:46:33 | STEP - : Start processing sub-00044
+00044
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 09:46:37 | INFO - sub-00044: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00044/anat/sub-00044_acq-iso08_T1w.nii.gz 
+2025-05-18 09:46:37 | INFO - sub-00044: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00044/anat/sub-00044_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 09:46:37 | INFO - sub-00044: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 09:46:37 | INFO - sub-00044: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 09:46:37 | INFO - sub-00044: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00044
+2025-05-18 11:41:37 | INFO - sub-00044: Finished cortical parcellation
+2025-05-18 11:41:37 | INFO - sub-00044: Starting FLAIRpial
+2025-05-18 13:10:46 | INFO - sub-00044: Finished FLAIRpial reconstruction
+2025-05-18 13:10:46 | STEP 2 - sub-00044: Extract surface-based features
+2025-05-18 13:10:46 | INFO - sub-00044: Creating registration to template surface
+2025-05-18 13:31:09 | INFO - sub-00044: Sampling features in native space
+2025-05-18 13:31:09 | INFO - sub-00044: Sample FLAIR features : [('rh', 0.5), ('rh', 0.25), ('rh', 0.75), ('rh', 0), ('lh', 0.5), ('lh', 0.25), ('lh', 0.75), ('lh', 0)]
+2025-05-18 13:31:18 | INFO - sub-00044: Sample FLAIR features : [('rh', 0.5), ('rh', 1), ('lh', 0.5), ('lh', 1)]
+2025-05-18 13:31:23 | INFO - sub-00044: Calculate curvatures
+2025-05-18 13:31:30 | INFO - sub-00044: Compute gaussian curvature
+2025-05-18 13:31:32 | INFO - sub-00044: Get thickness and white-grey matter contrast
+2025-05-18 13:31:32 | INFO - sub-00044: Calculate curvatures
+2025-05-18 13:31:39 | INFO - sub-00044: Compute gaussian curvature
+2025-05-18 13:31:41 | INFO - sub-00044: Get thickness and white-grey matter contrast
+2025-05-18 13:31:41 | INFO - sub-00044: Moving features to template surface
+2025-05-18 13:31:41 | INFO - sub-00044: Move feature to xhemi flip
+2025-05-18 13:32:50 | INFO - sub-00044: Moving lesion masks to template surface
+2025-05-18 13:32:50 | INFO - sub-00044: Creating final training data matrix
+scanner for subject sub-00044is set as default XT
+2025-05-18 13:32:51 | INFO - sub-00044: All features have been extracted and saved in /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data/MELD_noHarmo
+2025-05-18 13:32:51 | STEP - : Start processing sub-00047
+00047
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 13:32:53 | INFO - sub-00047: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00047/anat/sub-00047_acq-iso08_T1w.nii.gz 
+2025-05-18 13:32:53 | INFO - sub-00047: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00047/anat/sub-00047_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 13:32:53 | INFO - sub-00047: Segmentation using T1 only with FastSurfer
+python3.9
+2025-05-18 13:32:53 | INFO - sub-00047: Start cortical parcellation (up to 2h). Please wait
+2025-05-18 13:32:53 | INFO - sub-00047: Results will be stored in /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00047
+2025-05-18 15:19:44 | ERROR - sub-00047: Cortical parcellation using fastsurfer failed. Please check the log at /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00047/scripts/recon-all.log
+2025-05-18 15:19:44 | ERROR - : COMMAND failing : $FASTSURFER_HOME/run_fastsurfer.sh --sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs --sid sub-00047 --t1 /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00047/anat/sub-00047_acq-iso08_T1w.nii.gz --parallel --batch 1 --fsaparc --py python3.9 with error 
+2025-05-18 15:19:44 | ERROR - sub-00047: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:44 | STEP - : Start processing sub-00048
+00048
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:45 | INFO - sub-00048: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00048/anat/sub-00048_acq-iso08_T1w.nii.gz 
+2025-05-18 15:19:45 | INFO - sub-00048: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00048/anat/sub-00048_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:19:45 | ERROR - sub-00048: Fastsurfer outputs already exists for subject sub-00048 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00048 and reran
+2025-05-18 15:19:45 | ERROR - sub-00048: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:45 | STEP - : Start processing sub-00050
+00050
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:47 | INFO - sub-00050: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00050/anat/sub-00050_acq-sag111_T1w.nii.gz 
+2025-05-18 15:19:47 | INFO - sub-00050: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00050/anat/sub-00050_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:19:47 | ERROR - sub-00050: Fastsurfer outputs already exists for subject sub-00050 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00050 and reran
+2025-05-18 15:19:47 | ERROR - sub-00050: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:47 | STEP - : Start processing sub-00053
+00053
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:48 | INFO - sub-00053: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00053/anat/sub-00053_acq-sag111VNS_T1w.nii.gz 
+2025-05-18 15:19:48 | INFO - sub-00053: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00053/anat/sub-00053_acq-traacpcVNS_FLAIR.nii.gz 
+2025-05-18 15:19:48 | ERROR - sub-00053: Fastsurfer outputs already exists for subject sub-00053 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00053 and reran
+2025-05-18 15:19:48 | ERROR - sub-00053: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:48 | STEP - : Start processing sub-00055
+00055
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:50 | INFO - sub-00055: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00055/anat/sub-00055_acq-sag111_T1w.nii.gz 
+2025-05-18 15:19:50 | INFO - sub-00055: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00055/anat/sub-00055_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:19:50 | ERROR - sub-00055: Fastsurfer outputs already exists for subject sub-00055 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00055 and reran
+2025-05-18 15:19:50 | ERROR - sub-00055: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:50 | STEP - : Start processing sub-00058
+00058
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:51 | INFO - sub-00058: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00058/anat/sub-00058_acq-sag111_T1w.nii.gz 
+2025-05-18 15:19:51 | INFO - sub-00058: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00058/anat/sub-00058_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:19:51 | ERROR - sub-00058: Fastsurfer outputs already exists for subject sub-00058 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00058 and reran
+2025-05-18 15:19:51 | ERROR - sub-00058: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:51 | STEP - : Start processing sub-00059
+00059
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:52 | INFO - sub-00059: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00059/anat/sub-00059_acq-sag111_T1w.nii.gz 
+2025-05-18 15:19:52 | INFO - sub-00059: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00059/anat/sub-00059_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:19:52 | ERROR - sub-00059: Fastsurfer outputs already exists for subject sub-00059 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00059 and reran
+2025-05-18 15:19:52 | ERROR - sub-00059: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:52 | STEP - : Start processing sub-00060
+00060
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:54 | INFO - sub-00060: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00060/anat/sub-00060_acq-iso08_T1w.nii.gz 
+2025-05-18 15:19:54 | INFO - sub-00060: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00060/anat/sub-00060_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:19:54 | ERROR - sub-00060: Fastsurfer outputs already exists for subject sub-00060 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00060 and reran
+2025-05-18 15:19:54 | ERROR - sub-00060: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:54 | STEP - : Start processing sub-00061
+00061
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:55 | INFO - sub-00061: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00061/anat/sub-00061_acq-sag111_T1w.nii.gz 
+2025-05-18 15:19:55 | INFO - sub-00061: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00061/anat/sub-00061_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:19:55 | ERROR - sub-00061: Fastsurfer outputs already exists for subject sub-00061 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00061 and reran
+2025-05-18 15:19:55 | ERROR - sub-00061: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:55 | STEP - : Start processing sub-00062
+00062
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:57 | INFO - sub-00062: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00062/anat/sub-00062_acq-iso08_T1w.nii.gz 
+2025-05-18 15:19:57 | INFO - sub-00062: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00062/anat/sub-00062_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:19:57 | ERROR - sub-00062: Fastsurfer outputs already exists for subject sub-00062 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00062 and reran
+2025-05-18 15:19:57 | ERROR - sub-00062: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:57 | STEP - : Start processing sub-00063
+00063
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:19:58 | INFO - sub-00063: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00063/anat/sub-00063_acq-iso08_T1w.nii.gz 
+2025-05-18 15:19:58 | INFO - sub-00063: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00063/anat/sub-00063_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:19:58 | ERROR - sub-00063: Fastsurfer outputs already exists for subject sub-00063 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00063 and reran
+2025-05-18 15:19:58 | ERROR - sub-00063: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:19:58 | STEP - : Start processing sub-00064
+00064
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:00 | INFO - sub-00064: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00064/anat/sub-00064_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:00 | INFO - sub-00064: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00064/anat/sub-00064_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:00 | ERROR - sub-00064: Fastsurfer outputs already exists for subject sub-00064 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00064 and reran
+2025-05-18 15:20:00 | ERROR - sub-00064: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:00 | STEP - : Start processing sub-00065
+00065
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:01 | INFO - sub-00065: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00065/anat/sub-00065_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:01 | INFO - sub-00065: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00065/anat/sub-00065_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:01 | ERROR - sub-00065: Fastsurfer outputs already exists for subject sub-00065 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00065 and reran
+2025-05-18 15:20:01 | ERROR - sub-00065: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:01 | STEP - : Start processing sub-00066
+00066
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:03 | INFO - sub-00066: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00066/anat/sub-00066_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:03 | INFO - sub-00066: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00066/anat/sub-00066_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:03 | ERROR - sub-00066: Fastsurfer outputs already exists for subject sub-00066 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00066 and reran
+2025-05-18 15:20:03 | ERROR - sub-00066: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:03 | STEP - : Start processing sub-00068
+00068
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:04 | INFO - sub-00068: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00068/anat/sub-00068_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:04 | INFO - sub-00068: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00068/anat/sub-00068_acq-32ch10_FLAIR.nii.gz 
+2025-05-18 15:20:04 | ERROR - sub-00068: Fastsurfer outputs already exists for subject sub-00068 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00068 and reran
+2025-05-18 15:20:04 | ERROR - sub-00068: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:04 | STEP - : Start processing sub-00071
+00071
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:06 | INFO - sub-00071: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00071/anat/sub-00071_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:06 | INFO - sub-00071: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00071/anat/sub-00071_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:06 | ERROR - sub-00071: Fastsurfer outputs already exists for subject sub-00071 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00071 and reran
+2025-05-18 15:20:06 | ERROR - sub-00071: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:06 | STEP - : Start processing sub-00072
+00072
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:07 | INFO - sub-00072: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00072/anat/sub-00072_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:07 | INFO - sub-00072: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00072/anat/sub-00072_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:07 | ERROR - sub-00072: Fastsurfer outputs already exists for subject sub-00072 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00072 and reran
+2025-05-18 15:20:07 | ERROR - sub-00072: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:07 | STEP - : Start processing sub-00073
+00073
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:08 | INFO - sub-00073: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00073/anat/sub-00073_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:08 | INFO - sub-00073: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00073/anat/sub-00073_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:08 | ERROR - sub-00073: Fastsurfer outputs already exists for subject sub-00073 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00073 and reran
+2025-05-18 15:20:08 | ERROR - sub-00073: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:08 | STEP - : Start processing sub-00074
+00074
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:10 | INFO - sub-00074: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00074/anat/sub-00074_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:10 | INFO - sub-00074: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00074/anat/sub-00074_acq-cor3mmOPT_FLAIR.nii.gz 
+2025-05-18 15:20:10 | ERROR - sub-00074: Fastsurfer outputs already exists for subject sub-00074 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00074 and reran
+2025-05-18 15:20:10 | ERROR - sub-00074: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:10 | STEP - : Start processing sub-00076
+00076
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:11 | INFO - sub-00076: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00076/anat/sub-00076_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:11 | INFO - sub-00076: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00076/anat/sub-00076_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:11 | ERROR - sub-00076: Fastsurfer outputs already exists for subject sub-00076 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00076 and reran
+2025-05-18 15:20:11 | ERROR - sub-00076: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:11 | STEP - : Start processing sub-00077
+00077
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:13 | INFO - sub-00077: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00077/anat/sub-00077_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:13 | INFO - sub-00077: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00077/anat/sub-00077_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:13 | ERROR - sub-00077: Fastsurfer outputs already exists for subject sub-00077 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00077 and reran
+2025-05-18 15:20:13 | ERROR - sub-00077: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:13 | STEP - : Start processing sub-00078
+00078
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:14 | INFO - sub-00078: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00078/anat/sub-00078_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:14 | INFO - sub-00078: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00078/anat/sub-00078_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:14 | ERROR - sub-00078: Fastsurfer outputs already exists for subject sub-00078 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00078 and reran
+2025-05-18 15:20:14 | ERROR - sub-00078: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:14 | STEP - : Start processing sub-00080
+00080
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:16 | INFO - sub-00080: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00080/anat/sub-00080_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:16 | INFO - sub-00080: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00080/anat/sub-00080_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:16 | ERROR - sub-00080: Fastsurfer outputs already exists for subject sub-00080 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00080 and reran
+2025-05-18 15:20:16 | ERROR - sub-00080: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:16 | STEP - : Start processing sub-00081
+00081
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:17 | INFO - sub-00081: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00081/anat/sub-00081_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:17 | INFO - sub-00081: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00081/anat/sub-00081_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:17 | ERROR - sub-00081: Fastsurfer outputs already exists for subject sub-00081 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00081 and reran
+2025-05-18 15:20:17 | ERROR - sub-00081: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:17 | STEP - : Start processing sub-00083
+00083
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:19 | INFO - sub-00083: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00083/anat/sub-00083_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:19 | INFO - sub-00083: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00083/anat/sub-00083_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:19 | ERROR - sub-00083: Fastsurfer outputs already exists for subject sub-00083 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00083 and reran
+2025-05-18 15:20:19 | ERROR - sub-00083: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:19 | STEP - : Start processing sub-00087
+00087
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:20 | INFO - sub-00087: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00087/anat/sub-00087_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:20 | INFO - sub-00087: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00087/anat/sub-00087_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:20 | ERROR - sub-00087: Fastsurfer outputs already exists for subject sub-00087 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00087 and reran
+2025-05-18 15:20:20 | ERROR - sub-00087: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:20 | STEP - : Start processing sub-00089
+00089
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:22 | INFO - sub-00089: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00089/anat/sub-00089_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:22 | INFO - sub-00089: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00089/anat/sub-00089_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:22 | ERROR - sub-00089: Fastsurfer outputs already exists for subject sub-00089 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00089 and reran
+2025-05-18 15:20:22 | ERROR - sub-00089: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:22 | STEP - : Start processing sub-00090
+00090
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:23 | INFO - sub-00090: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00090/anat/sub-00090_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:23 | INFO - sub-00090: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00090/anat/sub-00090_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:23 | ERROR - sub-00090: Fastsurfer outputs already exists for subject sub-00090 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00090 and reran
+2025-05-18 15:20:23 | ERROR - sub-00090: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:23 | STEP - : Start processing sub-00091
+00091
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:25 | INFO - sub-00091: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00091/anat/sub-00091_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:25 | INFO - sub-00091: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00091/anat/sub-00091_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:25 | ERROR - sub-00091: Fastsurfer outputs already exists for subject sub-00091 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00091 and reran
+2025-05-18 15:20:25 | ERROR - sub-00091: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:25 | STEP - : Start processing sub-00092
+00092
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:26 | INFO - sub-00092: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00092/anat/sub-00092_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:26 | INFO - sub-00092: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00092/anat/sub-00092_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:26 | ERROR - sub-00092: Fastsurfer outputs already exists for subject sub-00092 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00092 and reran
+2025-05-18 15:20:26 | ERROR - sub-00092: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:26 | STEP - : Start processing sub-00095
+00095
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:28 | INFO - sub-00095: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00095/anat/sub-00095_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:28 | INFO - sub-00095: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00095/anat/sub-00095_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:28 | ERROR - sub-00095: Fastsurfer outputs already exists for subject sub-00095 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00095 and reran
+2025-05-18 15:20:28 | ERROR - sub-00095: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:28 | STEP - : Start processing sub-00097
+00097
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:30 | INFO - sub-00097: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00097/anat/sub-00097_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:30 | INFO - sub-00097: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00097/anat/sub-00097_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:30 | ERROR - sub-00097: Fastsurfer outputs already exists for subject sub-00097 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00097 and reran
+2025-05-18 15:20:30 | ERROR - sub-00097: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:30 | STEP - : Start processing sub-00098
+00098
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:31 | INFO - sub-00098: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00098/anat/sub-00098_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:31 | INFO - sub-00098: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00098/anat/sub-00098_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:31 | ERROR - sub-00098: Fastsurfer outputs already exists for subject sub-00098 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00098 and reran
+2025-05-18 15:20:31 | ERROR - sub-00098: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:31 | STEP - : Start processing sub-00099
+00099
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:32 | INFO - sub-00099: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00099/anat/sub-00099_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:32 | INFO - sub-00099: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00099/anat/sub-00099_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:32 | ERROR - sub-00099: Fastsurfer outputs already exists for subject sub-00099 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00099 and reran
+2025-05-18 15:20:32 | ERROR - sub-00099: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:32 | STEP - : Start processing sub-00100
+00100
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:34 | INFO - sub-00100: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00100/anat/sub-00100_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:34 | INFO - sub-00100: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00100/anat/sub-00100_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:34 | ERROR - sub-00100: Fastsurfer outputs already exists for subject sub-00100 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00100 and reran
+2025-05-18 15:20:34 | ERROR - sub-00100: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:34 | STEP - : Start processing sub-00101
+00101
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:35 | INFO - sub-00101: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00101/anat/sub-00101_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:35 | INFO - sub-00101: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00101/anat/sub-00101_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:35 | ERROR - sub-00101: Fastsurfer outputs already exists for subject sub-00101 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00101 and reran
+2025-05-18 15:20:35 | ERROR - sub-00101: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:35 | STEP - : Start processing sub-00103
+00103
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:37 | INFO - sub-00103: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00103/anat/sub-00103_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:37 | INFO - sub-00103: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00103/anat/sub-00103_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:37 | ERROR - sub-00103: Fastsurfer outputs already exists for subject sub-00103 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00103 and reran
+2025-05-18 15:20:37 | ERROR - sub-00103: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:37 | STEP - : Start processing sub-00105
+00105
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:38 | INFO - sub-00105: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00105/anat/sub-00105_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:38 | INFO - sub-00105: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00105/anat/sub-00105_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:38 | ERROR - sub-00105: Fastsurfer outputs already exists for subject sub-00105 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00105 and reran
+2025-05-18 15:20:38 | ERROR - sub-00105: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:38 | STEP - : Start processing sub-00107
+00107
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:40 | INFO - sub-00107: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00107/anat/sub-00107_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:40 | INFO - sub-00107: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00107/anat/sub-00107_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:40 | ERROR - sub-00107: Fastsurfer outputs already exists for subject sub-00107 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00107 and reran
+2025-05-18 15:20:40 | ERROR - sub-00107: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:40 | STEP - : Start processing sub-00108
+00108
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:41 | INFO - sub-00108: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00108/anat/sub-00108_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:41 | INFO - sub-00108: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00108/anat/sub-00108_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:41 | ERROR - sub-00108: Fastsurfer outputs already exists for subject sub-00108 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00108 and reran
+2025-05-18 15:20:41 | ERROR - sub-00108: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:41 | STEP - : Start processing sub-00109
+00109
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:43 | INFO - sub-00109: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00109/anat/sub-00109_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:43 | INFO - sub-00109: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00109/anat/sub-00109_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:43 | ERROR - sub-00109: Fastsurfer outputs already exists for subject sub-00109 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00109 and reran
+2025-05-18 15:20:43 | ERROR - sub-00109: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:43 | STEP - : Start processing sub-00112
+00112
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:45 | INFO - sub-00112: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00112/anat/sub-00112_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:45 | INFO - sub-00112: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00112/anat/sub-00112_acq-tra4mm_FLAIR.nii.gz 
+2025-05-18 15:20:45 | ERROR - sub-00112: Fastsurfer outputs already exists for subject sub-00112 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00112 and reran
+2025-05-18 15:20:45 | ERROR - sub-00112: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:45 | STEP - : Start processing sub-00115
+00115
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:47 | INFO - sub-00115: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00115/anat/sub-00115_acq-iso08_T1w.nii.gz 
+2025-05-18 15:20:47 | INFO - sub-00115: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00115/anat/sub-00115_acq-T2sel_FLAIR.nii.gz 
+2025-05-18 15:20:47 | ERROR - sub-00115: Fastsurfer outputs already exists for subject sub-00115 but is incomplete. Delete folder /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs/sub-00115 and reran
+2025-05-18 15:20:47 | ERROR - sub-00115: One step of the pipeline has failed. Process has been aborted for this subject
+2025-05-18 15:20:47 | STEP - : Start processing sub-00116
+00116
+BIDS Layout: ...etection/meld_graph/data/input | Subjects: 170 | Sessions: 0 | Runs: 0
+2025-05-18 15:20:48 | INFO - sub-00116: T1 file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00116/anat/sub-00116_acq-sag111_T1w.nii.gz 
+2025-05-18 15:20:48 | INFO - sub-00116: FLAIR file used : /home/s17gmikh/FCD-Detection/meld_graph/data/input/sub-00116/anat/sub-00116_acq-tse3dvfl_FLAIR.nii.gz 
+2025-05-18 15:20:48 | STEP 1 - sub-00116: Fastsurfer outputs already exists for subject sub-00116. Freesurfer will be skipped
+2025-05-18 15:20:48 | STEP 1 - sub-00116: Freesurfer FLAIR reconstruction outputs already exists. FLAIRpial will be skipped
+2025-05-18 15:20:48 | STEP 2 - sub-00116: Extract surface-based features
+2025-05-18 15:20:48 | INFO - sub-00116: Creating registration to template surface
+2025-05-18 15:20:48 | INFO - sub-00116: Sampling features in native space
+2025-05-18 15:20:48 | INFO - sub-00116: Sample FLAIR features : []
+2025-05-18 15:20:48 | INFO - sub-00116: Sample FLAIR features : []
+2025-05-18 15:20:48 | INFO - sub-00116: Calculate curvatures
+2025-05-18 15:20:55 | INFO - sub-00116: Compute gaussian curvature
+2025-05-18 15:20:57 | INFO - sub-00116: Get thickness and white-grey matter contrast
+2025-05-18 15:20:58 | INFO - sub-00116: Calculate curvatures
+2025-05-18 15:21:05 | INFO - sub-00116: Compute gaussian curvature
+2025-05-18 15:21:06 | INFO - sub-00116: Get thickness and white-grey matter contrast
+2025-05-18 15:21:07 | INFO - sub-00116: Moving features to template surface
+2025-05-18 15:21:07 | INFO - sub-00116: Move feature to xhemi flip
+2025-05-18 15:21:07 | INFO - sub-00116: Moving lesion masks to template surface
+2025-05-18 15:21:07 | INFO - sub-00116: Creating final training data matrix
+scanner for subject sub-00116is set as default XT
+2025-05-18 15:21:08 | INFO - sub-00116: All features have been extracted and saved in /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data/MELD_noHarmo
