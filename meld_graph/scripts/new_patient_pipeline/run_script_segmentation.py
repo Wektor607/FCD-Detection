@@ -6,7 +6,6 @@
 
 ## To run : python run_script_segmentation.py -id <sub_id> -harmo_code <harmo_code>
 
-
 import os
 from tabnanny import verbose
 import numpy as np
@@ -426,8 +425,8 @@ if __name__ == "__main__":
     subjects_with_roi = [
         sid for sid in subjects_with_roi
         if not os.path.isdir(os.path.join(fs_outputs_dir, sid))
-    ]  
-
+    ]
+    
     if not subjects_with_roi:
         print("❌ No subjects with _roi file found.")
         sys.exit(0)
@@ -447,93 +446,6 @@ if __name__ == "__main__":
             use_fastsurfer=args.fastsurfer,
             verbose=args.debug_mode
         )
-
-# if __name__ == "__main__":
-#     # parse commandline arguments
-#     parser = argparse.ArgumentParser(description="perform cortical parcellation using recon-all from freesurfer")
-#     parser.add_argument("-id","--id",
-#                         help="Subject ID.",
-#                         default=None,
-#                         required=False,
-#                         )
-#     parser.add_argument("-ids","--list_ids",
-#                         default=None,
-#                         help="File containing list of ids. Can be txt or csv with 'ID' column",
-#                         required=False,
-#                         )
-#     parser.add_argument("-harmo_code","--harmo_code",
-#                         default="noHarmo",
-#                         help="Harmonisation code",
-#                         required=False,
-#                         )
-#     parser.add_argument('-demos', '--demographic_file', 
-#                         type=str, 
-#                         help='provide the demographic files for the harmonisation',
-#                         required=False,
-#                         default=None,
-#                         )
-#     parser.add_argument("--fastsurfer", 
-#                         help="use fastsurfer instead of freesurfer", 
-#                         required=False, 
-#                         default=False,
-#                         action="store_true",
-#                         )
-#     parser.add_argument("--parallelise", 
-#                         help="parallelise segmentation", 
-#                         required=False,
-#                         default=False,
-#                         action="store_true",
-#                         )
-#     parser.add_argument("--debug_mode", 
-#                         help="mode to debug error", 
-#                         required=False,
-#                         default=False,
-#                         action="store_true",
-#                         )
-#     args = parser.parse_args()
-#     print(args)
-
-#     ### Create demographic file for prediction if not provided
-#     demographic_file_tmp = DEMOGRAPHIC_FEATURES_FILE
-#     if args.demographic_file is None:
-#         harmo_code = str(args.harmo_code)
-#         subject_id=None
-#         subject_ids=None
-#         if args.list_ids != None:
-#             list_ids=os.path.join(MELD_DATA_PATH, args.list_ids)
-#             try:
-#                 sub_list_df=pd.read_csv(list_ids)
-#                 subject_ids=np.array(sub_list_df.ID.values)
-#             except:
-#                 subject_ids=np.array(np.loadtxt(list_ids, dtype='str', ndmin=1)) 
-#             else:
-#                     sys.exit(get_m(f'Could not open {subject_ids}', None, 'ERROR'))             
-#         elif args.id != None:
-#             subject_id=args.id
-#             subject_ids=np.array([args.id])
-#         else:
-#             print(get_m(f'No ids were provided', None, 'ERROR'))
-#             print(get_m(f'Please specify both subject(s) and site_code ...', None, 'ERROR'))
-#             sys.exit(-1) 
-#         create_demographic_file(subject_ids, demographic_file_tmp, harmo_code=harmo_code)
-#     else:
-#         shutil.copy(os.path.join(MELD_DATA_PATH,args.demographic_file), demographic_file_tmp)
-       
-       
-#     run_script_segmentation(
-#                         harmo_code = args.harmo_code,
-#                         list_ids=args.list_ids,
-#                         sub_id=args.id, 
-#                         use_parallel=args.parallelise, 
-#                         use_fastsurfer=args.fastsurfer,
-#                         verbose = args.debug_mode
-#                         )
-    
-
-
-
-
-
 
 
 

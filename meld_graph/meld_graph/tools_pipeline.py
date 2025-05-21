@@ -3,7 +3,7 @@ import subprocess
 import glob
 import json
 import os
-import bids.layout
+from bids.layout import BIDSLayout
 import pandas as pd
 from subprocess import Popen
 from meld_graph.paths import MELD_DATA_PATH, FS_SUBJECTS_PATH
@@ -52,7 +52,7 @@ def return_bids_T1_FLAIR(bids_dir, subject_id):
         subject_id = subject_id.split('sub-')[-1]
     print(subject_id)
     # get bids structure
-    layout = bids.layout.BIDSLayout(bids_dir)
+    layout = BIDSLayout(bids_dir)
     print(layout)
     # find parameters to extract bids file
     config_file = os.path.join(bids_dir, 'meld_bids_config.json')

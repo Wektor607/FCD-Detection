@@ -15,11 +15,8 @@ import re
 import shutil
 import numpy as np
 import pandas as pd
-import nibabel as nib
-from fsl.wrappers import flirt
-from nilearn import datasets, image
-from get_reports import process_data
 
+from get_reports import process_data
 from meld_graph.paths import MELD_DATA_PATH
 from utils.get_reports import find_file_with_suffix
 
@@ -28,7 +25,6 @@ CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_FILE, "..", "..")) 
 
 sys.path.insert(0, PROJECT_ROOT)
-
 
 def project_path(relative_path):
     return os.path.join(PROJECT_ROOT, relative_path)
@@ -47,12 +43,10 @@ def get_subj_list(folder, output_folder, output_file):
 
     print(f"✅ Saved {len(subject_ids)} subject IDs to {output_file}")
 
+
 def preprocess_func(list_ids, subj_path):
     # Necessary for getting affine matrix for transformations
-    # process_data()
-
-    atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr25-1mm', symmetric_split=True)
-    atlas_img = atlas['maps']
+    process_data()
 
     list_ids=os.path.join(MELD_DATA_PATH, list_ids)
     try:
@@ -67,51 +61,18 @@ def preprocess_func(list_ids, subj_path):
     
     list_paths  = []
     report_paths = []
-    print(subject_ids)
+    
     for subj_id in subject_ids:
-        # pred_path = project_path(f"meld_graph/data/output/predictions_reports/{subj_id}/predictions/prediction.nii.gz")
         featmat_path = project_path(f"data/output/preprocessed_surf_data/{subj_id}_featurematrix_combat.hdf5")
-        roi_path  = find_file_with_suffix(project_path(f"data/input/{subj_id}/anat"), 'FLAIR_roi')
-
+        roi_path  = find_file_with_suffix(project_path(f"data/input/{subj_id}/anat/preprocessed"), 'final')
         subj_new = project_path(os.path.join(subj_path, subj_id))
-        generated_dir = os.path.join(subj_new, "temp")
-        os.makedirs(generated_dir, exist_ok=True)
         
-        mat_path = os.path.join(project_path(f"data/input/{subj_id}/anat/generated"), f"{subj_id}_flair2mni.mat")
-        roi_out = os.path.join(generated_dir, "roi_in_mni.nii.gz")
-        # pred_out = os.path.join(generated_dir, "pred_in_mni.nii.gz")
-
-        # === 1. FLIRT: приведение ROI и Prediction к пространству атласа ===
-        # flirt(src=pred_path, ref=atlas_img, omat=mat_path, out=pred_out, applyxfm=True, init=mat_path,
-        #     interp='nearestneighbour', verbose=True)
-        flirt(src=roi_path, ref=atlas_img, omat=mat_path, out=roi_out, applyxfm=True, init=mat_path,
-            interp='nearestneighbour', verbose=True)
-
-        # === 2. Z-map: создаём из ROI или Prediction ===
-        atlas_data = atlas_img.get_fdata()
-        z_value = np.max(np.unique(atlas_data))
-        img_roi = nib.load(roi_out)  # можно заменить на roi_out для ROI
-        # img_pred = nib.load(pred_out)  # можно заменить на roi_out для ROI
-        data_roi = img_roi.get_fdata()
-        # data_pred = img_pred.get_fdata()
-        z_data_roi = np.where(data_roi > 0, z_value, 0.0).astype(np.float32)
-        # z_data_pred = np.where(data_pred > 0, z_value, 0.0).astype(np.float32)
-        z_roi = nib.Nifti1Image(z_data_roi, img_roi.affine, img_roi.header)
-        # z_pred = nib.Nifti1Image(z_data_pred, img_roi.affine, img_roi.header)
-
-        # === 3. Пересемплируем в сетку атласа ===
-        resampled_roi = image.resample_to_img(z_roi, atlas_img, interpolation='nearest')
-        # resampled_pred = image.resample_to_img(z_pred, atlas_img, interpolation='nearest')
-
-        # === 4. Сохраняем Z-map и запускаем create_output ===
-        zroi_path = os.path.join(subj_new, "roi_in_atlas.nii.gz")
-        # zpred_path = os.path.join(generated_dir, "pred_in_atlas.nii.gz")
-        nib.save(resampled_roi, zroi_path)
         shutil.copy2(featmat_path, subj_new)
-        # nib.save(resampled_pred, zpred_path)
+        shutil.copy2(roi_path, subj_new)
 
         list_paths.append(subj_new)
         report_paths.append(project_path(f"data/input/{subj_id}/anat/report"))
+
     generate_full_data(list_paths, report_paths, project_path(os.path.join(subj_path, "NewFinal.csv")))
 
 def generate_full_data(list_paths, report_paths, result_file):
@@ -187,11 +148,8 @@ def generate_full_data(list_paths, report_paths, result_file):
 
     new_csv = pd.DataFrame(columns=['DATA_PATH', 'ROI_PATH', 'harvard_oxford', 'aal'])
     for path, report in zip(list_paths, report_paths):
-        # t1_path = find_file_with_suffix(path, 'T1w')
-        # flair_path = find_file_with_suffix(path, 'FLAIR', exclude='roi')
-        # roi_path = find_file_with_suffix(path, 'FLAIR_roi')
         
-        roi_path  = find_file_with_suffix(path, 'roi_in_atlas')
+        roi_path  = find_file_with_suffix(path, 'roi_z_trans')
         pred_path = find_file_with_suffix(path, '_combat')
 
         print(f"Processing report for: {path}")
@@ -213,7 +171,7 @@ def generate_full_data(list_paths, report_paths, result_file):
     if os.path.exists(result_file):
         old_csv = pd.read_csv(result_file)
         combined = pd.concat([old_csv, new_csv], ignore_index=True)
-        combined.drop_duplicates(inplace=True)  # если нужно удалить повторы
+        combined.drop_duplicates(inplace=True)
         combined.to_csv(result_file, index=False)
     else:
         new_csv.to_csv(result_file, index=False)
@@ -224,8 +182,6 @@ def clean_region_string(text):
         return text
     # Remove 'Unlabeled' and 'no labels' entries
     text = re.sub(r'\s*\d+(\.\d+)?\s*percent of (Unlabeled region|no labels)', '', text)
-    # Remove word dublicates: "Gyrus Gyrus", "cortex cortex", "Lobe Lobe", и т.д.
-    # text = text.replace('Gyrus Gyrus', 'Gyrus')
     # Normalize semicolons
     text = re.sub(r';{2,}', ';', text).strip('; ').strip()
     return text
@@ -240,9 +196,9 @@ def apply_region_aliases(series, aliases):
     series = series.apply(lambda text: re.sub(r'\bL(?=;|\s*$)', 'Left', text))
     return series
 
-# get_subj_list('meld_graph/data/output/preprocessed_surf_data',
-#               'meld_graph/data',
+# get_subj_list('data/output/preprocessed_surf_data',
+#               'data',
 #               'subjects_list.csv')
 
 
-preprocess_func("subjects_list.csv", "dataset")
+# preprocess_func("subjects_list.csv", "data")

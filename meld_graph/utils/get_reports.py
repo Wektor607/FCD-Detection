@@ -1,24 +1,19 @@
 import os
 import sys
 import re
-import nibabel as nib
+import ants
 import numpy as np
+import nibabel as nib
 
-os.environ['FSLDIR'] = '/home/s17gmikh/fsl'
-os.environ['PATH'] = os.environ['FSLDIR'] + '/bin:' + os.environ['PATH']
-os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
-
-from fsl.wrappers import flirt
 from nilearn import datasets
-from nilearn.image import resample_to_img
 from atlasreader import create_output
-import pandas as pd
+from nilearn.datasets import fetch_icbm152_2009
 
 def process_data():
     # Get absolute path to the directory where the script is located
     script_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0]))),
-        'meld_graph',
+        # 'meld_graph',
         'data',
         'input')
     list_folders = []
@@ -47,34 +42,10 @@ def process_data():
         else:
             print(f'Skipped {i:05d}: folder not found')
 
+        break
     
     print("Error folders: ", error_folders)
     print("Processed folders:", list_folders)
-    # generate_full_data(list_folders, 'Finall_file.csv')
-
-def process_pred_subj(subj_path, output_dir, base_name='sub-00016', standard='MNI152_T1_2mm.nii.gz'):
-    pred_path = os.path.join(subj_path, "predictions", "prediction.nii.gz")
-    pred_out_path = os.path.join(output_dir, base_name + '_prediction_to_mni.nii.gz')
-    mat_path = os.path.join("/home/s17gmikh/FCD-Detection/data/ds004199", base_name, "anat/generated", base_name + "_flair2mni.mat")
-    fsldir = os.environ['FSLDIR']
-    ref_path = os.path.join(fsldir, 'data/standard', standard)
-
-    if os.path.isfile(pred_path):
-        flirt(
-            src=pred_path,
-            ref=ref_path,
-            applyxfm=True,
-            init=mat_path,  # ← матрица трансформации!
-            interp='nearestneighbour',
-            out=pred_out_path,
-            verbose=True
-        )
-    else:
-        print(f"⚠️ Prediction file not found: {pred_path}")
-
-process_pred_subj(subj_path = '/home/s17gmikh/FCD-Detection/meld_graph/data/output/predictions_reports/sub-00146',
-                  output_dir = '/home/s17gmikh/FCD-Detection/meld_graph/data/output/predictions_reports/sub-00146',
-                  base_name='sub-00146')
 
 def process_single_subject(subj_path, output_dir, base_name='sub-00016', standard='MNI152_T1_2mm.nii.gz'):
     """
@@ -101,17 +72,21 @@ def process_single_subject(subj_path, output_dir, base_name='sub-00016', standar
     - Input folder contains exactly one file each for `T1w`, `FLAIR` (excluding roi), and `FLAIR_roi`.
     """
 
-    fsldir = os.environ['FSLDIR']
-    ref_path = os.path.join(fsldir, 'data/standard', standard)
+    preprocessed_dir = os.path.join(subj_path, 'preprocessed')
+    os.makedirs(preprocessed_dir, exist_ok=True)
 
-    atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr25-2mm')
-    atlas_img = atlas.maps
-    atlas_data = atlas_img.get_fdata()
-    z_value = np.max(np.unique(atlas_data))
+    report_dir = os.path.join(subj_path, output_dir)
+    os.makedirs(report_dir, exist_ok=True)
+
+    icbm = fetch_icbm152_2009()
+    mni_path = icbm.t1
+    mni_img = ants.image_read(mni_path)
     
     t1_path = find_file_with_suffix(subj_path, 'T1w')
     flair_path = find_file_with_suffix(subj_path, 'FLAIR', exclude='roi')
     roi_path = find_file_with_suffix(subj_path, 'FLAIR_roi')
+
+    roi_out_path = os.path.join(preprocessed_dir, base_name + '_roi_to_mni.nii.gz')
 
     if t1_path is None or flair_path is None or roi_path is None:
         if t1_path is None:
@@ -123,35 +98,69 @@ def process_single_subject(subj_path, output_dir, base_name='sub-00016', standar
         print(f"This folder: {base_name} does not contain {missing}")
 
         return {base_name: f'does not contain {missing}'}
+    
+    # Read data
+    t1_img = ants.image_read(t1_path)
+    flair_img = ants.image_read(flair_path)
+    roi_img = ants.image_read(roi_path)
 
-    generated_dir = os.path.join(subj_path, 'generated')
-    os.makedirs(generated_dir, exist_ok=True)
+    # Registration: FLAIR → T1
+    reg_flair2t1 = ants.registration(fixed=t1_img, 
+                                    moving=flair_img, 
+                                    type_of_transform='SyN')
 
-    preprocessed_dir = os.path.join(subj_path, 'preprocessed')
-    os.makedirs(preprocessed_dir, exist_ok=True)
+    # Transform: ROI -> T1
+    roi_in_t1 = ants.apply_transforms(
+        fixed=t1_img,
+        moving=roi_img,
+        transformlist=reg_flair2t1['fwdtransforms'],
+        whichtoinvert=[False, True], 
+        interpolation='genericLabel'
+    )
 
-    t1_out_path = os.path.join(preprocessed_dir, base_name + '_t1_to_mni.nii.gz')
-    flair_out_path = os.path.join(preprocessed_dir, base_name + '_flair_to_mni.nii.gz')
-    roi_out_path = os.path.join(preprocessed_dir, base_name + '_roi_to_mni.nii.gz')
-    mat_path = os.path.join(generated_dir, base_name + '_flair2mni.mat')
+    # Registration: T1 → MNI
+    reg_t1_to_mni = ants.registration(
+        fixed=mni_img,
+        moving=t1_img,
+        type_of_transform='Affine',
+    )
 
-    flirt(src=t1_path, ref=ref_path, omat=mat_path, out=t1_out_path, verbose=True)
-    flirt(src=flair_path, ref=ref_path, omat=mat_path, out=flair_out_path, verbose=True)
-    flirt(src=roi_path, ref=ref_path, applyxfm=True, init=mat_path, interp='nearestneighbour', out=roi_out_path, verbose=True)    
+    # Transform: T1 -> MNI
+    roi_in_mni = ants.apply_transforms(
+        fixed=mni_img,
+        moving=roi_in_t1,
+        transformlist=reg_t1_to_mni['fwdtransforms'],
+        whichtoinvert=[False], 
+        interpolation='genericLabel'
+    )
 
+    ants.image_write(roi_in_mni, roi_out_path)
+
+    # Download atlas
+    atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr25-1mm', symmetric_split=True)
+    atlas_img = atlas.maps
+    atlas_data = atlas_img.get_fdata()
+    z_value = int(np.max(np.unique(atlas_data)))
+
+    # Get ROI-mask in nib format
     img = nib.load(roi_out_path)
     data = img.get_fdata()
-    z_data = np.where(data > 0, z_value, 0.0).astype(np.float32)
-    z_img = nib.Nifti1Image(z_data, img.affine, img.header)
-    resampled = resample_to_img(z_img, atlas_img, interpolation='nearest')
-    
-    output_dir = os.path.join(subj_path, output_dir)
-    os.makedirs(output_dir, exist_ok=True)
-    tmp_path = os.path.join(generated_dir, f'{os.path.basename(roi_out_path)}_zmap.nii.gz')
-    nib.save(resampled, tmp_path)
-    create_output(tmp_path, outdir=output_dir, cluster_extent=0, atlas=['harvard_oxford', 'aal'])
 
-    print(f"Processing complete. Reports saved in: {output_dir}")
+    z_data = np.where(data > 0, z_value, 0).astype(np.float32)
+
+    z_img = nib.Nifti1Image(z_data, affine=img.affine, header=img.header)
+    roi_z_out_path = os.path.join(preprocessed_dir, base_name + '_roi_z_trans.nii.gz')
+    nib.save(z_img, roi_z_out_path)
+
+    # Generating report
+    create_output(
+        roi_z_out_path,
+        outdir=report_dir,
+        cluster_extent=0,
+        atlas=['harvard_oxford', 'aal']
+    )
+
+    print(f"Processing complete. Reports saved in: {report_dir}")
 
     return 'Processing complete'
 
@@ -178,4 +187,5 @@ def get_existing_subject_ids(root_dir):
     sorted_list = sorted(subject_ids)
     return np.min(sorted_list), np.max(sorted_list)
 
-# process_data()
+
+process_data()

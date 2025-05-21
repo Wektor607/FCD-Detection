@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import List
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import numpy as np
@@ -44,18 +45,22 @@ class BERTModel(nn.Module):
         return {'feature':output['hidden_states'],'project':embed}
 
 class VisionModel(nn.Module):
-    def __init__(self, project_dim, meld_script_path, output_dir, subject_id, input_shape=(218, 182, 218)):
+    def __init__(self, project_dim, meld_script_path, feature_path, output_dir):
         super().__init__()
-        self.project_head = nn.Sequential(
-            nn.Linear(np.prod(input_shape), 1024),
-            nn.ReLU(),
-            nn.Linear(1024, project_dim)
-        )
+        
+        self.project_heads = nn.ModuleList([
+            nn.Linear(32, project_dim),   # for (163842, 32)
+            nn.Linear(32, project_dim),   # for (40962, 32)
+            nn.Linear(64, project_dim),   # for (10242, 64)
+            nn.Linear(64, project_dim),   # for (2562, 64)
+            nn.Linear(128, project_dim),  # for (642, 128)
+            nn.Linear(128, project_dim),  # for (162, 128)
+            nn.Linear(256, project_dim),  # for (42, 256)
+        ])
+
         self.meld_script_path = meld_script_path
+        self.feature_path     = feature_path
         self.output_dir       = output_dir
-        self.subject_id       = subject_id
-        self.input_shape      = input_shape
-        self.pred_path        = '../../dataset'
 
     def run_meld_prediction(self):
         command = [
@@ -69,99 +74,85 @@ class VisionModel(nn.Module):
             print(f"Error running MELD prediction: {e}")
             raise
 
-    def load_prediction_nifti(self):
-        pred_path = os.path.join(
-            self.output_dir,
-            "predictions_reports",
-            f"{self.subject_id}",
-            "predictions",
-            "prediction.nii.gz"
-        )
-        if not os.path.exists(pred_path):
-            raise FileNotFoundError(f"Prediction file not found: {pred_path}")
+    def forward(self, subject_ids: List[str]):
+        flag = True
+        for subject_id in subject_ids:
 
-        atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr25-1mm', symmetric_split=True)
-        atlas_img = atlas['maps']
-        pred_img = nib.load(pred_path)
+            # Step 1: run MELD prediction
+            if not os.path.isfile(os.path.join(self.output_dir, "predictions_reports", f"{subject_id}", "predictions/prediction.nii.gz")):
+                self.run_meld_prediction()
+
+            # Step 2: get features from all model layers
+            features_path = os.path.join(self.feature_path, subject_id, "feature_maps.npz")
+            features = np.load(features_path)
+            
+            if flag:
+                stage_embeddings = [[] for _ in range(len(features.files))] 
+                flag = False
+
+            sorted_keys = sorted(features.files, key=lambda k: int(k.replace('stage', '')))
+            # Step 3: We squeeze and project the embeddings to the same dimension
+            for i, stage in enumerate(sorted_keys):
+                feat_squeeze = torch.tensor(features[stage], dtype=torch.float32).squeeze()
+                emb_proj = self.project_heads[i](feat_squeeze)
+                stage_embeddings[i].append(emb_proj)
+            
         
-        resampled_pred = image.resample_to_img(pred_img, atlas_img, interpolation='nearest')
+        batch_tensors = []
+        for i, level_batch in enumerate(stage_embeddings):
+            try:
+                level_tensor = torch.stack(level_batch)  # [B, N, D]
+            except RuntimeError:
+                print(f"[!] Stage {i}: Cannot stack due to size mismatch. Keeping as list.")
+                level_tensor = level_batch
+            batch_tensors.append(level_tensor)
 
-        pred_data = resampled_pred.get_fdata()
-        atlas_data = atlas_img.get_fdata()
-        z_value = np.max(np.unique(atlas_data))
-        pred_data_z = (pred_data > 0).astype(np.float32) * z_value
-        z_pred = nib.Nifti1Image(pred_data_z, resampled_pred.affine, resampled_pred.header)
-        
-        zpred_path = os.path.join(self.pred_path, self.subject_id, "pred_in_atlas.nii.gz")
-        nib.save(z_pred, zpred_path)
-        return resampled_pred
-
-    def forward(self):
-        # Step 1: run MELD prediction
-        if not os.path.isfile(os.path.join(
-            self.output_dir, 
-            "predictions_reports", 
-            f"{self.subject_id}",
-            "predictions",
-            "prediction.nii.gz"
-        )):
-            self.run_meld_prediction()
-
-        # Step 2: load and process prediction.nii.gz
-        x = self.load_prediction_nifti()
-        print(x)
-        raise(0)
-        # Step 3: to tensor and flatten
-        pred_tensor = torch.tensor(pred_data, dtype=torch.float32).view(1, -1)  # [1, D]
-
-        # Step 4: project to embedding
-        embedding = self.project_head(pred_tensor)
-
-        return {"feature": None, "project": embedding}
+        return {"feature": None, "project": batch_tensors}
 
 vision = VisionModel(
     project_dim=512,
-    meld_script_path="../../meldgraph.sh",
-    output_dir="../../data/output",
-    subject_id="sub-00003"
+    meld_script_path = "../../meldgraph.sh",
+    feature_path     = "../../dataset",
+    output_dir       = "../../data/output",
+    subject_ids       = ["sub-00003"]
 )
 
 out = vision()
-print(out["project"].shape)
-# class VisionModel(nn.Module):
-
-#     def __init__(self, vision_type, project_dim):
-#         super(VisionModel, self).__init__()
-
-#         self.project_head = nn.Linear(768, project_dim)
-#         self.spatial_dim = 768
-
-#     def forward(self, x):
-
-#         output = self.model(x, output_hidden_states=True)
-#         embeds = output['pooler_output'].squeeze()
-#         project = self.project_head(embeds)
-
-#         return {"feature":output['hidden_states'], "project":project}
-
+for stages in out["project"]:
+    print(stages.shape)
 
 class LanGuideMedSeg(nn.Module):
 
-    def __init__(self, bert_type, vision_type, project_dim=512):
+    def __init__(self, bert_type, 
+                 meld_script_path, 
+                 feature_path, 
+                 output_dir,
+                 project_dim=512):
 
         super(LanGuideMedSeg, self).__init__()
-
-        self.encoder = VisionModel(vision_type, project_dim)
+        self.encoder = VisionModel(project_dim, meld_script_path, feature_path, output_dir)
         self.text_encoder = BERTModel(bert_type, project_dim)
 
-        self.spatial_dim = [7,14,28,56]    # 224*224
-        feature_dim = [768,384,192,96]
+        # Layer stage1 — shape: torch.Size([1, 163842, 32])
+        # Layer stage2 — shape: torch.Size([1, 40962, 32])
+        # Layer stage3 — shape: torch.Size([1, 10242, 64])
+        # Layer stage4 — shape: torch.Size([1, 2562, 64])
+        # Layer stage5 — shape: torch.Size([1, 642, 128])
+        # Layer stage6 — shape: torch.Size([1, 162, 128])
+        # Layer stage7 — shape: torch.Size([1, 42, 256])
+        
+        feature_dim      = [256, 128, 128, 64, 64, 32, 32] # stage_i[2]
+        self.spatial_dim = [6, 13, 25, 51, 101, 202, 405]  # sqrt(stage_i[1])
+        text_lens        = [128, 64, 64, 48, 48, 24, 24]
 
-        self.decoder16 = GuideDecoder(feature_dim[0],feature_dim[1],self.spatial_dim[0],24)
-        self.decoder8 = GuideDecoder(feature_dim[1],feature_dim[2],self.spatial_dim[1],12)
-        self.decoder4 = GuideDecoder(feature_dim[2],feature_dim[3],self.spatial_dim[2],9)
-        self.decoder1 = SubpixelUpsample(2,feature_dim[3],24,4)
-        self.out = UnetOutBlock(2, in_channels=24, out_channels=1)
+        self.decoder7 = GuideDecoder(feature_dim[0], feature_dim[1],self.spatial_dim[0], text_lens[0])
+        self.decoder6 = GuideDecoder(feature_dim[1], feature_dim[2],self.spatial_dim[1], text_lens[1])
+        self.decoder5 = GuideDecoder(feature_dim[2], feature_dim[3],self.spatial_dim[2], text_lens[2])
+        self.decoder4 = GuideDecoder(feature_dim[3], feature_dim[4],self.spatial_dim[3], text_lens[3])
+        self.decoder3 = GuideDecoder(feature_dim[4], feature_dim[5],self.spatial_dim[4], text_lens[4])
+        self.decoder2 = GuideDecoder(feature_dim[5], feature_dim[6],self.spatial_dim[5], text_lens[5])
+        self.decoder1 = SubpixelUpsample(2,feature_dim[6], 48, text_lens[6])
+        self.out = UnetOutBlock(2, in_channels=48, out_channels=1)
 
     def forward(self, data):
 
@@ -178,13 +169,15 @@ class LanGuideMedSeg(nn.Module):
             image_features = image_features[1:]  # 4 8 16 32   convnext: Embedding + 4 layers feature map
             image_features = [rearrange(item,'b c h w -> b (h w) c') for item in image_features] 
 
-        os32 = image_features[3]
-        os16 = self.decoder16(os32,image_features[2], text_embeds[-1])
-        os8 = self.decoder8(os16,image_features[1], text_embeds[-1])
-        os4 = self.decoder4(os8,image_features[0], text_embeds[-1])
-        os4 = rearrange(os4, 'B (H W) C -> B C H W',H=self.spatial_dim[-1],W=self.spatial_dim[-1])
-        os1 = self.decoder1(os4)
-
+        os8 = image_features[6]
+        os7  = self.decoder7(os8, image_features[5], text_embeds[-1])
+        os6  = self.decoder6(os7, image_features[4], text_embeds[-1])
+        os5  = self.decoder5(os6, image_features[3], text_embeds[-1])
+        os4  = self.decoder4(os5, image_features[2], text_embeds[-1])
+        os3  = self.decoder3(os4, image_features[1], text_embeds[-1])
+        os2  = self.decoder2(os3, image_features[0], text_embeds[-1])
+        os2 = rearrange(os2, 'B (H W) C -> B C H W',H=self.spatial_dim[-1],W=self.spatial_dim[-1])
+        os1 = self.decoder1(os2)
         out = self.out(os1).sigmoid()
 
         return out

@@ -357,6 +357,15 @@ class MoNetUnet(nn.Module):
 
         batch_x = batch_x.view((batch_x.shape[0] // self.n_vertices, self.n_vertices, self.num_features))
         skip_connections = []
+        intermediate_features = {
+            "stage1": [],
+            "stage2": [],
+            "stage3": [],
+            "stage4": [],
+            "stage5": [],
+            "stage6": [],
+            "stage7": []
+        }
         outputs = {"log_softmax": [], "non_lesion_logits": [], "log_sumexp": []}
         for level in self.deep_supervision:
             outputs[f"ds{level}_log_softmax"] = []
@@ -372,7 +381,11 @@ class MoNetUnet(nn.Module):
                 for cl in block:
                     x = cl(x, device=self.device)
                     x = self.activation_function(x)
+                
+                intermediate_features[f"stage{i+1}"].append(x)
+                
                 skip_connections.append(x)
+
                 # apply pool except on last block
                 if i < len(self.encoder_conv_layers) - 1:
                     level -= 1
@@ -447,7 +460,12 @@ class MoNetUnet(nn.Module):
             if "object_detection_linear" in key:
                 shape = (-1,4)
             outputs[key] = torch.stack(output).view(shape)
-        return outputs
+        
+        feature_maps = {
+            key: torch.stack(val) for key, val in intermediate_features.items()
+        }
+
+        return outputs, feature_maps
 
 
 class HexPool(nn.Module):
@@ -528,7 +546,15 @@ class PredictionForSaliency(nn.Module):
         self.model = model
         
     def forward(self, input, mask=None):
-        prediction = torch.exp(self.model(input)['log_softmax'])
+        output = self.model(input)
+        if isinstance(output, tuple):
+            log_softmax, _ = output
+            prediction = torch.exp(log_softmax['log_softmax'])
+        elif isinstance(output, dict):
+            prediction = torch.exp(output['log_softmax'])
+        else:
+            raise TypeError(f"Unexpected model output type: {type(output)}")
+        
         if mask is None:
             prediction = torch.mean(prediction, axis=0)
         else:

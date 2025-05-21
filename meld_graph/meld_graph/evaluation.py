@@ -243,6 +243,7 @@ class Evaluator:
             batch_size=1,
         )
         self.data_dictionary = {}
+        
         store_sub_aucs = True
         self.subject_aucs = {}
         for i, data in enumerate(data_loader):
@@ -257,6 +258,8 @@ class Evaluator:
                 geodesic_array = []
                 saliency_array = []
             subj_id = self.subject_ids[subject_index]
+            # if subj_id not in self.data_dictionary:
+            #     self.data_dictionary[subj_id] = {}
             data = data.to(device)
             labels = data.y.squeeze()
             geo_distance = data.distance_map
@@ -264,11 +267,12 @@ class Evaluator:
             if self.dropout:
                 list_prediction = []
                 list_distance_map = []
+
                 for _ in range(self.dropout_n):
                     mask = torch.tensor(np.random.choice([0,1],data.x.shape, p=[self.dropout_p,1-self.dropout_p]), dtype=torch.bool)
                     x = torch.clone(data.x)
                     x[mask] = 0
-                    estimates = self.experiment.model(x)
+                    estimates, feature_maps = self.experiment.model(data.x)
                     list_prediction.append(torch.exp(estimates["log_softmax"])[:, 1].detach().cpu())
                     # if distance_regression_flag:
                     list_distance_map.append(estimates["non_lesion_logits"][:, 0].detach().cpu())
@@ -278,7 +282,7 @@ class Evaluator:
                 # else:
                     # distance_map = torch.full((len(prediction), 1), torch.nan)[:, 0]
             else:
-                estimates = self.experiment.model(data.x)
+                estimates, feature_maps = self.experiment.model(data.x)
                 prediction = torch.exp(estimates["log_softmax"])[:, 1].detach().cpu()
                 # get distance map if exist in loss, otherwise return array of NaN
                 # if (
@@ -288,6 +292,7 @@ class Evaluator:
                 distance_map = estimates["non_lesion_logits"][:, 0].detach().cpu()
                 # else:
                 # distance_map = torch.full((len(prediction), 1), torch.nan)[:, 0]
+
             prediction_array.append(prediction.numpy()[self.cohort.cortex_mask])
             labels_array.append(labels.cpu().numpy()[self.cohort.cortex_mask])
             features_array.append(data.x.cpu().numpy()[self.cohort.cortex_mask])
@@ -300,6 +305,7 @@ class Evaluator:
                     "result": np.concatenate(prediction_array),
                     "distance_map": np.concatenate(distance_map_array),
                     "borderzone": np.concatenate(geodesic_array) < 20,
+                    "feature_maps": feature_maps
                 }
                 # save prediction
                 if save_prediction:
