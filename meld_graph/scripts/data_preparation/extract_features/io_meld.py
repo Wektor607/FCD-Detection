@@ -80,20 +80,23 @@ def get_group_site(fs_id, csv_path):
         """
         Read demographic features from csv file and extract harmo code and group  
         """
-        features_name=["Harmo code", "Group"]
-        df = pd.read_csv(csv_path, header=0, encoding="latin")
+        # features_name=["Harmo code", "Group"]
+        features_name = ["Scanner"]
+        df = pd.read_csv(csv_path, header=0, encoding="latin", sep='\t')
         # get index column
         id_col = None
         for col in df.keys():
-            if "ID" in col:
+            if "participant_id" in col:
                 id_col = col
         # ensure that found an index column
         if id_col is None:
             print("No ID column found in file, please check the csv file")
             return None
+        
         df = df.set_index(id_col)
         # find desired demographic features
         features = []
+        
         for desired_name in features_name:
             matched_name = None
             for col in df.keys():
@@ -118,15 +121,17 @@ def get_group_site(fs_id, csv_path):
                 print(f"Unable to find subject matching {fs_id}, please double check this subject exists in {csv_path}")
                 return None
             features.append(feature)
+
         return features
 
 def save_subject(fs_id,features,medial_wall,subject_dir, demographic_file,  output_dir=None):
     failed=False
     n_vert=163842
     #get subject info from id
-    site_code, c_p = 'BONN', 'patient' #get_group_site(fs_id, demographic_file)
-    print('scanner for subject '+ fs_id + 'is set as default XT')
-    scanner='XT'
+    get_group_site(fs_id, demographic_file)
+    site_code, c_p = 'BONN', 'patient' #
+    scanner= get_group_site(fs_id, demographic_file)[0]#'XT'
+    print('scanner for subject '+ fs_id + f' is set as default {scanner}')
     #skip subject if info not available
     if 'false' in (c_p, scanner, site_code):
         print("Skipping subject " + fs_id)

@@ -5,6 +5,7 @@
 #import relevant packages
 import numpy as np
 import nibabel as nb
+import pandas as pd
 import argparse
 from scripts.data_preparation.extract_features.io_meld import save_subject
 from meld_graph.paths import MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE
@@ -24,7 +25,7 @@ def create_training_data_hdf5(subject, subject_dir, output_dir):
                           features = features,
                           medial_wall = medial_wall, 
                           subject_dir = subject_dir,
-                          demographic_file=DEMOGRAPHIC_FEATURES_FILE,
+                          demographic_file=os.path.join('data', DEMOGRAPHIC_FEATURES_FILE),
                           output_dir=output_dir)
     if failed == True:
         print(get_m(f'Features not saved. Something went wrong', subject, 'ERROR'))
@@ -32,8 +33,10 @@ def create_training_data_hdf5(subject, subject_dir, output_dir):
     else:
         print(get_m(f'All features have been extracted and saved in {output_dir}', subject, 'INFO'))
         
-
-
+'''
+Command: 
+    python3 -m scripts.data_preparation.extract_features.create_training_data_hdf5 -ids /home/s17gmikh/FCD-Detection/meld_graph/data/subjects_list.csv -sd /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs -od /home/s17gmikh/FCD-Detection/meld_graph/data/output/preprocessed_surf_data
+'''
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='create feature matrix for all subjects')
     #TODO think about how to best pass a list
@@ -60,7 +63,9 @@ if __name__ == '__main__':
     output_dir=args.output_dir
     
     if args.list_ids:
-        subject_ids=np.array(np.loadtxt(args.list_ids, dtype='str', ndmin=1))
+        # subject_ids=np.array(np.loadtxt(args.list_ids, dtype='str', ndmin=1))
+        df = pd.read_csv(args.list_ids)
+        subject_ids = np.array(df["ID"].values)
     elif args.id:
         subject_ids=np.array([args.id])
     else:

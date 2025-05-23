@@ -33,16 +33,14 @@ def get_subj_list(folder, output_folder, output_file):
     filenames = os.listdir(project_path(folder))
 
     subject_ids = sorted(set(
-        name.split('_')[0]
-        for name in filenames
-        if name.endswith(".hdf5")
+        name for name in filenames
+        if name.startswith("sub-") and len(name) == 9
     ))
 
     df = pd.DataFrame(subject_ids, columns=["ID"])
     df.to_csv(os.path.join(project_path(output_folder), output_file), index=False)
 
     print(f"✅ Saved {len(subject_ids)} subject IDs to {output_file}")
-
 
 def preprocess_func(list_ids, subj_path):
     # Necessary for getting affine matrix for transformations
@@ -196,9 +194,9 @@ def apply_region_aliases(series, aliases):
     series = series.apply(lambda text: re.sub(r'\bL(?=;|\s*$)', 'Left', text))
     return series
 
-# get_subj_list('data/output/preprocessed_surf_data',
-#               'data',
-#               'subjects_list.csv')
+get_subj_list('data/output/fs_outputs',
+              'data',
+              'subjects_list.csv')
 
 
 # preprocess_func("subjects_list.csv", "data")

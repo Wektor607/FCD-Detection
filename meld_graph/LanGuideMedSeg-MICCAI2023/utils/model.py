@@ -4,11 +4,8 @@ from typing import List
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import numpy as np
-import nibabel as nib
 import subprocess
 import torch.nn as nn
-from fsl.wrappers import flirt
-from nilearn import datasets, image
 from einops import rearrange, repeat
 from layers import GuideDecoder
 from monai.networks.blocks.dynunet_block import UnetOutBlock

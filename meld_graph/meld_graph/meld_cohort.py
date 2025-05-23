@@ -192,8 +192,8 @@ class MeldCohort:
         
         # p = os.path.join(self.data_dir, f"{site_code}", hdf5_file_root.format(site_code=site_code, group=group))
         p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group))
+        
         # open existing file or create new one
-        print(p)
         if os.path.isfile(p) and not write:
             f = h5py.File(p, "r")
         elif os.path.isfile(p) and write:
@@ -392,6 +392,7 @@ class MeldSubject:
     def scanner(self):
         # Note: no need to specify scanner strength with MELD Graph pipeline, but still need it to be compatible with previous MELD FCD dataset
         scanner = self.get_demographic_features('Scanner')
+        
         if scanner is None:
             scanner="XT" #no need to specify 
         if scanner in ("15T" , "1.5T" , "15t" , "1.5t" ):
@@ -399,7 +400,7 @@ class MeldSubject:
         elif scanner in ("3T" , "3t" ):
             scanner="3T" # to be compatible with old way
         else:
-            scanner="XT" #no need to specify 
+            scanner=scanner #"XT" #no need to specify 
         return scanner
 
     @property
@@ -423,8 +424,6 @@ class MeldSubject:
 
     def find_path(self, name):
         """ Find the first object with the subject id in the hdf5"""
-        # print(name)
-        # print(self.subject_id in f"{self.subject_id}/{name}")
         if self.subject_id in name:
             return name
     
@@ -462,16 +461,15 @@ class MeldSubject:
 
     def get_feature_list(self, hemi="lh"):
         """Outputs a list of the features a participant has for each hemisphere"""
+        # print(self.cohort._site_hdf5(self.site_code, self.group))
         with self.cohort._site_hdf5(self.site_code, self.group) as f:
             # surf_dir_path = os.path.join(self.site_code, f[f"BONN/XT/patient/{self.site_code}/{hemi}"].visit(self.find_path))#.visit(self.find_path), hemi)
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
             if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
-                surf_dir_path = os.path.join(self.site_code, "XT/patient", self.site_code, hemi)
+                surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
             else:
-                surf_dir_path = os.path.join("BONN/XT/patient", self.site_code, hemi)
-
-            print(f"➡️ accessing: {surf_dir_path}")
+                surf_dir_path = os.path.join("BONN", self.scanner,"patient", self.site_code, hemi)
             
             keys =  list(f[surf_dir_path].keys())
             # remove lesion and boundaries from list of features
@@ -505,11 +503,14 @@ class MeldSubject:
         if isinstance(feature_names, str):
             return_single = True
             feature_names = [feature_names]
-        df = pd.read_csv(csv_file, header=0, encoding="latin")
+        
+        csv_file_path = os.path.join(MELD_DATA_PATH, csv_file)
+        
+        df = pd.read_csv(csv_file_path, header=0, encoding="latin", sep="\t")
         # get index column
         id_col = None
         for col in df.keys():
-            if "ID" in col:
+            if "participant_id" in col:
                 id_col = col
         # ensure that found an index column
         if id_col is None:
@@ -518,7 +519,9 @@ class MeldSubject:
             return None
         df = df.set_index(id_col)
         # find desired demographic features
+        
         features = []
+        
         for desired_name in feature_names:
             matched_name = None
             for col in df.keys():
@@ -562,6 +565,7 @@ class MeldSubject:
                 feature = np.clip(np.random.normal(0, 0.1) + rng.choice(df[matched_name]), 0, 1)
             else:
                 feature = default
+            
             features.append(feature)
         if return_single:
             return features[0]
@@ -577,11 +581,9 @@ class MeldSubject:
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
             if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
-                surf_dir_path = os.path.join(self.site_code, "XT/patient", self.site_code, hemi)
+                surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
             else:
-                surf_dir_path = os.path.join("BONN/XT/patient", self.site_code, hemi)
-
-            print(f"➡️ accessing: {surf_dir_path}")
+                surf_dir_path = os.path.join("BONN", self.scanner, "patient", self.site_code, hemi)
 
             try:
                 surf_dir = f[surf_dir_path]

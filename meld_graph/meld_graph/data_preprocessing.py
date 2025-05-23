@@ -580,30 +580,30 @@ class Preprocess:
         sites_scanners = []
         for subject in subject_ids:
             subj = MeldSubject(subject, cohort=self.cohort)
-            print(f'demographic_file: {demographic_file}')
-            print(f'subj: {subj}')
-            a, s = 25, 'male' #subj.get_demographic_features(["Age at preop", "Sex"], csv_file = demographic_file)
+            a, s, scan = subj.get_demographic_features(["age_scan", "sex", "Scanner"], csv_file = demographic_file)
+            
             ages.append(a)
-            if s=='male':
+            if s=='M':
                 sex.append(1)
-            elif s == 'female':
+            elif s == 'F':
                 sex.append(0)
             elif (s==0) or (s==1):
                 sex.append(s)
             else:
                 print(f'ERROR: There is an issue with the coded sex of subject {subject}')
             group.append(subj.is_patient)
-            sites_scanners.append(subj.site_code) # just site code now
+            sites_scanners.append(scan)#subj.site_code) # just site code now
             
         covars["ages"] = ages
         covars["sex"] = sex
         covars["group"] = group
         covars["site_scanner"] = sites_scanners
-        covars["ID"] = subject_ids
+        covars["participant_id"] = subject_ids
 
         #clean missing values in demographics
-        covars["ages"] = covars.groupby("site_scanner").transform(lambda x: x.fillna(x.mean()))["ages"]
-        covars["sex"] = covars.groupby("site_scanner").transform(lambda x: x.fillna(random.choice([0, 1])))["sex"]
+        # covars["ages"] = covars.groupby("site_scanner").transform(lambda x: x.fillna(x.mean()))["ages"]
+        # covars["sex"] = covars.groupby("site_scanner").transform(lambda x: x.fillna(random.choice([0, 1])))["sex"]
+        
         return covars
 
     def save_norm_combat_parameters(self, feature, estimates, hdf5_file):
@@ -642,7 +642,7 @@ class Preprocess:
             parameters = feat_dir.keys()
             for param in parameters:
                 if feat_dir[param].dtype == "S10":
-                    estimates[param] = feat_dir[param].attrs["values"].astype(np.str)
+                    estimates[param] = feat_dir[param].attrs["values"].astype(str)
                 else:
                     estimates[param] = feat_dir[param][:]
         return estimates
@@ -679,7 +679,7 @@ class Preprocess:
         """
         # read morphological outliers from cohort.
         if outliers_file is not None:
-            outliers = list(pd.read_csv(os.path.join(self.data_dir, outliers_file), header=0)["ID"])
+            outliers = list(pd.read_csv(os.path.join(self.data_dir, outliers_file), header=0)["participant_id"])
         else:
             outliers = []
         # load in features using cohort + subject class
@@ -707,7 +707,7 @@ class Preprocess:
                 print(
                     "There is missing information in the covariates for subjects {}. \
                 Combat aborted".format(
-                        np.array(covars["ID"])[index_nan]
+                        np.array(covars["participant_id"])[index_nan]
                     )
                 )
             else:
@@ -730,7 +730,7 @@ class Preprocess:
                 post_combat_feature_name = self.feat.combat_feat(feature_name)
 
                 print("INFO: Combat finished. Saving data")
-                self.save_cohort_features(post_combat_feature_name, dict_combat["data"].T, np.array(covars["ID"]))
+                self.save_cohort_features(post_combat_feature_name, dict_combat["data"].T, np.array(covars["participant_id"]))
         else:
             print('INFO: No data to combat harmonised')
             pass
@@ -739,6 +739,7 @@ class Preprocess:
         self,
         feature,
         demographic_file,
+        harmo_code
     ):
         """Harmonise new site data to post-combat whole cohort and save combat parameters in
         new hdf5 file. 
@@ -837,7 +838,7 @@ class Preprocess:
         #shrink estimates
         shrink_estimates = self.shrink_combat_estimates(estimates)
         #save estimates and delete pickle file
-        combat_params_file=os.path.join(self.data_dir, self.write_output_file.format(site_code=site_code))
+        combat_params_file=os.path.join(self.data_dir, self.write_output_file.format(harmo_code=harmo_code))#(site_code=site_code))
         self.save_norm_combat_parameters(feature, shrink_estimates, combat_params_file)
         os.remove(pickle_file)
         pickle_file = os.path.join(site_combat_path,f"{site_code}_{feature}_summary.pickle")
@@ -863,13 +864,13 @@ class Preprocess:
                 rh = subj.load_feature_values(feature_name, hemi="rh")[self.cohort.cortex_mask]
                 combined_hemis = np.hstack([lh, rh])
                 precombat_features.append(combined_hemis)
-                site_scanner.append(subj.site_code) # just site code now
+                site_scanner.append(subj.get_demographic_features(["Scanner"], csv_file=DEMOGRAPHIC_FEATURES_FILE))#site_code) # just site code now
                 subjects_included.append(subject)
         #if matrix empty, pass
         if precombat_features:
             combat_estimates = self.read_norm_combat_parameters(feature_name, combat_params_file)
             combat_estimates = self.unshrink_combat_estimates(combat_estimates)
-            combat_estimates["batches"] = [x.split('_')[0] for x in combat_estimates["batches"]] # remove scanner strenght from the batch code if exist
+            # combat_estimates["batches"] = [x.split('_')[0] for x in combat_estimates["batches"]] # remove scanner strenght from the batch code if exist
             precombat_features = np.array(precombat_features)
             site_scanner = np.array(site_scanner)
             dict_combat = neuroCombatFromTraining(dat=precombat_features.T, batch=site_scanner, estimates=combat_estimates)
@@ -1053,7 +1054,7 @@ class Preprocess:
             subj = MeldSubject(id_sub, cohort=self.cohort)
             # create a dictionnary to store values for each row of the matrix
             row = {}
-            row["ID"] = subj.subject_id
+            row["participant_id"] = subj.subject_id
             row["site"] = subj.site_code
             row["scanner"] = subj.scanner
             row["group"] = subj.group
@@ -1101,8 +1102,8 @@ class Preprocess:
         outliers = []
         subjects = []
         for index, row in df.iterrows():
-            print(row["ID"])
-            subjects.append(row["ID"])
+            print(row["participant_id"])
+            subjects.append(row["participant_id"])
             group = ids.get_group((row["site"], row["scanner"]))
             # warning if not enough subjects per site/scanner
             if len(group.index) <= 6:
@@ -1127,7 +1128,7 @@ class Preprocess:
                 outliers.append(1)
             else:
                 outliers.append(0)
-        return outliers, df[["ID", "FLAIR"]].copy()
+        return outliers, df[["participant_id", "FLAIR"]].copy()
     
     def find_outliers(self, features, output_file=None):
         """return list of outliers pre-combat"""
@@ -1142,8 +1143,8 @@ class Preprocess:
         df["tot_out_feat"] = np.array(tot_out_feat).sum(axis=0)
 
         # different conditions to define if subject is an outlier
-        outliers = df[(df["FLAIR"] == True) & (df["tot_out_feat"] >= 3)]["ID"]
-        outliers = outliers.append(df[(df["FLAIR"] == False) & (df["tot_out_feat"] >= 2)]["ID"])
+        outliers = df[(df["FLAIR"] == True) & (df["tot_out_feat"] >= 3)]["participant_id"]
+        outliers = outliers.append(df[(df["FLAIR"] == False) & (df["tot_out_feat"] >= 2)]["participant_id"])
         # save outliers
         if output_file is not None:
             file_path = os.path.join(self.data_dir, output_file)

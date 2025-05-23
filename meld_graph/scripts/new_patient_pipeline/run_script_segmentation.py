@@ -425,17 +425,17 @@ if __name__ == "__main__":
     subjects_with_roi = [
         sid for sid in subjects_with_roi
         if not os.path.isdir(os.path.join(fs_outputs_dir, sid))
-    ]
+    ][1:] # DELETE LATER
+
     
     if not subjects_with_roi:
         print("❌ No subjects with _roi file found.")
         sys.exit(0)
 
-    # запуск по каждому subject
     for sid in subjects_with_roi:
         print(get_m(f"Start processing {sid}", None, "STEP"))
-        # подготовка демографического файла
-        demographic_file_tmp = DEMOGRAPHIC_FEATURES_FILE
+        
+        demographic_file_tmp = "data/input/ds004199/participants_tmp.tsv"
         create_demographic_file(sid, demographic_file_tmp, harmo_code=args.harmo_code)
 
         run_script_segmentation(
