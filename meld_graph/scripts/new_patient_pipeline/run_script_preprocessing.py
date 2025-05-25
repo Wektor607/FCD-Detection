@@ -33,6 +33,40 @@ from meld_graph.paths import (
 import warnings
 warnings.filterwarnings("ignore")
 
+def participants_with_scanners(df):
+    root_dir = 'data/input/ds004199'
+    site_scanners = []
+
+    for subj in df['participant_id']:
+        subj_path = os.path.join(root_dir, subj)
+        manufacturers = set()
+        manufacturersModelNames = set()
+
+        for subdir, _, files in os.walk(subj_path):
+            for file in files:
+                if file.endswith(".json"):
+                    file_path = os.path.join(subdir, file)
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                            manufacturer = data.get("Manufacturer")
+                            manufacturersModelName = data.get("ManufacturersModelName")
+
+                            if manufacturer and manufacturersModelName:
+                                manufacturers.add(manufacturer)
+                                manufacturersModelNames.add(manufacturersModelName)
+                    except Exception as e:
+                        print(f"Error in preprocessing {file_path}: {e}")
+
+        scanner_id = "_".join(sorted(manufacturers)) + "_" + "_".join(sorted(manufacturersModelNames))
+        site_scanners.append(scanner_id)
+
+    df["Scanner"] = site_scanners
+
+    # Create new participants file with scanner names
+    demographic_file = "participants_with_scanner.tsv"
+    df.to_csv(os.path.join("data/input/ds004199/", demographic_file), sep="\t", index=False)
+
 def which_combat_file(harmo_code):
     # file_site=os.path.join(BASE_PATH, f'MELD_{harmo_code}', f'{harmo_code}_combat_parameters.hdf5')
     file_site=os.path.join(BASE_PATH, f'{harmo_code}_combat_parameters.hdf5')
@@ -359,35 +393,13 @@ if __name__ == '__main__':
     #     shutil.copy(os.path.join(MELD_DATA_PATH), demographic_file_tmp)
     
     df = pd.read_csv(os.path.join(MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE), sep="\t")
-    root_dir = 'data/input/ds004199'
-    site_scanners = []
-
-    for subj in df['participant_id']:
-        subj_path = os.path.join(root_dir, subj)
-        manufacturers = set()
-        manufacturersModelNames = set()
-
-        for subdir, _, files in os.walk(subj_path):
-            for file in files:
-                if file.endswith(".json"):
-                    file_path = os.path.join(subdir, file)
-                    try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            data = json.load(f)
-                            manufacturer = data.get("Manufacturer")
-                            manufacturersModelName = data.get("ManufacturersModelName")
-
-                            if manufacturer and manufacturersModelName:
-                                manufacturers.add(manufacturer)
-                                manufacturersModelNames.add(manufacturersModelName)
-                    except Exception as e:
-                        print(f"Error in preprocessing {file_path}: {e}")
-
-        scanner_id = "_".join(sorted(manufacturers)) + "_" + "_".join(sorted(manufacturersModelNames))
-        site_scanners.append(scanner_id)
-
-    df["Scanner"] = site_scanners
+    participants_with_scanners(df)
+    sys.exit()
     scanners = df["Scanner"].unique()
+
+    # Create new participants file with scanner names
+    demographic_file = "participants_with_scanner.tsv"
+    df.to_csv(os.path.join("data/input/ds004199/", demographic_file), sep="\t", index=False)
 
     subject_list_path = os.path.join(MELD_DATA_PATH, args.list_ids)
     subject_list_df = pd.read_csv(subject_list_path)

@@ -17,7 +17,10 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         
         super(LanGuideMedSegWrapper, self).__init__()
         
-        self.model = LanGuideMedSeg(args.bert_type, args.vision_type, args.project_dim)
+        self.model = LanGuideMedSeg(args.bert_type, args.meld_script_path, 
+                                    args.feature_path, args.output_dir,
+                                    # args.vision_type, 
+                                    args.project_dim)
         self.lr = args.lr
         self.history = {}
         
@@ -28,7 +31,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         self.val_metrics = deepcopy(self.train_metrics)
         self.test_metrics = deepcopy(self.train_metrics)
         
-        self.save_hyperparameters()
+        self.save_hyperparameters(args)
 
     def configure_optimizers(self):
 
@@ -43,6 +46,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
 
     def shared_step(self,batch,batch_idx):
+
         x, y = batch
         preds = self(x)
         loss = self.loss_fn(preds,y)

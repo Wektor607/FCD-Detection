@@ -41,8 +41,6 @@ def process_data():
             print(f'DONE {i:05d}')
         else:
             print(f'Skipped {i:05d}: folder not found')
-
-        break
     
     print("Error folders: ", error_folders)
     print("Processed folders:", list_folders)
@@ -187,5 +185,5 @@ def get_existing_subject_ids(root_dir):
     sorted_list = sorted(subject_ids)
     return np.min(sorted_list), np.max(sorted_list)
 
-
-process_data()
+if __name__=="__main__":
+    process_data()

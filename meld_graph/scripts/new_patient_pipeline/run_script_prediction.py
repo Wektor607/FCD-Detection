@@ -276,28 +276,20 @@ if __name__ == '__main__':
             sys.exit(-1) 
         create_demographic_file(subject_ids, demographic_file_tmp, harmo_code=harmo_code)
     else:
-        shutil.copy(os.path.join(MELD_DATA_PATH,args.demographic_file), demographic_file_tmp)
+        print(os.path.join(MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE))
+        # shutil.copy(os.path.join(MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE), demographic_file_tmp)
+
+    df = pd.read_csv(os.path.join(MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE), sep="\t")
     
-    if subject_ids is not None:
-        for subject_id in subject_ids:
-            run_script_prediction(
-                            harmo_code = subject_id, #args.harmo_code,
-                            list_ids=args.list_ids,
-                            sub_id=args.id,
-                            no_prediction_nifti = args.no_prediction_nifti,
-                            no_report = args.no_report,
-                            split = args.split,
-                            skip_prediction=args.skip_prediction,
-                            verbose = args.debug_mode
-                            )
-    else:
-        run_script_prediction(
-                            harmo_code = subject_id, #args.harmo_code,
-                            list_ids=args.list_ids,
-                            sub_id=args.id,
-                            no_prediction_nifti = args.no_prediction_nifti,
-                            no_report = args.no_report,
-                            split = args.split,
-                            skip_prediction=args.skip_prediction,
-                            verbose = args.debug_mode
-                        )
+    scanner = df.loc[df['participant_id'] == args.id, 'Scanner'].values[0]
+    
+    run_script_prediction(
+                    harmo_code= args.harmo_code + '_' + scanner,
+                    list_ids=args.list_ids,
+                    sub_id=args.id,
+                    no_prediction_nifti = args.no_prediction_nifti,
+                    no_report = args.no_report,
+                    split = args.split,
+                    skip_prediction=args.skip_prediction,
+                    verbose = args.debug_mode
+                    )

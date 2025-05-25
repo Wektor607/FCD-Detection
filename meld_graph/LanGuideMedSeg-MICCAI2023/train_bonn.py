@@ -45,7 +45,7 @@ if __name__ == '__main__':
                     tokenizer=args.bert_type,
                     image_size=args.image_size,
                     mode='train')
-    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, shuffle=True, num_workers=args.train_batch_size)
+
     ds_valid = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
                     tokenizer=args.bert_type,
@@ -74,10 +74,9 @@ if __name__ == '__main__':
     )
 
     ## 2. setting trainer
-
     trainer = pl.Trainer(logger=True,
                         min_epochs=args.min_epochs,max_epochs=args.max_epochs,
-                        accelerator='gpu', 
+                        accelerator='cpu',#'gpu', 
                         devices=args.device,
                         callbacks=[model_ckpt,early_stopping],
                         enable_progress_bar=False,

@@ -7,7 +7,7 @@ import numpy as np
 import subprocess
 import torch.nn as nn
 from einops import rearrange, repeat
-from layers import GuideDecoder
+from utils.layers import GuideDecoder
 from monai.networks.blocks.dynunet_block import UnetOutBlock
 from monai.networks.blocks.upsample import SubpixelUpsample
 from transformers import AutoTokenizer, AutoModel
@@ -42,7 +42,7 @@ class BERTModel(nn.Module):
         return {'feature':output['hidden_states'],'project':embed}
 
 class VisionModel(nn.Module):
-    def __init__(self, project_dim, meld_script_path, feature_path, output_dir):
+    def __init__(self, project_dim: int, meld_script_path: str, feature_path: str, output_dir: str):
         super().__init__()
         
         self.project_heads = nn.ModuleList([
@@ -59,11 +59,13 @@ class VisionModel(nn.Module):
         self.feature_path     = feature_path
         self.output_dir       = output_dir
 
-    def run_meld_prediction(self):
+    def run_meld_prediction(self, subject_id):
         command = [
             self.meld_script_path,
-            'run_script_prediction.py',
-            "-id", self.subject_id,
+            "run_script_prediction.py",
+            "-id", subject_id,
+            "-harmo_code", "fcd",
+            "-demos", "participants_with_scanner.tsv"
         ]
         try:
             subprocess.run(command, check=True)
@@ -71,20 +73,21 @@ class VisionModel(nn.Module):
             print(f"Error running MELD prediction: {e}")
             raise
 
-    def forward(self, subject_ids: List[str]):
+    def forward(self, subject_ids:List[str]):
         flag = True
         for subject_id in subject_ids:
 
             # Step 1: run MELD prediction
             if not os.path.isfile(os.path.join(self.output_dir, "predictions_reports", f"{subject_id}", "predictions/prediction.nii.gz")):
-                self.run_meld_prediction()
+                self.run_meld_prediction(subject_id)
 
             # Step 2: get features from all model layers
-            features_path = os.path.join(self.feature_path, subject_id, "feature_maps.npz")
+            features_path = os.path.join(self.feature_path, "input", subject_id, "anat", "features", "feature_maps.npz")
             features = np.load(features_path)
             
             if flag:
                 stage_embeddings = [[] for _ in range(len(features.files))] 
+                stage_embeddings_project = [[] for _ in range(len(features.files))] 
                 flag = False
 
             sorted_keys = sorted(features.files, key=lambda k: int(k.replace('stage', '')))
@@ -92,31 +95,34 @@ class VisionModel(nn.Module):
             for i, stage in enumerate(sorted_keys):
                 feat_squeeze = torch.tensor(features[stage], dtype=torch.float32).squeeze()
                 emb_proj = self.project_heads[i](feat_squeeze)
-                stage_embeddings[i].append(emb_proj)
+                stage_embeddings[i].append(feat_squeeze)
+                stage_embeddings_project[i].append(emb_proj)
             
         
         batch_tensors = []
-        for i, level_batch in enumerate(stage_embeddings):
+        batch_project_tensors = []
+        for (i, level_batch), (j, level_project_batch) in zip(enumerate(stage_embeddings), enumerate(stage_embeddings_project)):
             try:
                 level_tensor = torch.stack(level_batch)  # [B, N, D]
             except RuntimeError:
                 print(f"[!] Stage {i}: Cannot stack due to size mismatch. Keeping as list.")
                 level_tensor = level_batch
+
+            try:
+                level_project_tensor = torch.stack(level_project_batch)  # [B, N, D]
+            except RuntimeError:
+                print(f"[!] Stage {j}: Cannot stack due to size mismatch. Keeping as list.")
+                level_project_tensor = level_project_batch
+
             batch_tensors.append(level_tensor)
+            batch_project_tensors.append(level_project_tensor)
 
-        return {"feature": None, "project": batch_tensors}
+        return {"feature": batch_tensors, "project": batch_project_tensors}
 
-vision = VisionModel(
-    project_dim=512,
-    meld_script_path = "../../meldgraph.sh",
-    feature_path     = "../../dataset",
-    output_dir       = "../../data/output",
-    subject_ids       = ["sub-00003"]
-)
-
-out = vision()
-for stages in out["project"]:
-    print(stages.shape)
+# out = vision()
+# for stages in out["feature"]:
+#     for stage in stages:
+#         print(stage.shape)
 
 class LanGuideMedSeg(nn.Module):
 
@@ -127,6 +133,7 @@ class LanGuideMedSeg(nn.Module):
                  project_dim=512):
 
         super(LanGuideMedSeg, self).__init__()
+
         self.encoder = VisionModel(project_dim, meld_script_path, feature_path, output_dir)
         self.text_encoder = BERTModel(bert_type, project_dim)
 
@@ -153,11 +160,12 @@ class LanGuideMedSeg(nn.Module):
 
     def forward(self, data):
 
-        image, text = data
-        if image.shape[1] == 1:   
-            image = repeat(image,'b 1 h w -> b c h w',c=3)
+        subject_ids, text = data
 
-        image_output = self.encoder(image)
+        # if image.shape[1] == 1:   
+        #     image = repeat(image,'b 1 h w -> b c h w',c=3)
+
+        image_output = self.encoder(subject_ids)
         image_features, image_project = image_output['feature'], image_output['project']
         text_output = self.text_encoder(text['input_ids'],text['attention_mask'])
         text_embeds, text_project = text_output['feature'],text_output['project']

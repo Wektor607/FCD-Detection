@@ -20,9 +20,13 @@ MODEL:
   vision_type: facebook/convnext-tiny-224
   project_dim: 768
 
-DATA:
-  train_csv_path: ../dataset/NewFinal.csv # ./data/QaTa-COV19-v2/prompt/train.csv
-  train_root_path: ../dataset # ./data/QaTa-COV19-v2/Train
+  meld_script_path: ../meldgraph.sh
+  feature_path: ../data
+  output_dir: ../data/output
 
-  test_csv_path: ../dataset/NewFinal.csv #./data/QaTa-COV19-v2/prompt/test.csv
-  test_root_path: ../dataset #./data/QaTa-COV19-v2/Test
+DATA:
+  train_csv_path: ../data/preprocessed/NewFinal.csv # ./data/QaTa-COV19-v2/prompt/train.csv
+  train_root_path: ../data/preprocessed # ./data/QaTa-COV19-v2/Train
+
+  test_csv_path: ../data/preprocessed/NewFinal.csv #./data/QaTa-COV19-v2/prompt/test.csv
+  test_root_path: ../data/preprocessed #./data/QaTa-COV19-v2/Test
