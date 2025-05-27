@@ -1,0 +1,2201 @@
+/home/s17gmikh/miniconda3/envs/MELD-env/bin/python
+/home/s17gmikh/miniconda3/envs/MELD-env/bin/python3
+cuda: True
+256 128 768 256
+256 64 768 128
+256 64 768 128
+2025-05-27 11:04:44,074 - GPU available: True (cuda), used: True
+2025-05-27 11:04:44,076 - TPU available: False, using: 0 TPU cores
+2025-05-27 11:04:44,076 - IPU available: False, using: 0 IPUs
+2025-05-27 11:04:44,076 - HPU available: False, using: 0 HPUs
+start training
+2025-05-27 11:04:44,086 - Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
+2025-05-27 11:04:46,201 - ----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 1 processes
+----------------------------------------------------------------------------------------------------
+
+2025-05-27 11:04:46,211 - You are using a CUDA device ('NVIDIA A40') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+2025-05-27 11:04:47,487 - LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1]
+Training is not really distributed, single rank. Deactivating buckets
+ShardedDDP bucket size: 0.00M parameters, model size 110.51M parameters
+2025-05-27 11:04:47,950 - 
+  | Name          | Type           | Params
+-------------------------------------------------
+0 | model         | LanGuideMedSeg | 115 M 
+1 | loss_fn       | DiceCELoss     | 0     
+2 | train_metrics | ModuleDict     | 0     
+3 | val_metrics   | ModuleDict     | 0     
+4 | test_metrics  | ModuleDict     | 0     
+-------------------------------------------------
+6.2 M     Trainable params
+109 M     Non-trainable params
+115 M     Total params
+463.497   Total estimated model params size (MB)
+2025-05-27 11:04:47,962 - SLURM auto-requeueing enabled. Setting signal handlers.
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:04:54
+{'epoch': 0, 'val_loss': 0.9988836646080017, 'val_acc': 0.0005594889516942203, 'val_dice': 0.0011183521710336208, 'val_MIoU': 0.0005594889516942203}
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:05:00
+{'epoch': 0, 'val_loss': 0.9988517761230469, 'val_acc': 0.0005594889516942203, 'val_dice': 0.0011183521710336208, 'val_MIoU': 0.0005594889516942203}
+{'epoch': 0, 'train_loss': 0.9995591640472412, 'train_acc': 0.49287283420562744, 'train_dice': 0.0005704983486793935, 'train_MIoU': 0.0002853312180377543}
+2025-05-27 11:05:00,919 - Epoch 0, global step 3: 'val_loss' reached 0.99885 (best 0.99885), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:05:15
+{'epoch': 1, 'val_loss': 0.9987781047821045, 'val_acc': 0.0914015993475914, 'val_dice': 0.0012300260132178664, 'val_MIoU': 0.0006153924623504281}
+{'epoch': 1, 'train_loss': 0.9993475079536438, 'train_acc': 0.5065726041793823, 'train_dice': 0.0007792672258801758, 'train_MIoU': 0.0003897859714925289}
+2025-05-27 11:05:15,279 - Epoch 1, global step 6: 'val_loss' reached 0.99878 (best 0.99878), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:05:29
+{'epoch': 2, 'val_loss': 0.9986753463745117, 'val_acc': 0.170974001288414, 'val_dice': 0.0013479306362569332, 'val_MIoU': 0.0006744198617525399}
+{'epoch': 2, 'train_loss': 0.9995195269584656, 'train_acc': 0.5571800470352173, 'train_dice': 0.0006952442927286029, 'train_MIoU': 0.00034774301457218826}
+2025-05-27 11:05:29,454 - Epoch 2, global step 9: 'val_loss' reached 0.99868 (best 0.99868), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:05:44
+{'epoch': 3, 'val_loss': 0.9985339045524597, 'val_acc': 0.247391477227211, 'val_dice': 0.0014845920959487557, 'val_MIoU': 0.0007428474491462111}
+{'epoch': 3, 'train_loss': 0.9994255900382996, 'train_acc': 0.5576212406158447, 'train_dice': 0.0006565703661181033, 'train_MIoU': 0.0003283929836470634}
+2025-05-27 11:05:44,537 - Epoch 3, global step 12: 'val_loss' reached 0.99853 (best 0.99853), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:05:58
+{'epoch': 4, 'val_loss': 0.9984258413314819, 'val_acc': 0.309295654296875, 'val_dice': 0.001617433037608862, 'val_MIoU': 0.0008093710639514029}
+{'epoch': 4, 'train_loss': 0.9994163513183594, 'train_acc': 0.5756394267082214, 'train_dice': 0.0007500848732888699, 'train_MIoU': 0.00037518315366469324}
+2025-05-27 11:05:58,607 - Epoch 4, global step 15: 'val_loss' reached 0.99843 (best 0.99843), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:06:13
+{'epoch': 5, 'val_loss': 0.9983506202697754, 'val_acc': 0.2993628978729248, 'val_dice': 0.0015945396153256297, 'val_MIoU': 0.0007979059591889381}
+{'epoch': 5, 'train_loss': 0.9994010925292969, 'train_acc': 0.6171497106552124, 'train_dice': 0.0008646910428069532, 'train_MIoU': 0.0004325325135141611}
+2025-05-27 11:06:13,606 - Epoch 5, global step 18: 'val_loss' reached 0.99835 (best 0.99835), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:06:28
+{'epoch': 6, 'val_loss': 0.9981985092163086, 'val_acc': 0.4573175311088562, 'val_dice': 0.002057695761322975, 'val_MIoU': 0.0010299074929207563}
+{'epoch': 6, 'train_loss': 0.9991442561149597, 'train_acc': 0.6685035228729248, 'train_dice': 0.0013728758785873652, 'train_MIoU': 0.0006869094795547426}
+2025-05-27 11:06:28,670 - Epoch 6, global step 21: 'val_loss' reached 0.99820 (best 0.99820), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:06:42
+{'epoch': 7, 'val_loss': 0.9979945421218872, 'val_acc': 0.586148202419281, 'val_dice': 0.0026965222787111998, 'val_MIoU': 0.0013500814093276858}
+{'epoch': 7, 'train_loss': 0.9993268847465515, 'train_acc': 0.5973812937736511, 'train_dice': 0.0009462143643759191, 'train_MIoU': 0.00047333110705949366}
+2025-05-27 11:06:42,662 - Epoch 7, global step 24: 'val_loss' reached 0.99799 (best 0.99799), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:06:57
+{'epoch': 8, 'val_loss': 0.997710108757019, 'val_acc': 0.7551705241203308, 'val_dice': 0.004349624738097191, 'val_MIoU': 0.0021795525681227446}
+{'epoch': 8, 'train_loss': 0.9991044402122498, 'train_acc': 0.6528913378715515, 'train_dice': 0.0011207592906430364, 'train_MIoU': 0.0005606947815977037}
+2025-05-27 11:06:57,692 - Epoch 8, global step 27: 'val_loss' reached 0.99771 (best 0.99771), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:07:12
+{'epoch': 9, 'val_loss': 0.9974486231803894, 'val_acc': 0.8285609483718872, 'val_dice': 0.005697525572031736, 'val_MIoU': 0.002856901381164789}
+{'epoch': 9, 'train_loss': 0.9989121556282043, 'train_acc': 0.6890886425971985, 'train_dice': 0.001415169215761125, 'train_MIoU': 0.0007080856012180448}
+2025-05-27 11:07:12,818 - Epoch 9, global step 30: 'val_loss' reached 0.99745 (best 0.99745), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:07:27
+{'epoch': 10, 'val_loss': 0.9979498386383057, 'val_acc': 0.706598162651062, 'val_dice': 0.003228800604119897, 'val_MIoU': 0.0016170107992365956}
+{'epoch': 10, 'train_loss': 0.9994050860404968, 'train_acc': 0.6753830909729004, 'train_dice': 0.0008158868877217174, 'train_MIoU': 0.0004081099177710712}
+2025-05-27 11:07:27,141 - Epoch 10, global step 33: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:07:32
+{'epoch': 11, 'val_loss': 0.9978683590888977, 'val_acc': 0.6067693829536438, 'val_dice': 0.0028375275433063507, 'val_MIoU': 0.0014207795029506087}
+{'epoch': 11, 'train_loss': 0.9990429282188416, 'train_acc': 0.6383678913116455, 'train_dice': 0.0011463674018159509, 'train_MIoU': 0.0005735123995691538}
+2025-05-27 11:07:32,436 - Epoch 11, global step 36: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:07:37
+{'epoch': 12, 'val_loss': 0.9972111582756042, 'val_acc': 0.846771240234375, 'val_dice': 0.004963809624314308, 'val_MIoU': 0.002488079946488142}
+{'epoch': 12, 'train_loss': 0.9985116124153137, 'train_acc': 0.6270071864128113, 'train_dice': 0.0013446800876408815, 'train_MIoU': 0.0006727934232912958}
+2025-05-27 11:07:37,718 - Epoch 12, global step 39: 'val_loss' reached 0.99721 (best 0.99721), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:07:52
+{'epoch': 13, 'val_loss': 0.9987064003944397, 'val_acc': 0.1009332537651062, 'val_dice': 0.0012430521892383695, 'val_MIoU': 0.0006219126516953111}
+{'epoch': 13, 'train_loss': 0.9987018704414368, 'train_acc': 0.6023141145706177, 'train_dice': 0.0009054174879565835, 'train_MIoU': 0.00045291378046385944}
+2025-05-27 11:07:52,879 - Epoch 13, global step 42: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:07:58
+{'epoch': 14, 'val_loss': 0.9985513091087341, 'val_acc': 0.2492399662733078, 'val_dice': 0.0014882419491186738, 'val_MIoU': 0.0007446751114912331}
+{'epoch': 14, 'train_loss': 0.9991293549537659, 'train_acc': 0.5747855305671692, 'train_dice': 0.0008113645599223673, 'train_MIoU': 0.0004058474733028561}
+2025-05-27 11:07:58,290 - Epoch 14, global step 45: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:03
+{'epoch': 15, 'val_loss': 0.9954684972763062, 'val_acc': 0.8561009168624878, 'val_dice': 0.006521455477923155, 'val_MIoU': 0.0032713948749005795}
+{'epoch': 15, 'train_loss': 0.998974621295929, 'train_acc': 0.5994687080383301, 'train_dice': 0.0008265517535619438, 'train_MIoU': 0.00041344674536958337}
+2025-05-27 11:08:03,660 - Epoch 15, global step 48: 'val_loss' reached 0.99547 (best 0.99547), saving model to './save_model/medseg-v2.ckpt' as top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:18
+{'epoch': 16, 'val_loss': 0.9970126748085022, 'val_acc': 0.5431809425354004, 'val_dice': 0.0024055244866758585, 'val_MIoU': 0.0012042105663567781}
+{'epoch': 16, 'train_loss': 0.9989059567451477, 'train_acc': 0.542797863483429, 'train_dice': 0.0005311632994562387, 'train_MIoU': 0.0002656521974131465}
+2025-05-27 11:08:18,938 - Epoch 16, global step 51: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:24
+{'epoch': 17, 'val_loss': 0.9984962940216064, 'val_acc': 0.2654535174369812, 'val_dice': 0.001521041733212769, 'val_MIoU': 0.000761099683586508}
+{'epoch': 17, 'train_loss': 0.9991652369499207, 'train_acc': 0.5160435438156128, 'train_dice': 0.00045861536636948586, 'train_MIoU': 0.00022936027380637825}
+2025-05-27 11:08:24,266 - Epoch 17, global step 54: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:29
+{'epoch': 18, 'val_loss': 0.9987342953681946, 'val_acc': 0.103041872382164, 'val_dice': 0.0012459708377718925, 'val_MIoU': 0.0006233737803995609}
+{'epoch': 18, 'train_loss': 0.9987502098083496, 'train_acc': 0.5702316761016846, 'train_dice': 0.0008162790909409523, 'train_MIoU': 0.0004083061940036714}
+2025-05-27 11:08:29,589 - Epoch 18, global step 57: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:34
+{'epoch': 19, 'val_loss': 0.9987583160400391, 'val_acc': 0.0662972554564476, 'val_dice': 0.0011969959596171975, 'val_MIoU': 0.0005988564225845039}
+{'epoch': 19, 'train_loss': 0.998779296875, 'train_acc': 0.6128975749015808, 'train_dice': 0.0010320598958060145, 'train_MIoU': 0.0005162963643670082}
+2025-05-27 11:08:34,891 - Epoch 19, global step 60: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:40
+{'epoch': 20, 'val_loss': 0.9986016154289246, 'val_acc': 0.203658327460289, 'val_dice': 0.001403176225721836, 'val_MIoU': 0.0007020807242952287}
+{'epoch': 20, 'train_loss': 0.9981293678283691, 'train_acc': 0.5899257063865662, 'train_dice': 0.0012006111210212111, 'train_MIoU': 0.0006006660987623036}
+2025-05-27 11:08:40,197 - Epoch 20, global step 63: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:45
+{'epoch': 21, 'val_loss': 0.9980337023735046, 'val_acc': 0.6732279658317566, 'val_dice': 0.002767368219792843, 'val_MIoU': 0.0013856012374162674}
+{'epoch': 21, 'train_loss': 0.9987500309944153, 'train_acc': 0.5858473777770996, 'train_dice': 0.0007153025944717228, 'train_MIoU': 0.0003577792376745492}
+2025-05-27 11:08:45,431 - Epoch 21, global step 66: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:50
+{'epoch': 22, 'val_loss': 0.9963952302932739, 'val_acc': 0.7306736707687378, 'val_dice': 0.0024759003426879644, 'val_MIoU': 0.001239484641700983}
+{'epoch': 22, 'train_loss': 0.9994144439697266, 'train_acc': 0.49436384439468384, 'train_dice': 0.000342468119924888, 'train_MIoU': 0.00017126338207162917}
+2025-05-27 11:08:50,639 - Epoch 22, global step 69: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:08:55
+{'epoch': 23, 'val_loss': 0.9971070289611816, 'val_acc': 0.6404578685760498, 'val_dice': 0.0025801146402955055, 'val_MIoU': 0.0012917236890643835}
+{'epoch': 23, 'train_loss': 0.9994489550590515, 'train_acc': 0.3962664008140564, 'train_dice': 0.0003734349156729877, 'train_MIoU': 0.00018675232422538102}
+2025-05-27 11:08:55,975 - Epoch 23, global step 72: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:01
+{'epoch': 24, 'val_loss': 0.9983104467391968, 'val_acc': 0.4352460503578186, 'val_dice': 0.0019107937114313245, 'val_MIoU': 0.00095631048316136}
+{'epoch': 24, 'train_loss': 0.9985520839691162, 'train_acc': 0.43628743290901184, 'train_dice': 0.0005503452266566455, 'train_MIoU': 0.00027524837059900165}
+2025-05-27 11:09:01,308 - Epoch 24, global step 75: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:06
+{'epoch': 25, 'val_loss': 0.9986003041267395, 'val_acc': 0.055938720703125, 'val_dice': 0.0011838776990771294, 'val_MIoU': 0.0005922894924879074}
+{'epoch': 25, 'train_loss': 0.997374951839447, 'train_acc': 0.4955066442489624, 'train_dice': 0.0005228336667641997, 'train_MIoU': 0.0002614854893181473}
+2025-05-27 11:09:06,900 - Epoch 25, global step 78: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:12
+{'epoch': 26, 'val_loss': 0.9987167716026306, 'val_acc': 0.0028395880945026875, 'val_dice': 0.0011209065560251474, 'val_MIoU': 0.0005607675411738455}
+{'epoch': 26, 'train_loss': 0.9973196983337402, 'train_acc': 0.4970895051956177, 'train_dice': 0.0007968983263708651, 'train_MIoU': 0.00039860798278823495}
+2025-05-27 11:09:12,709 - Epoch 26, global step 81: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:18
+{'epoch': 27, 'val_loss': 0.9987303018569946, 'val_acc': 0.0040762764401733875, 'val_dice': 0.0011222967877984047, 'val_MIoU': 0.000561463471967727}
+{'epoch': 27, 'train_loss': 0.9994375705718994, 'train_acc': 0.5136277079582214, 'train_dice': 0.00048021902330219746, 'train_MIoU': 0.00024016718089114875}
+2025-05-27 11:09:18,024 - Epoch 27, global step 84: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:23
+{'epoch': 28, 'val_loss': 0.9987432956695557, 'val_acc': 0.0038045246619731188, 'val_dice': 0.0011219910811632872, 'val_MIoU': 0.0005613103858195245}
+{'epoch': 28, 'train_loss': 0.9990385174751282, 'train_acc': 0.4923647940158844, 'train_dice': 0.000750614155549556, 'train_MIoU': 0.0003754479985218495}
+2025-05-27 11:09:23,348 - Epoch 28, global step 87: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:28
+{'epoch': 29, 'val_loss': 0.9987092018127441, 'val_acc': 0.005770728923380375, 'val_dice': 0.0011242073960602283, 'val_MIoU': 0.0005624198238365352}
+{'epoch': 29, 'train_loss': 0.999301016330719, 'train_acc': 0.43515682220458984, 'train_dice': 0.0004628862952813506, 'train_MIoU': 0.00023149672779254615}
+2025-05-27 11:09:28,654 - Epoch 29, global step 90: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:33
+{'epoch': 30, 'val_loss': 0.9986596703529358, 'val_acc': 0.01459321565926075, 'val_dice': 0.0011342611396685243, 'val_MIoU': 0.0005674523999914527}
+{'epoch': 30, 'train_loss': 0.9989561438560486, 'train_acc': 0.5131824016571045, 'train_dice': 0.00039149686926975846, 'train_MIoU': 0.00019578676437959075}
+2025-05-27 11:09:33,985 - Epoch 30, global step 93: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:39
+{'epoch': 31, 'val_loss': 0.9986351728439331, 'val_acc': 0.0411086305975914, 'val_dice': 0.001165589434094727, 'val_MIoU': 0.0005831345333717763}
+{'epoch': 31, 'train_loss': 0.9988901019096375, 'train_acc': 0.4795183539390564, 'train_dice': 0.0008190785301849246, 'train_MIoU': 0.00040970704867504537}
+2025-05-27 11:09:39,257 - Epoch 31, global step 96: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:44
+{'epoch': 32, 'val_loss': 0.998509407043457, 'val_acc': 0.152435302734375, 'val_dice': 0.0013184864073991776, 'val_MIoU': 0.0006596780731342733}
+{'epoch': 32, 'train_loss': 0.9991807341575623, 'train_acc': 0.5013822913169861, 'train_dice': 0.0008037536172196269, 'train_MIoU': 0.00040203839307650924}
+2025-05-27 11:09:44,601 - Epoch 32, global step 99: 'val_loss' was not in top 1
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([4, 256, 1, 6, 7])
+torch.Size([4, 128, 2, 12, 14])
+
+torch.Size([4, 128, 2, 12, 14])
+torch.Size([4, 128, 4, 24, 28])
+
+torch.Size([4, 128, 4, 24, 28])
+torch.Size([4, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([4, 1, 16, 96, 112])
+y:  torch.Size([4, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+ShardedDDP detected that the trainable params changed, either because of eval/train mode or parameter freezing/unfreeze.
+Grads waiting to be reduced. If this is on purpose (grad accumulation), please use a no_sync() context
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+torch.Size([2, 256, 1, 6, 7])
+torch.Size([2, 128, 2, 12, 14])
+
+torch.Size([2, 128, 2, 12, 14])
+torch.Size([2, 128, 4, 24, 28])
+
+torch.Size([2, 128, 4, 24, 28])
+torch.Size([2, 64, 8, 48, 56])
+
+Out_shape_before_resampling: torch.Size([2, 1, 16, 96, 112])
+y:  torch.Size([2, 1, 16, 96, 112])
+
+================================================================================2025-05-27 11:09:49
+{'epoch': 33, 'val_loss': 0.9919779300689697, 'val_acc': 0.7241196632385254, 'val_dice': 0.0025430184323340654, 'val_MIoU': 0.001273128087632358}
+{'epoch': 33, 'train_loss': 0.9981748461723328, 'train_acc': 0.4650779962539673, 'train_dice': 0.0005994858802296221, 'train_MIoU': 0.00029983281274326146}
+2025-05-27 11:09:49,962 - Epoch 33, global step 102: 'val_loss' reached 0.99198 (best 0.99198), saving model to './save_model/medseg-v2.ckpt' as top 1

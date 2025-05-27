@@ -425,7 +425,7 @@ if __name__ == "__main__":
     subjects_with_roi = [
         sid for sid in subjects_with_roi
         if not os.path.isdir(os.path.join(fs_outputs_dir, sid))
-    ] #[1:] # DELETE LATER
+    ][1:] # DELETE LATER
 
     if not subjects_with_roi:
         print("❌ No subjects with _roi file found.")

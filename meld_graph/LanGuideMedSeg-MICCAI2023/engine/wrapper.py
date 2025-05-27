@@ -2,6 +2,7 @@ from utils.model import LanGuideMedSeg
 from monai.losses import DiceCELoss
 from torchmetrics import Accuracy, Dice
 from torchmetrics.classification import BinaryJaccardIndex
+import torch.nn.functional as F
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
@@ -10,6 +11,9 @@ import pandas as pd
 import sys
 import numpy as np
 import datetime
+import os
+import matplotlib.pyplot as plt
+
 
 class LanGuideMedSegWrapper(pl.LightningModule):
 
@@ -20,7 +24,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         self.model = LanGuideMedSeg(args.bert_type, args.meld_script_path, 
                                     args.feature_path, args.output_dir,
                                     # args.vision_type, 
-                                    args.project_dim)
+                                    args.project_dim, args.device)
         self.lr = args.lr
         self.history = {}
         
@@ -43,14 +47,50 @@ class LanGuideMedSegWrapper(pl.LightningModule):
     def forward(self,x):
        
        return self.model.forward(x)
+    
+    def save_pred_and_mask(self, preds, y, step, batch_idx, output_dir="./debug_preds"):
+        os.makedirs(output_dir, exist_ok=True)
+        preds_np = preds.detach().cpu().numpy()
+        y_np = y.detach().cpu().numpy()
+
+        B = preds_np.shape[0]
+        for i in range(B):
+            pred_slice = preds_np[i, 0, preds_np.shape[2] // 2]
+            y_slice = y_np[i, 0, y_np.shape[2] // 2]
+
+            fig, axs = plt.subplots(1, 2, figsize=(6, 3))
+            axs[0].imshow(pred_slice, cmap='viridis', vmin=0, vmax=1)
+            axs[0].set_title('Prediction')
+            axs[1].imshow(y_slice, cmap='gray')
+            axs[1].set_title('Ground Truth')
+
+            for ax in axs:
+                ax.axis('off')
+
+            fname = f"step_{step}_batch_{batch_idx}_idx_{i}.png"
+            plt.savefig(os.path.join(output_dir, fname), bbox_inches='tight')
+            plt.close(fig)
 
 
     def shared_step(self,batch,batch_idx):
 
         x, y = batch
+        
         preds = self(x)
-        loss = self.loss_fn(preds,y)
-        return {'loss': loss, 'preds': preds.detach(), 'y': y.detach()}    
+        if y.dim() == 4:
+            y = y.unsqueeze(1)
+        
+        if y.shape[2:] != preds.shape[2:]:
+            y = F.interpolate(y, size=preds.shape[2:], mode='nearest')
+
+        # print("preds stats:", preds.min().item(), preds.max().item(), preds.mean().item())
+        loss = self.loss_fn(preds, y)
+
+        # ===== debug visualization =====
+        if self.global_step < 10:  # сохранить только первые несколько шагов
+            self.save_pred_and_mask(preds, y, step=self.global_step, batch_idx=batch_idx)
+
+        return {'loss': loss, 'preds': preds, 'y': y}    
     
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch,batch_idx)
@@ -68,10 +108,15 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             return self(batch)
         
     def shared_step_end(self,outputs,stage):
+        preds = outputs['preds']
+        target = outputs['y']
+
+        target = target.long()
+
         metrics = self.train_metrics if stage=="train" else (
             self.val_metrics if stage=="val" else self.test_metrics)
         for name in metrics:
-            step_metric = metrics[name](outputs['preds'], outputs['y']).item()
+            step_metric = metrics[name](preds, target).item()
             if stage=="train":
                 self.log(name,step_metric,prog_bar=True)
         return outputs["loss"].mean()

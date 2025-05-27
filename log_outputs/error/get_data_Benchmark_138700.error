@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "/home/s17gmikh/FCD-Detection/LanGuideMedSeg-MICCAI2023/utils/dataset_bonn.py", line 175, in <module>
-    run_recon_all(t1w_path, subject_id, subjects_dir)
-  File "/home/s17gmikh/FCD-Detection/LanGuideMedSeg-MICCAI2023/utils/dataset_bonn.py", line 60, in run_recon_all
-    raise RuntimeError("FreeSurfer recon-all завершился с ошибкой.")
-RuntimeError: FreeSurfer recon-all завершился с ошибкой.

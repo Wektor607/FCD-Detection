@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import subprocess
 import torch.nn as nn
+import torch.nn.functional as F
 from einops import rearrange, repeat
 from utils.layers import GuideDecoder
 from monai.networks.blocks.dynunet_block import UnetOutBlock
@@ -42,22 +43,29 @@ class BERTModel(nn.Module):
         return {'feature':output['hidden_states'],'project':embed}
 
 class VisionModel(nn.Module):
-    def __init__(self, project_dim: int, meld_script_path: str, feature_path: str, output_dir: str):
+    def __init__(self, project_dim: int, meld_script_path: str, feature_path: str, output_dir: str, device: str):
         super().__init__()
         
         self.project_heads = nn.ModuleList([
+            nn.Linear(16, project_dim),   # for (163842, 32)
             nn.Linear(32, project_dim),   # for (163842, 32)
             nn.Linear(32, project_dim),   # for (40962, 32)
             nn.Linear(64, project_dim),   # for (10242, 64)
             nn.Linear(64, project_dim),   # for (2562, 64)
             nn.Linear(128, project_dim),  # for (642, 128)
             nn.Linear(128, project_dim),  # for (162, 128)
-            nn.Linear(256, project_dim),  # for (42, 256)
+            # nn.Linear(256, project_dim),  # for (42, 256)
         ])
 
         self.meld_script_path = meld_script_path
         self.feature_path     = feature_path
         self.output_dir       = output_dir
+        
+        if torch.cuda.is_available():
+            self.device = torch.device(f'cuda:{device}')
+        else:
+            self.device = torch.device('cpu')
+
 
     def run_meld_prediction(self, subject_id):
         command = [
@@ -74,7 +82,11 @@ class VisionModel(nn.Module):
             raise
 
     def forward(self, subject_ids:List[str]):
-        flag = True
+        features_path = os.path.join(self.feature_path, "input", subject_ids[0], "anat", "features", "feature_maps.npz")
+        features = np.load(features_path)
+        sorted_keys = sorted(features.files, key=lambda k: int(k.replace('stage', '')))
+        stage_embeddings = [[] for _ in sorted_keys]
+
         for subject_id in subject_ids:
 
             # Step 1: run MELD prediction
@@ -84,45 +96,26 @@ class VisionModel(nn.Module):
             # Step 2: get features from all model layers
             features_path = os.path.join(self.feature_path, "input", subject_id, "anat", "features", "feature_maps.npz")
             features = np.load(features_path)
-            
-            if flag:
-                stage_embeddings = [[] for _ in range(len(features.files))] 
-                stage_embeddings_project = [[] for _ in range(len(features.files))] 
-                flag = False
 
-            sorted_keys = sorted(features.files, key=lambda k: int(k.replace('stage', '')))
             # Step 3: We squeeze and project the embeddings to the same dimension
             for i, stage in enumerate(sorted_keys):
-                feat_squeeze = torch.tensor(features[stage], dtype=torch.float32).squeeze()
-                emb_proj = self.project_heads[i](feat_squeeze)
+                feat_squeeze = torch.tensor(features[stage], dtype=torch.float32, device=self.device).squeeze()
                 stage_embeddings[i].append(feat_squeeze)
-                stage_embeddings_project[i].append(emb_proj)
-            
-        
+
+        # Remove first 2 stages:
+        stage_embeddings = stage_embeddings[3:]
+
         batch_tensors = []
-        batch_project_tensors = []
-        for (i, level_batch), (j, level_project_batch) in zip(enumerate(stage_embeddings), enumerate(stage_embeddings_project)):
+        for i, level_batch in enumerate(stage_embeddings):
             try:
-                level_tensor = torch.stack(level_batch)  # [B, N, D]
+                level_tensor = torch.stack(level_batch, dim=0)  # [B, N, D]
             except RuntimeError:
                 print(f"[!] Stage {i}: Cannot stack due to size mismatch. Keeping as list.")
                 level_tensor = level_batch
 
-            try:
-                level_project_tensor = torch.stack(level_project_batch)  # [B, N, D]
-            except RuntimeError:
-                print(f"[!] Stage {j}: Cannot stack due to size mismatch. Keeping as list.")
-                level_project_tensor = level_project_batch
-
             batch_tensors.append(level_tensor)
-            batch_project_tensors.append(level_project_tensor)
 
-        return {"feature": batch_tensors, "project": batch_project_tensors}
-
-# out = vision()
-# for stages in out["feature"]:
-#     for stage in stages:
-#         print(stage.shape)
+        return {"feature": batch_tensors, "project": None}
 
 class LanGuideMedSeg(nn.Module):
 
@@ -130,11 +123,12 @@ class LanGuideMedSeg(nn.Module):
                  meld_script_path, 
                  feature_path, 
                  output_dir,
-                 project_dim=512):
+                 project_dim=512,
+                 device='cpu'):
 
         super(LanGuideMedSeg, self).__init__()
 
-        self.encoder = VisionModel(project_dim, meld_script_path, feature_path, output_dir)
+        self.encoder = VisionModel(project_dim, meld_script_path, feature_path, output_dir, device)
         self.text_encoder = BERTModel(bert_type, project_dim)
 
         # Layer stage1 — shape: torch.Size([1, 163842, 32])
@@ -146,18 +140,30 @@ class LanGuideMedSeg(nn.Module):
         # Layer stage7 — shape: torch.Size([1, 42, 256])
         
         feature_dim      = [256, 128, 128, 64, 64, 32, 32] # stage_i[2]
-        self.spatial_dim = [6, 13, 25, 51, 101, 202, 405]  # sqrt(stage_i[1])
+        self.spatial_dim = [
+            (1, 6, 7),     # stage7: 42
+            (2, 12, 14),   # stage6: 336
+            (4, 24, 28),   # stage5: 2688
+            (8, 48, 56),   # stage4: 21,504
+            # === CUDA out of memory ===
+            # (16, 96, 112),  # stage3: 172,032
+            # (32, 192, 224), # stage2: 1,376,256
+            # (64, 384, 448)  # stage1: 11,010,048
+        ]       
         text_lens        = [128, 64, 64, 48, 48, 24, 24]
 
-        self.decoder7 = GuideDecoder(feature_dim[0], feature_dim[1],self.spatial_dim[0], text_lens[0])
+        self.decoder7 = GuideDecoder(feature_dim[0], feature_dim[1], self.spatial_dim[0], text_lens[0])
         self.decoder6 = GuideDecoder(feature_dim[1], feature_dim[2],self.spatial_dim[1], text_lens[1])
         self.decoder5 = GuideDecoder(feature_dim[2], feature_dim[3],self.spatial_dim[2], text_lens[2])
-        self.decoder4 = GuideDecoder(feature_dim[3], feature_dim[4],self.spatial_dim[3], text_lens[3])
-        self.decoder3 = GuideDecoder(feature_dim[4], feature_dim[5],self.spatial_dim[4], text_lens[4])
-        self.decoder2 = GuideDecoder(feature_dim[5], feature_dim[6],self.spatial_dim[5], text_lens[5])
-        self.decoder1 = SubpixelUpsample(2,feature_dim[6], 48, text_lens[6])
-        self.out = UnetOutBlock(2, in_channels=48, out_channels=1)
-
+        self.out = UnetOutBlock(3, in_channels=feature_dim[3], out_channels=1)
+        # self.decoder4 = GuideDecoder(feature_dim[3], feature_dim[4],self.spatial_dim[3], text_lens[3])
+        # self.upsample = SubpixelUpsample(3, feature_dim[4], 32, 12)
+        
+        # self.decoder3 = GuideDecoder(feature_dim[4], feature_dim[5],self.spatial_dim[4], text_lens[4])
+        # self.decoder2 = GuideDecoder(feature_dim[5], feature_dim[6],self.spatial_dim[5], text_lens[5])
+        # self.out = UnetOutBlock(3, in_channels=feature_dim[6], out_channels=1)
+        # self.out = UnetOutBlock(2, in_channels=48, out_channels=1)
+    
     def forward(self, data):
 
         subject_ids, text = data
@@ -172,18 +178,34 @@ class LanGuideMedSeg(nn.Module):
 
         if len(image_features[0].shape) == 4: 
             image_features = image_features[1:]  # 4 8 16 32   convnext: Embedding + 4 layers feature map
-            image_features = [rearrange(item,'b c h w -> b (h w) c') for item in image_features] 
+            image_features = [rearrange(item,'b c d h w -> b (d h w) c') for item in image_features] 
+        
+        # os8 = image_features[6]
+        # os7  = self.decoder7(os8, image_features[5], text_embeds[-1])
+        # os6  = self.decoder6(os7, image_features[4], text_embeds[-1])
+        # os5  = self.decoder5(os6, image_features[3], text_embeds[-1])
+        # os4  = self.decoder4(os5, image_features[2], text_embeds[-1])
+        # os3  = self.decoder3(os4, image_features[1], text_embeds[-1])
+        # os2  = self.decoder2(os3, image_features[0], text_embeds[-1])
 
-        os8 = image_features[6]
-        os7  = self.decoder7(os8, image_features[5], text_embeds[-1])
-        os6  = self.decoder6(os7, image_features[4], text_embeds[-1])
-        os5  = self.decoder5(os6, image_features[3], text_embeds[-1])
-        os4  = self.decoder4(os5, image_features[2], text_embeds[-1])
-        os3  = self.decoder3(os4, image_features[1], text_embeds[-1])
-        os2  = self.decoder2(os3, image_features[0], text_embeds[-1])
-        os2 = rearrange(os2, 'B (H W) C -> B C H W',H=self.spatial_dim[-1],W=self.spatial_dim[-1])
-        os1 = self.decoder1(os2)
-        out = self.out(os1).sigmoid()
+        
+        os8 = image_features[3]
+        os7 = self.decoder7(os8, image_features[2], text_embeds[-1])
+        os6 = self.decoder6(os7, image_features[1], text_embeds[-1])
+        os5 = self.decoder5(os6, image_features[0], text_embeds[-1])
+        # os4 = self.decoder4(os5, image_features[0], text_embeds[-1])
 
+        D, H, W = self.spatial_dim[3]
+        vol = rearrange(os5, 'B (D H W) C -> B C D H W', D=D, H=H, W=W)
+        
+        vol = F.interpolate(vol, scale_factor=2, mode='trilinear', align_corners=False)
+        
+        out = self.out(vol).sigmoid()
+        
+        print('Out_shape_before_resampling:', out.shape)
+        
+        # os2 = rearrange(os2, 'B (D H W) C -> B C D H W', D=D, H=H,W=W)
+        # os1 = self.decoder1(os2)
+        # print(os1.shape)
         return out
     

@@ -11,7 +11,7 @@ from transformers import AutoTokenizer
 
 class EpilepDataset(Dataset):
 
-    def __init__(self, csv_path=None, root_path=None, tokenizer=None, mode='train', image_size=[182, 218, 182]):
+    def __init__(self, csv_path=None, root_path=None, tokenizer=None, mode='train', image_size=[160, 256, 256]):
 
         super(EpilepDataset, self).__init__()
 

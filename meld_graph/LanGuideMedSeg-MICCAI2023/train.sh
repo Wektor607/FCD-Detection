@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=re_desc
-#SBATCH --partition=A40medium
-#SBATCH --time=24:00:00
+#SBATCH --job-name=train
+#SBATCH --partition=A40short
+#SBATCH --time=8:00:00
 #SBATCH --gpus=2
 #SBATCH --cpus-per-task=2
 #SBATCH --nodes=1
@@ -37,17 +37,11 @@ export PATH="$CONDA_PREFIX/bin:$PATH"
 export FASTSURFER_HOME=/home/s17gmikh/FastSurfer
 export PATH=$FASTSURFER_HOME:$PATH
 
-cd /home/s17gmikh/FCD-Detection/meld_graph
+cd /home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
 export PATH="/home/s17gmikh/miniconda3/envs/MELD-env/bin:$PATH"
 hash -r 
 which python
 
-python -c "import sys; print(sys.executable)"
-if [ $1 = 'pytest' ]; then
-  pytest ${@:2}
-else
-  # python ../../scripts/new_patient_pipeline/$1 ${@:2}
-  python scripts/new_patient_pipeline/$1 ${@:2}
-fi
+python3 train_bonn.py

@@ -57,7 +57,7 @@ if __name__ == '__main__':
     dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size)
 
     model = LanGuideMedSegWrapper(args)
-
+    
     ## 1. setting recall function
     model_ckpt = ModelCheckpoint(
         dirpath=args.model_save_path,
@@ -74,12 +74,22 @@ if __name__ == '__main__':
     )
 
     ## 2. setting trainer
+    if torch.cuda.is_available():
+        accelerator = "gpu"
+        devices = "auto"
+        strategy = "ddp_sharded"
+    else:
+        accelerator = "cpu"
+        devices = 1
+        strategy = None
+
     trainer = pl.Trainer(logger=True,
                         min_epochs=args.min_epochs,max_epochs=args.max_epochs,
-                        accelerator='cpu',#'gpu', 
-                        devices=args.device,
+                        accelerator=accelerator, 
+                        devices=devices,
                         callbacks=[model_ckpt,early_stopping],
                         enable_progress_bar=False,
+                        strategy=strategy
                         ) 
 
     ## 3. start training
