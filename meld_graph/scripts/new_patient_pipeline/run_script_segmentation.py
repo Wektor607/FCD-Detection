@@ -3,9 +3,8 @@
 ## for each participant. Within each participant folder should be a T1 folder 
 ## that contains the T1 in nifti format ".nii" and where available a FLAIR 
 ## folder that contains the FLAIR in nifti format ".nii"
-
 ## To run : python run_script_segmentation.py -id <sub_id> -harmo_code <harmo_code>
-
+import glob
 import os
 from tabnanny import verbose
 import numpy as np
@@ -28,7 +27,7 @@ from meld_graph.tools_pipeline import get_m, create_demographic_file, get_anat_f
 from scripts.data_preparation.extract_features.create_xhemi import run_parallel_xhemi, create_xhemi
 from scripts.data_preparation.extract_features.create_training_data_hdf5 import create_training_data_hdf5
 from scripts.data_preparation.extract_features.sample_FLAIR_smooth_features import sample_flair_smooth_features
-from scripts.data_preparation.extract_features.lesion_labels import lesion_labels
+from scripts.data_preparation.extract_features.lesion_labels import lesion_labels, project_lesion_to_surface
 from scripts.data_preparation.extract_features.move_to_xhemi_flip import move_to_xhemi_flip
 
 
@@ -211,6 +210,11 @@ def extract_features(subject_id, fs_folder, output_dir, verbose=False):
     result = move_to_xhemi_flip(subject_id, fs_folder, verbose = verbose )
     if result == False:
         return False
+
+    print(get_m(f'Projecting ROI mask to surface', subject_id, 'INFO'))
+    result = project_lesion_to_surface(subject_id, fs_folder)
+    if result == False:
+        print(get_m(f'Skipped lesion_labels because no ROI found', subject_id, 'WARNING'))
 
     print(get_m(f'Moving lesion masks to template surface', subject_id, 'INFO'))
     result = lesion_labels(subject_id, fs_folder, verbose=verbose)
@@ -400,7 +404,6 @@ def run_script_segmentation(list_ids=None, sub_id=None, harmo_code='noHarmo', us
                 return False
 
 if __name__ == "__main__":
-    import glob
 
     # аргументы
     parser = argparse.ArgumentParser(description="perform cortical parcellation using recon-all or FastSurfer")
@@ -421,15 +424,15 @@ if __name__ == "__main__":
         for p in glob.glob(os.path.join(base_dir, "sub-*/anat/*_roi*.nii*"))
     ), reverse=args.inv)
 
-    # исключить тех, у кого уже есть папка в fs_outputs
-    subjects_with_roi = [
-        sid for sid in subjects_with_roi
-        if not os.path.isdir(os.path.join(fs_outputs_dir, sid))
-    ][1:] # DELETE LATER
+    # # исключить тех, у кого уже есть папка в fs_outputs
+    # subjects_with_roi = [
+    #     sid for sid in subjects_with_roi
+    #     if not os.path.isdir(os.path.join(fs_outputs_dir, sid))
+    # ]
 
-    if not subjects_with_roi:
-        print("❌ No subjects with _roi file found.")
-        sys.exit(0)
+    # if not subjects_with_roi:
+    #     print("❌ No subjects with _roi file found.")
+    #     sys.exit(0)
 
     for sid in subjects_with_roi:
         print(get_m(f"Start processing {sid}", None, "STEP"))
