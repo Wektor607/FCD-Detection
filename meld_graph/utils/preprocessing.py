@@ -60,16 +60,15 @@ def preprocess_func(list_ids, subj_path):
         except Exception as e2:
             sys.exit(f'❌ Could not load list_ids with any method: {e2}', None, 'ERROR')
     
-    list_paths  = []
+    list_paths   = []
     report_paths = []
-    
+    roi_paths    = []
     for subj_id in subject_ids:
         featmat_path = project_path(f"data/output/preprocessed_surf_data/{subj_id}_featurematrix_combat.hdf5")
-        roi_path  = find_file_with_suffix(project_path(f"data/input/{subj_id}/anat"), "FLAIR_roi")
+        roi_path  = find_file_with_suffix(project_path(f"data/output/preprocessed_surf_data"), f"{subj_id}_featurematrix.hdf5")
         subj_new = project_path(os.path.join(subj_path, "preprocessed", subj_id))
-
-        os.makedirs(subj_new, exist_ok=True)  # безопасно создаёт папку, если её нет
-
+        os.makedirs(subj_new, exist_ok=True)
+        
         feat_dst = os.path.join(subj_new, os.path.basename(featmat_path))
         roi_dst = os.path.join(subj_new, os.path.basename(roi_path))
 
@@ -78,13 +77,15 @@ def preprocess_func(list_ids, subj_path):
 
         if not os.path.isfile(roi_dst):
             shutil.copy2(roi_path, roi_dst)
-            
+
+
         list_paths.append(subj_new)
+        roi_paths.append(roi_path)
         report_paths.append(project_path(f"data/input/{subj_id}/anat/report"))
 
-    generate_full_data(list_paths, report_paths, project_path(os.path.join(subj_path, "preprocessed", "NewFinal.csv")))
+    generate_full_data(list_paths, roi_paths, report_paths, project_path(os.path.join(subj_path, "preprocessed", "NewFinal.csv")))
 
-def generate_full_data(list_paths, report_paths, result_file):
+def generate_full_data(list_paths, roi_paths, report_paths, result_file):
     """
     Parameters:
         - 
@@ -156,7 +157,7 @@ def generate_full_data(list_paths, report_paths, result_file):
     }
 
     new_csv = pd.DataFrame(columns=['DATA_PATH', 'ROI_PATH', 'harvard_oxford', 'aal'])
-    for path, report in zip(list_paths, report_paths):
+    for path, roi_hdf5_path, report in zip(list_paths, roi_paths, report_paths):
         
         roi_path  = find_file_with_suffix(path, '_FLAIR_roi')
         pred_path = find_file_with_suffix(path, '_combat')
@@ -172,7 +173,7 @@ def generate_full_data(list_paths, report_paths, result_file):
 
         new_csv.loc[len(new_csv)] = [
             pred_path,
-            roi_path,
+            roi_hdf5_path,
             data['harvard_oxford'].iloc[0],
             data['aal'].iloc[0]
         ]

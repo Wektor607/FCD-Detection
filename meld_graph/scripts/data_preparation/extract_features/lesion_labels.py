@@ -45,7 +45,6 @@ def project_lesion_to_surface(subject_id, subjects_dir):
             f"--regheader {subject_id} "
             f"--hemi {hemi} "
             f"--interp nearest "
-            # f"--projfrac 0.5 "
             f"--o {out_path}"
         )
 

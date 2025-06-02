@@ -121,15 +121,11 @@ def run_data_processing_new_subjects(subject_ids, harmo_code, compute_harmonisat
 		".on_lh.gm_FLAIR_0.mgh": 3,
 		'.on_lh.wm_FLAIR_0.5.mgh' : 3,
 		'.on_lh.wm_FLAIR_1.mgh' : 3,
-        '.on_lh.lesion.mgh': None,
     			}
     feat = Feature()
     features_smooth = []
     for feature, sigma in features.items():
-        if "lesion" in feature:
-            features_smooth.append(feature)  # добавим без сглаживания
-        else:
-            features_smooth.append(feat.smooth_feat(feature, sigma))
+        features_smooth.append(feat.smooth_feat(feature, sigma))
 
     features_combat = [feat.combat_feat(feature) 
                        for feature in features_smooth
@@ -220,10 +216,8 @@ def run_data_processing_new_subjects(subject_ids, harmo_code, compute_harmonisat
             #features names
             for feature in features_smooth:
                 print(get_m(f'Combat feature {feature}', None, 'STEP'))
-                if "lesion" not in feature:
-                    combat.combat_new_subject(feature, combat_params_file)
-                else:
-                    print(get_m(f'Skipping harmonisation for {feature} (lesion)', None, 'INFO'))
+                combat.combat_new_subject(feature, combat_params_file)
+            
         else:
             #transfer smoothed features as combat features
             print(get_m(f'Transfer features - no harmonisation', subject_ids, 'STEP'))
