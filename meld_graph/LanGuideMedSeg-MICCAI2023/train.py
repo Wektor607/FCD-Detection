@@ -1,13 +1,16 @@
+import sys
 import torch
-from torch.utils.data import DataLoader
-from utils.dataset import QaTa
+import wandb
 import utils.config as config
+
 from torch.optim import lr_scheduler
+from torch.utils.data import DataLoader
+from pytorch_lightning.loggers import WandbLogger
+
+from utils.dataset_bonn import EpilepDataset
 from engine.wrapper import LanGuideMedSegWrapper
 
 import pytorch_lightning as pl    
-from torchmetrics import Accuracy,Dice
-from torchmetrics.classification import BinaryJaccardIndex
 from pytorch_lightning.callbacks import ModelCheckpoint,EarlyStopping
 
 import torch.multiprocessing
@@ -33,25 +36,40 @@ def get_parser():
 if __name__ == '__main__':
 
     args = get_parser()
-    print("cuda:",torch.cuda.is_available())
-
-    ds_train = QaTa(csv_path=args.train_csv_path,
+    
+    # wandb_logger = WandbLogger(
+    #     project=args.project_name,
+    #     log_model=True
+    # )   
+    
+    ds_train = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
                     tokenizer=args.bert_type,
                     image_size=args.image_size,
                     mode='train')
 
-    ds_valid = QaTa(csv_path=args.train_csv_path,
+    ds_valid = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
                     tokenizer=args.bert_type,
                     image_size=args.image_size,
                     mode='valid')
 
 
-    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, shuffle=True, num_workers=args.train_batch_size)
-    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size)
+    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, shuffle=True, num_workers=args.train_batch_size, pin_memory=True)
+    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size, pin_memory=True)
 
-    model = LanGuideMedSegWrapper(args)
+    ## 2. setting trainer
+    if torch.cuda.is_available():
+        accelerator = "gpu"
+        devices = "auto"
+        strategy = "ddp_sharded"
+    else:
+        accelerator = "cpu"
+        args.device="cpu"
+        devices = 1
+        strategy = None
+
+    model = LanGuideMedSegWrapper(args, ds_train.root_path)
 
     ## 1. setting recall function
     model_ckpt = ModelCheckpoint(
@@ -68,18 +86,23 @@ if __name__ == '__main__':
                             mode = 'min'
     )
 
-    ## 2. setting trainer
 
-    trainer = pl.Trainer(logger=True,
+    torch.set_float32_matmul_precision('high')
+    trainer = pl.Trainer(
+                        # logger=wandb_logger,
                         min_epochs=args.min_epochs,max_epochs=args.max_epochs,
-                        accelerator='gpu', 
-                        devices=args.device,
-                        callbacks=[model_ckpt,early_stopping],
-                        enable_progress_bar=False,
-                        ) 
+                        accelerator=accelerator, 
+                        devices=devices,
+                        callbacks=[model_ckpt,],#early_stopping],
+                        enable_progress_bar=True,
+                        overfit_batches=1,
+                        # strategy=strategy
+                    ) 
 
     ## 3. start training
     print('start training')
     trainer.fit(model,dl_train,dl_valid)
     print('done training')
 
+    # wandb.finish()
+# 

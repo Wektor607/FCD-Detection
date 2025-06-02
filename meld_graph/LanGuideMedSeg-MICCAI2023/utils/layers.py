@@ -32,20 +32,18 @@ class PositionalEncoding(nn.Module):
 
 class GuideDecoderLayer(nn.Module):
 
-    def __init__(self, in_channels:int, output_text_len:int, input_text_len:int=256, embed_dim:int=768):
+    def __init__(self, in_channels:int, output_text_len:int, input_text_len:int=256, embed_dim:int=768, chunk_size:int=4096):
 
         super(GuideDecoderLayer, self).__init__()
 
         self.in_channels = in_channels
-
+        self.chunk_size  = chunk_size 
         self.self_attn_norm = nn.LayerNorm(in_channels)
         self.cross_attn_norm = nn.LayerNorm(in_channels)
 
         self.self_attn = nn.MultiheadAttention(embed_dim=in_channels,num_heads=1,batch_first=True)
-        self.cross_attn = nn.MultiheadAttention(embed_dim=in_channels,num_heads=2,batch_first=True)
-        # self.cross_attn = nn.MultiheadAttention(embed_dim=in_channels,num_heads=4,batch_first=True)
+        self.cross_attn = nn.MultiheadAttention(embed_dim=in_channels,num_heads=4,batch_first=True)
 
-        print(input_text_len,output_text_len, embed_dim,in_channels)
         self.text_project = nn.Sequential(
             nn.Conv1d(input_text_len,output_text_len,kernel_size=1,stride=1),
             nn.GELU(),
@@ -61,33 +59,44 @@ class GuideDecoderLayer(nn.Module):
 
         self.scale = nn.Parameter(torch.tensor(1.421),requires_grad=True)
 
+    # def _chunked_attention(self, q, k, v, attn_module, chunk_size=4096):
+    #     chunks = zip(q.split(chunk_size, dim=1),
+    #                 k.split(chunk_size, dim=1),
+    #                 v.split(chunk_size, dim=1))
+    #     out_chunks = [attn_module(qc, kc, value=vc)[0] for qc, kc, vc in chunks]
+    #     return torch.cat(out_chunks, dim=1)
 
-    def forward(self,x,txt):
+    # def _chunked_cross_attention(self, vis, txt, attn_module, vis_pos, txt_pos, chunk_size=4096):
+    #     chunks = vis.split(chunk_size, dim=1)
+    #     out_chunks = []
+    #     for chunk in chunks:
+    #         norm_chunk = self.norm2(chunk)
+    #         out_chunk, _ = attn_module(query=vis_pos(norm_chunk), key=txt_pos(txt), value=txt)
+    #         out_chunks.append(out_chunk)
+    #     return torch.cat(out_chunks, dim=1)
+
+    def forward(self, x, txt, chunk_threshold=100000):
 
         '''
         x:[B N C1]
         txt:[B,L,C]
         '''
-        
         txt = self.text_project(txt)
         
         # Self-Attention
         vis2 = self.norm1(x)
         q = k = self.vis_pos(vis2)
-        
-        q = torch.as_tensor(q)
-        k = torch.as_tensor(k)
-        vis2 = torch.as_tensor(vis2)
-
-        vis2 = self.self_attn(q, k, value=vis2)[0]
+        vis2, _ = self.self_attn(q, k, value=vis2)
         vis2 = self.self_attn_norm(vis2)
         vis = x + vis2
         
         # Cross-Attention
         vis2 = self.norm2(vis)
-        vis2,_ = self.cross_attn(query=self.vis_pos(vis2),
-                                   key=self.txt_pos(txt),
-                                   value=txt)
+        vis2,_ = self.cross_attn(
+                    query=self.vis_pos(vis2),
+                    key=self.txt_pos(txt),
+                    value=txt)
+        
         vis2 = self.cross_attn_norm(vis2)
         vis = vis + self.scale*vis2
 
@@ -95,60 +104,46 @@ class GuideDecoderLayer(nn.Module):
 
 class GuideDecoder(nn.Module):
 
-    def __init__(self,in_channels, out_channels, spatial_size, text_len) -> None:
+    def __init__(self,in_channels, out_channels, text_len) -> None:
 
         super().__init__()
 
         self.guide_layer = GuideDecoderLayer(in_channels, text_len)   # for skip
-        self.D, self.H, self.W = spatial_size
-        self.decoder = UnetrUpBlock(3,in_channels,out_channels,3,2,norm_name='BATCH')
+        # 2. После этого «склеиваем» признаки vis + skip_vis и делаем простой Linear→BatchNorm→ReLU
+        self.lin1 = nn.Linear(in_channels + out_channels, out_channels)
+        self.norm = nn.BatchNorm1d(out_channels)
 
-    def pad_to_length(self, tensor, target_len):
-        """
-        tensor: [B, N, C]
-        target_len: int
-        """
-        B, N, C = tensor.shape
-        if N >= target_len:
-            return tensor[:, :target_len, :]
-        pad_len = target_len - N
-        pad = torch.zeros(B, pad_len, C, dtype=tensor.dtype, device=tensor.device)
-        return torch.cat([tensor, pad], dim=1)
 
-    def forward(self, vis, skip_vis, txt):
+    def forward(self, vis, skip_vis, txt, assign):
+        B, N_in, C_in = vis.shape
+        B2, N_skip, C_skip = skip_vis.shape
+        assert B == B2, "Batch size mismatch между vis и skip_vis"
+
 
         if txt is not None:
-            vis = self.guide_layer(vis, txt)
-
-        vis = rearrange(vis, 'B (D H W) C -> B C D H W', D=self.D, H=self.H, W=self.W)
-
-        target_len = (self.D * 2) * (self.H * 2) * (self.W * 2)
-        skip_vis = self.pad_to_length(skip_vis, target_len)
-
-        skip_vis = rearrange(skip_vis, 'B (D H W) C -> B C D H W', D=self.D * 2, H=self.H * 2, W=self.W * 2)
-        print(vis.shape)
-        print(skip_vis.shape)
-        print()
-        output = self.decoder(vis, skip_vis)
-
-        output = rearrange(output, 'B C D H W -> B (D H W) C')
-
-        return output
-    # def forward(self, vis, skip_vis, txt):
-
-    #     if txt is not None:
-    #         vis =  self.guide_layer(vis, txt)
+            vis_coarse = self.guide_layer(vis, txt)
         
-    #     vis = rearrange(vis,'B (H W) C -> B C H W',H=self.H,W=self.W)
+        # 2) Graph Unpooling: «разворачиваем» coarse→fine через assign
+        # assign: [N_fine], в диапазоне [0..N_coarse−1]
+        # сделаем gather: из vis_coarse2 по dim=1
+        #  a) расширяем assign на батч
+        assign_expand = assign.unsqueeze(0).expand(B, -1)            # [B, N_fine]
+        assign_expand = assign_expand.unsqueeze(-1).expand(-1, -1, C_in)  # [B, N_fine, C_in]
 
-    #     target_len = (self.H * 2) * (self.W * 2)
-    #     skip_vis = self.pad_to_length(skip_vis, target_len)
+        #  b) берём каждый fine-индекс i: parent_idx = assign[i],
+        #     и доставляем vis_coarse2[b, parent_idx, :] в vis_upsampled[b, i, :].
+        vis_upsampled = torch.gather(vis_coarse, dim=1, index=assign_expand)
+        # → [B, N_fine, C_in]
 
-    #     skip_vis = rearrange(skip_vis,'B (H W) C -> B C H W',H=self.H * 2, W=self.W * 2)
-    #     output = self.decoder(vis,skip_vis)
+        cat = torch.cat([vis_upsampled, skip_vis], dim=-1)
+        B, N, Ctot = cat.shape
 
-    #     output = rearrange(output,'B C H W -> B (H W) C')
+        out = self.lin1(cat.view(-1, Ctot))               # [B*N_max, out_channels]
+        out = self.norm(out)                              # [B*N_max, out_channels]
+        out = F.relu(out)
+        out = out.view(B, N, -1)                      # [B, N_max, out_channels]
 
-    #     return output
+        return out
+       
 
 
