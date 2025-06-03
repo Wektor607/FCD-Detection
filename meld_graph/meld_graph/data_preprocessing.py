@@ -159,6 +159,8 @@ class Preprocess:
         lesion_bias=False,
         distance_maps=False,
         combine_hemis=None,
+        harmo_code=None,
+        only_lesion=False,
     ):
         """
         Preprocess features data for a single subject depending on params.
@@ -180,34 +182,38 @@ class Preprocess:
         subject_data = []
         # load data & lesion
         for hemi in ("lh", "rh"):
-            vals_array, lesion = subj.load_feature_lesion_data(features, hemi=hemi)
             subject_data_dict = {}
-            # z-score data
-            if self.params["zscore"]:
-                if hemi == "lh":
-                    self.log.info(f"Z-scoring data for {subject}")
-                vals_array = self.zscore_data(vals_array.T, features).T
-            if distance_maps:
-                gdist = self.load_distances(subj, hemi)
-                subject_data_dict["distances"] = gdist
-            if self.params["scaling"] is not None:
-                self.log.info(f"Scaling data for has been removed. REIMPLEMENT")
-            if lobes:
-                # replace lesion data with lobes task if required
-                lesion = self.lobes
-            # add lesion bias
-            if lesion_bias:
-                self.log.info(f"WARNING: Adding lesion bias of {lesion_bias} to {subject}")
-                vals_array[lesion == 1] += lesion_bias
-            if combine_hemis is not None:
-                self.log.info(f"WARNING: Combine_hemis is not implemented.")
+            if only_lesion:
+                lesion = subj.load_feature_lesion_data(features, hemi=hemi, harmo_code=harmo_code, only_lesion=only_lesion)
+                subject_data_dict["labels"] = lesion
+            else:
+                vals_array, lesion = subj.load_feature_lesion_data(features, hemi=hemi, harmo_code=harmo_code)
+                # z-score data
+                if self.params["zscore"]:
+                    if hemi == "lh":
+                        self.log.info(f"Z-scoring data for {subject}")
+                    vals_array = self.zscore_data(vals_array.T, features).T
+                if distance_maps:
+                    gdist = self.load_distances(subj, hemi)
+                    subject_data_dict["distances"] = gdist
+                if self.params["scaling"] is not None:
+                    self.log.info(f"Scaling data for has been removed. REIMPLEMENT")
+                if lobes:
+                    # replace lesion data with lobes task if required
+                    lesion = self.lobes
+                # add lesion bias
+                if lesion_bias:
+                    self.log.info(f"WARNING: Adding lesion bias of {lesion_bias} to {subject}")
+                    vals_array[lesion == 1] += lesion_bias
+                if combine_hemis is not None:
+                    self.log.info(f"WARNING: Combine_hemis is not implemented.")
 
-            if np.sum(lesion) > 0:
+                
                 subject_data_dict["features"] = vals_array
                 subject_data_dict["labels"] = lesion
 
-                subject_data.append(subject_data_dict)
-
+            subject_data.append(subject_data_dict)
+  
         return subject_data
 
     def load_distances(self, subj, hemi="lh"):
@@ -282,7 +288,6 @@ class Preprocess:
         self.log.info("INFO: Compute min and max from {} subjects".format(len(included_subj), feature))
         # get min and max percentile
         vals_array = np.array(vals_array)
-        print(vals_array)
         
         min_val = np.percentile(vals_array.flatten(), 1, axis=0)
         max_val = np.percentile(vals_array.flatten(), 99, axis=0)
@@ -553,7 +558,6 @@ class Preprocess:
             hemi = subj.get_lesion_hemisphere()
             if hemi:
                 if subj.has_lesion:
-                    print(ids)
                     overlay = np.round(subj.load_feature_values(hemi=hemi, feature=".on_lh.lesion.mgh")[:])
                     # smooth a bit for registration, conservative masks etc.
                     if smoothing > 0:

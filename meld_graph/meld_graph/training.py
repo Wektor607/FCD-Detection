@@ -659,8 +659,7 @@ class Trainer:
 
         # get dataset
         train_dset = GraphDataset.from_experiment(self.experiment, mode="train")
-        print(train_dset)
-        sys.exit()
+
         sampler = None
         shuffle = self.params["shuffle_each_epoch"]
         if self.params["oversampling"]:

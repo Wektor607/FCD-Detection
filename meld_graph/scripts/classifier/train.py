@@ -1,7 +1,10 @@
-import meld_graph
-import meld_graph.models
-import meld_graph.experiment
-import meld_graph.dataset
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+# import meld_graph
+# import meld_graph.models
+from meld_graph.experiment import Experiment
+# import meld_graph.dataset
 from meld_graph.paths import load_config
 
 import logging
@@ -24,6 +27,6 @@ if __name__ == "__main__":
     config = load_config(args.config_file)
 
     # create experiment
-    exp = meld_graph.experiment.Experiment(config.network_parameters, config.data_parameters, verbose=logging.INFO)
+    exp = Experiment(config.network_parameters, config.data_parameters, verbose=logging.INFO)
     # train the model
     exp.train()

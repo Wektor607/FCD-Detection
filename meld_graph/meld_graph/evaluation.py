@@ -235,7 +235,6 @@ class Evaluator:
         save_prediction_suffix = f"{save_prediction_suffix}{self.dropout_suffix}"
         # predict on data
         # TODO: enable batch_size > 1
-        print(self.subject_ids)
         if self.dataset==None:
             self.dataset = GraphDataset(self.subject_ids, self.cohort, self.experiment.data_parameters, mode=self.mode)
         data_loader = torch_geometric.loader.DataLoader(
@@ -248,125 +247,123 @@ class Evaluator:
         store_sub_aucs = True
         self.subject_aucs = {}
         for i, data in enumerate(data_loader):
-            # self.log.debug(i)
-            # subject_index = i // 2
-            # hemi = ["lh", "rh"][i % 2]
-            for hemi in ["lh", "rh"]:
-                if hemi == "lh":
-                    prediction_array = []
-                    distance_map_array = []
-                    labels_array = []
-                    features_array = []
-                    geodesic_array = []
-                    saliency_array = []
-                    feature_maps_array = []
+            self.log.debug(i)
+            hemi = ["lh", "rh"][i % 2]
+            if hemi == "lh":
+                prediction_array = []
+                distance_map_array = []
+                labels_array = []
+                features_array = []
+                geodesic_array = []
+                saliency_array = []
+                feature_maps_array = []
 
-                subj_id = self.subject_ids[i]
-                data = data.to(device)
-                labels = data.y.squeeze()
-                geo_distance = data.distance_map
-                distance_regression_flag = "distance_regression" in self.experiment.network_parameters["training_parameters"]["loss_dictionary"].keys()
-                if self.dropout:
-                    list_prediction = []
-                    list_distance_map = []
+            subj_id = self.subject_ids[i // 2]
+            data = data.to(device)
+            labels = data.y.squeeze()
+            geo_distance = data.distance_map
+            distance_regression_flag = "distance_regression" in self.experiment.network_parameters["training_parameters"]["loss_dictionary"].keys()
+            if self.dropout:
+                list_prediction = []
+                list_distance_map = []
 
-                    for _ in range(self.dropout_n):
-                        mask = torch.tensor(np.random.choice([0,1],data.x.shape, p=[self.dropout_p,1-self.dropout_p]), dtype=torch.bool)
-                        x = torch.clone(data.x)
-                        x[mask] = 0
-                        estimates, feature_maps = self.experiment.model(data.x)
-                        list_prediction.append(torch.exp(estimates["log_softmax"])[:, 1].detach().cpu())
-                        # if distance_regression_flag:
-                        list_distance_map.append(estimates["non_lesion_logits"][:, 0].detach().cpu())
-                    prediction = torch.mean(torch.stack(list_prediction), axis=0)
-                    # if distance_regression_flag:
-                    distance_map = torch.mean(torch.stack(list_distance_map), axis=0)
-                    # else:
-                        # distance_map = torch.full((len(prediction), 1), torch.nan)[:, 0]
-                else:
+                for _ in range(self.dropout_n):
+                    mask = torch.tensor(np.random.choice([0,1],data.x.shape, p=[self.dropout_p,1-self.dropout_p]), dtype=torch.bool)
+                    x = torch.clone(data.x)
+                    x[mask] = 0
                     estimates, feature_maps = self.experiment.model(data.x)
-                    prediction = torch.exp(estimates["log_softmax"])[:, 1].detach().cpu()
-                    # get distance map if exist in loss, otherwise return array of NaN
-                    # if (
-                    #     "distance_regression"
-                    #     in self.experiment.network_parameters["training_parameters"]["loss_dictionary"].keys()
-                    # ):
-                    distance_map = estimates["non_lesion_logits"][:, 0].detach().cpu()
-                    # else:
+                    list_prediction.append(torch.exp(estimates["log_softmax"])[:, 1].detach().cpu())
+                    # if distance_regression_flag:
+                    list_distance_map.append(estimates["non_lesion_logits"][:, 0].detach().cpu())
+                prediction = torch.mean(torch.stack(list_prediction), axis=0)
+                # if distance_regression_flag:
+                distance_map = torch.mean(torch.stack(list_distance_map), axis=0)
+                # else:
                     # distance_map = torch.full((len(prediction), 1), torch.nan)[:, 0]
+            else:
+                estimates, feature_maps = self.experiment.model(data.x)
+                prediction = torch.exp(estimates["log_softmax"])[:, 1].detach().cpu()
+                # get distance map if exist in loss, otherwise return array of NaN
+                # if (
+                #     "distance_regression"
+                #     in self.experiment.network_parameters["training_parameters"]["loss_dictionary"].keys()
+                # ):
+                distance_map = estimates["non_lesion_logits"][:, 0].detach().cpu()
+                # else:
+                # distance_map = torch.full((len(prediction), 1), torch.nan)[:, 0]
 
-                prediction_array.append(prediction.numpy()[self.cohort.cortex_mask])
-                feature_maps_array.append(feature_maps)
-                labels_array.append(labels.cpu().numpy()[self.cohort.cortex_mask])
-                features_array.append(data.x.cpu().numpy()[self.cohort.cortex_mask])
-                distance_map_array.append(distance_map.numpy()[self.cohort.cortex_mask])
-                geodesic_array.append(geo_distance.cpu().numpy()[self.cohort.cortex_mask])
+            prediction_array.append(prediction.numpy()[self.cohort.cortex_mask])
+            feature_maps_array.append(feature_maps)
+            labels_array.append(labels.cpu().numpy()[self.cohort.cortex_mask])
+            features_array.append(data.x.cpu().numpy()[self.cohort.cortex_mask])
+            distance_map_array.append(distance_map.numpy()[self.cohort.cortex_mask])
+            geodesic_array.append(geo_distance.cpu().numpy()[self.cohort.cortex_mask])
 
-                # only save after right hemi has been run.
-                if hemi == "rh":
-                    combined_feature_maps_list = []
-                    feature_maps_ensemble_lh = feature_maps_array[0]
-                    feature_maps_ensemble_rh = feature_maps_array[1]
-                    
-                    for ensemble_idx in range(len(feature_maps_ensemble_lh)):
-                        lh_dict = feature_maps_ensemble_lh[ensemble_idx]
-                        rh_dict = feature_maps_ensemble_rh[ensemble_idx]
+            # only save after right hemi has been run.
+            if hemi == "rh":
+                combined_feature_maps_list = []
+                feature_maps_ensemble_lh = feature_maps_array[0]
+                feature_maps_ensemble_rh = feature_maps_array[1]
+                
+                for ensemble_idx in range(len(feature_maps_ensemble_lh)):
+                    lh_dict = feature_maps_ensemble_lh[ensemble_idx]
+                    rh_dict = feature_maps_ensemble_rh[ensemble_idx]
 
-                        combined = {}
-                        for stage in lh_dict.keys():
-                            lh = lh_dict[stage]  # [N_lh, C]
-                            rh = rh_dict[stage]  # [N_rh, C]
-                            
-                            combined[stage] = torch.cat([lh, rh], dim=0)  # [N_lh + N_rh, C]
+                    combined = {}
+                    for stage in lh_dict.keys():
+                        lh = lh_dict[stage]  # [N_lh, C]
+                        rh = rh_dict[stage]  # [N_rh, C]
+                        
+                        combined[stage] = torch.cat([lh, rh], dim=0)  # [N_lh + N_rh, C]
 
-                        combined_feature_maps_list.append(combined)
-                    
-                    combined_feature_maps_tensor = {}
+                    combined_feature_maps_list.append(combined)
+                
+                combined_feature_maps_tensor = {}
 
-                    # Convert eache of the list to Tensor
-                    stage_names = combined_feature_maps_list[0].keys()
+                # Convert eache of the list to Tensor
+                stage_names = combined_feature_maps_list[0].keys()
 
-                    for stage in stage_names:
-                        stage_tensor = torch.stack(
-                            [ensemble_dict[stage] for ensemble_dict in combined_feature_maps_list],
-                            dim=0  # [ensemble_size, 2, N_vertices, C], where 2 is the numner of hemispheres
-                        )
-                        combined_feature_maps_tensor[stage] = stage_tensor
+                for stage in stage_names:
+                    stage_tensor = torch.stack(
+                        [ensemble_dict[stage] for ensemble_dict in combined_feature_maps_list],
+                        dim=0  # [ensemble_size, 2, N_vertices, C], where 2 is the numner of hemispheres
+                    )
+                    combined_feature_maps_tensor[stage] = stage_tensor
 
-                    subject_dictionary = {
-                        "input_labels": np.concatenate(labels_array),
-                        "result": np.concatenate(prediction_array),
-                        "distance_map": np.concatenate(distance_map_array),
-                        "borderzone": np.concatenate(geodesic_array) < 20,
-                        "feature_maps": combined_feature_maps_tensor
-                    }
-                    
-                    # save prediction
-                    if save_prediction:
-                        self.save_prediction(
-                            subj_id,
-                            subject_dictionary["result"],
-                            suffix=save_prediction_suffix,
-                        )
-                        # save distance map
-                        self.save_prediction(
-                            subj_id,
-                            subject_dictionary["distance_map"],
-                            dataset_str="distance_map",
-                            suffix=save_prediction_suffix,
-                        )
-                    # save features if mode is not train
-                    if self.mode != "train":
-                        subject_dictionary["input_features"] = np.concatenate(features_array)
-                    if store_predictions:
-                        self.data_dictionary[subj_id] = subject_dictionary
-                    if roc_curves_thresholds is not None:
-                        self.thresholds = roc_curves_thresholds
-                        self.roc_curves(subject_dictionary)
+                subject_dictionary = {
+                    "input_labels": np.concatenate(labels_array),
+                    "result": np.concatenate(prediction_array),
+                    "distance_map": np.concatenate(distance_map_array),
+                    "borderzone": np.concatenate(geodesic_array) < 20,
+                    "feature_maps": combined_feature_maps_tensor
+                }
+                
+                # save prediction
+                if save_prediction:
+                    self.save_prediction(
+                        subj_id,
+                        subject_dictionary["result"],
+                        suffix=save_prediction_suffix,
+                    )
+                    # save distance map
+                    self.save_prediction(
+                        subj_id,
+                        subject_dictionary["distance_map"],
+                        dataset_str="distance_map",
+                        suffix=save_prediction_suffix,
+                    )
+                # save features if mode is not train
+                if self.mode != "train":
+                    subject_dictionary["input_features"] = np.concatenate(features_array)
+                if store_predictions:
+                    self.data_dictionary[subj_id] = subject_dictionary
+                if roc_curves_thresholds is not None:
+                    self.thresholds = roc_curves_thresholds
+                    self.roc_curves(subject_dictionary)
 
-                    if store_sub_aucs and subject_dictionary["input_labels"].sum() > 0:
-                        sub_auc = self.calc_sub_auc(subject_dictionary)
-                        self.subject_aucs[subj_id] = sub_auc
+                if store_sub_aucs and subject_dictionary["input_labels"].sum() > 0:
+                    sub_auc = self.calc_sub_auc(subject_dictionary)
+                    self.subject_aucs[subj_id] = sub_auc
 
         if roc_curves_thresholds is not None:
             print('doing it')

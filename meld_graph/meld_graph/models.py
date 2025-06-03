@@ -356,9 +356,7 @@ class MoNetUnet(nn.Module):
         batch_x = data
         # reshape input to batch,n_vertices
         original_shape = batch_x.shape
-        print(original_shape)
         batch_x = batch_x.view((batch_x.shape[0] // self.n_vertices, self.n_vertices, self.num_features))
-        print(batch_x.shape)
         
         skip_connections = []
         intermediate_features = {

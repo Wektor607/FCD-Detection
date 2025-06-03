@@ -93,7 +93,7 @@ network_parameters = {
         # size of epoch will be num_lesional_examples * 3
         "oversampling": True,
         # init_weights: path to checkpoint file to init weights from. Relative to EXPERIMENT_PATH
-        "init_weights": False,
+        "init_weights": None, #False,
     },
     # name: experiment name. If none, experiment is not saved
     "name": datetime.datetime.now().strftime("%y-%m-%d") + "_example",
@@ -135,7 +135,8 @@ data_parameters = {
     "subject_features_to_exclude": [],
     # features: manually specify features (instead of features_to_exclude)
     "features": [
-       '.combat.on_lh.pial.K_filtered.sm20.mgh',
+        '.on_lh.lesion.mgh',
+        '.combat.on_lh.pial.K_filtered.sm20.mgh',
         '.combat.on_lh.thickness.sm3.mgh',
         '.combat.on_lh.thickness_regression.sm3.mgh',
         '.combat.on_lh.w-g.pct.sm3.mgh',
@@ -183,7 +184,7 @@ data_parameters = {
     "preprocessing_parameters": {
         "scaling": None,  # "scaling_params_GDL.json"
         # zscore: normalise all values by overall mu std. ignores 0s. Either False or file_path
-        "zscore": "../data/feature_means.json",
+        "zscore": False, #"../data/feature_means.json",
     },
     # icosphere_parameters: passed to Icospheres class
     "icosphere_parameters": {

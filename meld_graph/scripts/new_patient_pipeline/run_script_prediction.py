@@ -48,7 +48,6 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     create_dataset_file(subject_ids, tmp.name)
 
     # load models
-    print(experiment_path)
     exp = Experiment.from_folder(experiment_path)
     #update experiment 
     exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, dataset=tmp.name)
@@ -137,7 +136,6 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     prediction_file = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
     
     subject_ids_failed=[]
-    print(subjects_dir)
 
     #predict on new subjects
     if not skip_prediction:

@@ -169,7 +169,7 @@ class MeldCohort:
         return sites
 
     @contextmanager
-    def _site_hdf5(self, site_code, group, write=False, hdf5_file_root=None, feature=None):
+    def _site_hdf5(self, site_code, group, write=False, hdf5_file_root=None, feature=None, harmo_code=None):
         """
         Hdf5 file handle for specified site_code and group (patient or control).
 
@@ -194,12 +194,12 @@ class MeldCohort:
         
         # p = os.path.join(self.data_dir, f"{site_code}", hdf5_file_root.format(site_code=site_code, group=group))
         if feature == ".on_lh.lesion.mgh":
-            p = os.path.join(self.data_dir, f"{site_code}_featurematrix.hdf5")
+            p = os.path.join(self.data_dir, f"MELD_{harmo_code}", f"{site_code}_featurematrix.hdf5")
         else:
             p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group))
-        # print(p)
-        # sys.exit()
+
         # open existing file or create new one
+
         if os.path.isfile(p) and not write:
             f = h5py.File(p, "r")
         elif os.path.isfile(p) and write:
@@ -467,11 +467,10 @@ class MeldSubject:
 
     def get_feature_list(self, hemi="lh"):
         """Outputs a list of the features a participant has for each hemisphere"""
-        # print(self.cohort._site_hdf5(self.site_code, self.group))
         with self.cohort._site_hdf5(self.site_code, self.group) as f:
             # surf_dir_path = os.path.join(self.site_code, f[f"BONN/XT/patient/{self.site_code}/{hemi}"].visit(self.find_path))#.visit(self.find_path), hemi)
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
-            print(hdf5_filename)
+
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
             if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
                 surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
@@ -578,14 +577,14 @@ class MeldSubject:
             return features[0]
         return features
 
-    def load_feature_values(self, feature, hemi="lh"):
+    def load_feature_values(self, feature, hemi="lh", harmo_code=None):
         """
         Load and return values of specified feature.
         """
         feature_values = np.zeros(NVERT, dtype=np.float32)
 
         # read data from hdf5
-        with self.cohort._site_hdf5(self.site_code, self.group, feature=feature) as f:
+        with self.cohort._site_hdf5(self.site_code, self.group, feature=feature, harmo_code=harmo_code) as f:
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
             if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
@@ -603,7 +602,7 @@ class MeldSubject:
                 self.log.debug(f"missing feature: {feature} set to zero")
         return feature_values
 
-    def load_feature_lesion_data(self, features, hemi="lh", features_to_ignore=[]):
+    def load_feature_lesion_data(self, features, hemi="lh", features_to_ignore=[], harmo_code=None, only_lesion=False):
         """
         Load all patient's data into memory
 
@@ -617,18 +616,22 @@ class MeldSubject:
 
         """
         # load all features
-        feature_values = []
-        for feature in features:
-            if feature in features_to_ignore:
-                # append zeros for features_to_ignore
-                feature_values.append(np.zeros(NVERT, dtype=np.float32))
-            else:
-                # read feature_values
-                feature_values.append(self.load_feature_values(feature, hemi=hemi))
-        feature_values = np.stack(feature_values, axis=-1)
-        lesion_values = np.ceil(self.load_feature_values(".on_lh.lesion.mgh", hemi=hemi)).astype(int)
+        if not only_lesion:
+            feature_values = []
+            for feature in features:
+                if feature in features_to_ignore:
+                    # append zeros for features_to_ignore
+                    feature_values.append(np.zeros(NVERT, dtype=np.float32))
+                else:
+                    # read feature_values
+                    feature_values.append(self.load_feature_values(feature, hemi=hemi, harmo_code=harmo_code))
+            feature_values = np.stack(feature_values, axis=-1)
+            lesion_values = np.zeros(NVERT, dtype=np.float32)
 
-        return feature_values, lesion_values
+            return feature_values, lesion_values
+        else:
+            lesion_values = np.ceil(self.load_feature_values(".on_lh.lesion.mgh", hemi=hemi, harmo_code=harmo_code)).astype(int)
+            return lesion_values
 
     def load_boundary_zone(self, max_distance=40, feat_name=".on_lh.boundary_zone.mgh"):
         """

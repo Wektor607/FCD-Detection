@@ -50,10 +50,10 @@ def return_bids_T1_FLAIR(bids_dir, subject_id):
     subject_data['id'] = subject_id
     if 'sub-' in subject_id:
         subject_id = subject_id.split('sub-')[-1]
-    print(subject_id)
+
     # get bids structure
     layout = BIDSLayout(bids_dir)
-    print(layout)
+
     # find parameters to extract bids file
     config_file = os.path.join(bids_dir, 'meld_bids_config.json')
     with open(config_file, "r") as json_file:
