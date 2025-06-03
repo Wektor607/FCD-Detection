@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 import torch_geometric.data
 from meld_graph.data_preprocessing import Preprocess
 from meld_graph.icospheres import IcoSpheres
@@ -195,6 +198,7 @@ class GraphDataset(torch_geometric.data.Dataset):
             raise NotImplementedError(mode)
         # ensure that features are saved in experiment.data_parameters
         experiment.get_features()
+
         return cls(
             subject_ids=subject_ids,
             cohort=experiment.cohort,

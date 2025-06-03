@@ -1,5 +1,7 @@
 #Contains MeldCohort and MeldSubject classes
-
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from contextlib import contextmanager
 from meld_graph.paths import (
     DEMOGRAPHIC_FEATURES_FILE,
@@ -167,7 +169,7 @@ class MeldCohort:
         return sites
 
     @contextmanager
-    def _site_hdf5(self, site_code, group, write=False, hdf5_file_root=None):
+    def _site_hdf5(self, site_code, group, write=False, hdf5_file_root=None, feature=None):
         """
         Hdf5 file handle for specified site_code and group (patient or control).
 
@@ -191,8 +193,12 @@ class MeldCohort:
             hdf5_file_root = self.hdf5_file_root
         
         # p = os.path.join(self.data_dir, f"{site_code}", hdf5_file_root.format(site_code=site_code, group=group))
-        p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group))
-        
+        if feature == ".on_lh.lesion.mgh":
+            p = os.path.join(self.data_dir, f"{site_code}_featurematrix.hdf5")
+        else:
+            p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group))
+        # print(p)
+        # sys.exit()
         # open existing file or create new one
         if os.path.isfile(p) and not write:
             f = h5py.File(p, "r")
@@ -465,6 +471,7 @@ class MeldSubject:
         with self.cohort._site_hdf5(self.site_code, self.group) as f:
             # surf_dir_path = os.path.join(self.site_code, f[f"BONN/XT/patient/{self.site_code}/{hemi}"].visit(self.find_path))#.visit(self.find_path), hemi)
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
+            print(hdf5_filename)
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
             if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
                 surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
@@ -576,8 +583,9 @@ class MeldSubject:
         Load and return values of specified feature.
         """
         feature_values = np.zeros(NVERT, dtype=np.float32)
+
         # read data from hdf5
-        with self.cohort._site_hdf5(self.site_code, self.group) as f:
+        with self.cohort._site_hdf5(self.site_code, self.group, feature=feature) as f:
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
             if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
@@ -589,7 +597,6 @@ class MeldSubject:
                 surf_dir = f[surf_dir_path]
             except KeyError:
                 raise KeyError(f"❌ Group '{surf_dir_path}' not found in {hdf5_filename}")
-            
             if feature in surf_dir.keys():
                 feature_values[:] = surf_dir[feature][:]
             else:
@@ -619,7 +626,6 @@ class MeldSubject:
                 # read feature_values
                 feature_values.append(self.load_feature_values(feature, hemi=hemi))
         feature_values = np.stack(feature_values, axis=-1)
-        # load lesion data
         lesion_values = np.ceil(self.load_feature_values(".on_lh.lesion.mgh", hemi=hemi)).astype(int)
 
         return feature_values, lesion_values

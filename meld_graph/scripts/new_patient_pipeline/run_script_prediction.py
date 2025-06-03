@@ -79,19 +79,10 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     eva.load_predict_data(
         save_prediction=True,
         roc_curves_thresholds=None,
-        )
-
+    )
+    
     for subject_id in subject_ids:  
         features = eva.data_dictionary[subject_id]["feature_maps"]
-
-        stage_keys = ["stage1", "stage2", "stage3", "stage4", "stage5", "stage6", "stage7"]
-        stage_features = {key: [] for key in stage_keys}
-
-        for model_feats in features:
-            for stage in stage_keys:
-                stage_features[stage].append(model_feats[stage])  # [B, N, C]
-
-        mean_stage_features = {stage: torch.stack(stage_features[stage], dim=0).mean(dim=0) for stage in stage_keys}
         
         save_dir = f"./data/input/{subject_id}/anat/features"
         os.makedirs(save_dir, exist_ok=True)
@@ -99,7 +90,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         save_path = os.path.join(save_dir, "feature_maps.npz")
         np.savez_compressed(
             save_path,
-            **{stage: tensor.detach().cpu().numpy() for stage, tensor in mean_stage_features.items()}
+            **{stage: tensor.detach().cpu().numpy() for stage, tensor in features.items()}
         )
 
     #threshold predictions
@@ -183,18 +174,18 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
                 subject_ids_failed.append(subject_id)
                 continue
             
-        if not no_report:
-            # Create individual reports of each identified cluster
-            print(get_m(f'Create pdf report', subject_ids, 'STEP 4'))
-            generate_prediction_report(
-                subject_ids = subject_ids,
-                data_dir = data_dir,
-                prediction_path=classifier_output_dir,
-                experiment_path=experiment_path, 
-                output_dir = predictions_output_dir,
-                harmo_code = harmo_code,
-                hdf5_file_root = DEFAULT_HDF5_FILE_ROOT
-            )
+        # if not no_report:
+        #     # Create individual reports of each identified cluster
+        #     print(get_m(f'Create pdf report', subject_ids, 'STEP 4'))
+        #     generate_prediction_report(
+        #         subject_ids = subject_ids,
+        #         data_dir = data_dir,
+        #         prediction_path=classifier_output_dir,
+        #         experiment_path=experiment_path, 
+        #         output_dir = predictions_output_dir,
+        #         harmo_code = harmo_code,
+        #         hdf5_file_root = DEFAULT_HDF5_FILE_ROOT
+        #     )
         
     if len(subject_ids_failed)>0:
         print(get_m(f'One step of the pipeline has failed and process has been aborted for subjects {subject_ids_failed}', None, 'ERROR'))

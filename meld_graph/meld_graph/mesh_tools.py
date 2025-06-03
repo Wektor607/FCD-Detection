@@ -1,5 +1,8 @@
 #Tools for mesh-based operations
 #Smoothing, 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 import nibabel as nb
 import numpy as np
 import subprocess

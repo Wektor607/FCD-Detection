@@ -3,6 +3,7 @@ import nibabel as nb
 import pandas as pd
 import os
 import h5py
+import sys
 
 def load_mgh(filename):
     """ import mgh file using nibabel. returns flattened data array"""
@@ -163,5 +164,6 @@ def save_subject(fs_id,features,medial_wall,subject_dir, demographic_file,  outp
             lesion = import_mgh(lesion_name)
             dset=group.require_dataset('.on_lh.lesion.mgh',shape=(n_vert,), dtype='float32',compression="gzip", compression_opts=9)
             dset[:]=lesion
+
     f.close()
     return failed

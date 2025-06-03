@@ -1,6 +1,9 @@
 ## Script used to create the different icosphere used at different level of the unet
-
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from meld_graph.meld_cohort import MeldCohort, MeldSubject
+from meld_graph.paths import BASE_PATH
 import os
 import numpy as np
 import nibabel as nb
@@ -81,9 +84,9 @@ def downsample_mesh(surf):
 
 if __name__ == "__main__":
     data_dir = "/home/s17gmikh/FCD-Detection/meld_graph/data/icospheres"
-    c = MeldCohort(hdf5_file_root="{site_code}_featurematrix.hdf5", 
+    c = MeldCohort(hdf5_file_root="{site_code}_featurematrix_combat.hdf5", 
                    dataset=None,
-                   data_dir="data/output/preprocessed_surf_data/")
+                   data_dir=BASE_PATH)
     sphere_surf = {"coords": c.coords, "faces": c.surf["faces"]}
     save_gifti(os.path.join(data_dir, "ico7.surf.gii"), sphere_surf)
     downsampled_surf = downsample_mesh(sphere_surf)

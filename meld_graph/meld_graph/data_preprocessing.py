@@ -1,3 +1,4 @@
+
 from meld_graph.paths import (
     BASE_PATH,
     NVERT,
@@ -201,10 +202,12 @@ class Preprocess:
             if combine_hemis is not None:
                 self.log.info(f"WARNING: Combine_hemis is not implemented.")
 
-            subject_data_dict["features"] = vals_array
-            subject_data_dict["labels"] = lesion
+            if np.sum(lesion) > 0:
+                subject_data_dict["features"] = vals_array
+                subject_data_dict["labels"] = lesion
 
-            subject_data.append(subject_data_dict)
+                subject_data.append(subject_data_dict)
+
         return subject_data
 
     def load_distances(self, subj, hemi="lh"):

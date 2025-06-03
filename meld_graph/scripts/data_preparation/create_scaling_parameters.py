@@ -1,21 +1,28 @@
 # Script to create scaling parameters for the raw features
-
-from meld_graph.paths import BASE_PATH
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+from meld_graph.paths import BASE_PATH, MELD_DATA_PATH
 from meld_graph.meld_cohort import MeldCohort, MeldSubject
 from meld_graph.data_preprocessing import Preprocess
 import os
 import numpy as np
+import pandas as pd
 import glob
 # define cohort to compute scaling parameters from
-site_codes = sorted(set(
-    os.path.basename(p).split('_')[0]
-    for p in glob.glob(os.path.join(BASE_PATH, "*.hdf5"))
-))
+# site_codes = sorted(set(
+#     os.path.basename(p).split('_')[0]
+#     for p in glob.glob(os.path.join(BASE_PATH, "*.hdf5"))
+# ))
+
+subject_list_path = os.path.join(MELD_DATA_PATH, "subjects_list.csv")
+subject_list_df = pd.read_csv(subject_list_path)
+site_codes = set(subject_list_df["ID"].tolist())
 
 cohort = MeldCohort(
     hdf5_file_root="{site_code}_featurematrix.hdf5",
     dataset=None,
-    data_dir="data/output/preprocessed_surf_data/"
+    data_dir=BASE_PATH
 )
 
 # define features to compute scaling parameters

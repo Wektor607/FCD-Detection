@@ -59,30 +59,30 @@ def non_zero(path):
     return np.count_nonzero(data) > 0
 
 def lesion_labels(subject_id, subjects_dir, verbose=False):
-    lh_path = f"{subjects_dir}/{subject_id}/surf_meld/lh.lesion_linked.mgh"
-    rh_path = f"{subjects_dir}/{subject_id}/surf_meld/rh.lesion_linked.mgh"
 
-    if os.path.isfile(lh_path) and non_zero(lh_path):
-        if not os.path.isfile(f"{subjects_dir}/{subject_id}/xhemi/surf_meld/lh.on_lh.lesion.mgh"):
-            command = f"SUBJECTS_DIR={subjects_dir} mris_apply_reg --src {subjects_dir}/{subject_id}/surf_meld/lh.lesion_linked.mgh --trg {subjects_dir}/{subject_id}/xhemi/surf_meld/lh.on_lh.lesion.mgh --streg {subjects_dir}/{subject_id}/surf/lh.sphere.reg {subjects_dir}/fsaverage_sym/surf/lh.sphere.reg"
-            proc = Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
-            stdout, stderr= proc.communicate()
-            if verbose:
-                print(stdout)
-            if proc.returncode!=0:
-                print(get_m(f'COMMAND failing : {command} with error {stderr}', subject_id, 'ERROR'))
-                return False
+    for hemi in ["lh", "rh"]:
+        hemi_path = f"{subjects_dir}/{subject_id}/surf_meld/{hemi}.lesion_linked.mgh"
+        if os.path.isfile(hemi_path):
+            if not os.path.isfile(f"{subjects_dir}/{subject_id}/xhemi/surf_meld/lh.on_lh.lesion.mgh"):
+                command = f"SUBJECTS_DIR={subjects_dir} mris_apply_reg --src {subjects_dir}/{subject_id}/surf_meld/lh.lesion_linked.mgh --trg {subjects_dir}/{subject_id}/xhemi/surf_meld/lh.on_lh.lesion.mgh --streg {subjects_dir}/{subject_id}/surf/lh.sphere.reg {subjects_dir}/fsaverage_sym/surf/lh.sphere.reg"
+                proc = Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
+                stdout, stderr= proc.communicate()
+                if verbose:
+                    print(stdout)
+                if proc.returncode!=0:
+                    print(get_m(f'COMMAND failing : {command} with error {stderr}', subject_id, 'ERROR'))
+                    return False
 
-    elif os.path.isfile(rh_path) and non_zero(rh_path):
-        if not os.path.isfile(f"{subjects_dir}/{subject_id}/xhemi/surf_meld/rh.on_lh.lesion.mgh"):
-            command = f"SUBJECTS_DIR={subjects_dir} mris_apply_reg --src {subjects_dir}/{subject_id}/surf_meld/rh.lesion_linked.mgh --trg {subjects_dir}/{subject_id}/xhemi/surf_meld/rh.on_lh.lesion.mgh --streg {subjects_dir}/{subject_id}/xhemi/surf/lh.fsaverage_sym.sphere.reg {subjects_dir}/fsaverage_sym/surf/lh.sphere.reg"
-            proc = Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
-            stdout, stderr= proc.communicate()
-            if verbose:
-                print(stdout)
-            if proc.returncode!=0:
-                print(get_m(f'COMMAND failing : {command} with error {stderr}', subject_id, 'ERROR'))
-                return False
+        elif os.path.isfile(hemi_path):
+            if not os.path.isfile(f"{subjects_dir}/{subject_id}/xhemi/surf_meld/rh.on_lh.lesion.mgh"):
+                command = f"SUBJECTS_DIR={subjects_dir} mris_apply_reg --src {subjects_dir}/{subject_id}/surf_meld/rh.lesion_linked.mgh --trg {subjects_dir}/{subject_id}/xhemi/surf_meld/rh.on_lh.lesion.mgh --streg {subjects_dir}/{subject_id}/xhemi/surf/lh.fsaverage_sym.sphere.reg {subjects_dir}/fsaverage_sym/surf/lh.sphere.reg"
+                proc = Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
+                stdout, stderr= proc.communicate()
+                if verbose:
+                    print(stdout)
+                if proc.returncode!=0:
+                    print(get_m(f'COMMAND failing : {command} with error {stderr}', subject_id, 'ERROR'))
+                    return False
 
 
 if __name__ == "__main__":

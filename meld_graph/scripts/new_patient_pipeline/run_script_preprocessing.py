@@ -138,7 +138,7 @@ def run_data_processing_new_subjects(subject_ids, harmo_code, compute_harmonisat
     create_dataset_file(subject_ids, tmp.name)  
 
     ### SMOOTHING ###
-    c_raw = MeldCohort(hdf5_file_root="{site_code}_featurematrix.hdf5", dataset=tmp.name, data_dir=BASE_PATH)
+    c_raw = MeldCohort(hdf5_file_root=os.path.join(f"MELD_{harmo_code}", "{site_code}_featurematrix.hdf5"), dataset=tmp.name, data_dir=BASE_PATH)
     smoothing = Preprocess(c_raw, 
                            site_codes=subject_ids,
                            write_output_file="{site_code}_featurematrix_smoothed.hdf5", 

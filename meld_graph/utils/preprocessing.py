@@ -42,7 +42,7 @@ def get_subj_list(folder, output_folder, output_file):
 
     print(f"✅ Saved {len(subject_ids)} subject IDs to {output_file}")
 
-def preprocess_func(list_ids, subj_path):
+def preprocess_func(list_ids, subj_path, harmo_code):
     # Getting a list of pre-processed files
     # get_subj_list('data/output/fs_outputs', 'data', 'subjects_list.csv')
 
@@ -65,7 +65,7 @@ def preprocess_func(list_ids, subj_path):
     roi_paths    = []
     for subj_id in subject_ids:
         featmat_path = project_path(f"data/output/preprocessed_surf_data/{subj_id}_featurematrix_combat.hdf5")
-        roi_path  = find_file_with_suffix(project_path(f"data/output/preprocessed_surf_data"), f"{subj_id}_featurematrix.hdf5")
+        roi_path  = find_file_with_suffix(project_path(f"data/output/preprocessed_surf_data/MELD_{harmo_code}"), f"{subj_id}_featurematrix.hdf5")
         subj_new = project_path(os.path.join(subj_path, "preprocessed", subj_id))
         os.makedirs(subj_new, exist_ok=True)
         
@@ -211,4 +211,4 @@ def apply_region_aliases(series, aliases):
 #               'subjects_list.csv')
 
 
-preprocess_func("subjects_list.csv", "data")
+preprocess_func("subjects_list.csv", "data", "fcd")

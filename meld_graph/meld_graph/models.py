@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 import torch_geometric
 import torch.nn as nn
 from copy import deepcopy
@@ -148,7 +151,6 @@ class MoNet(nn.Module):
         # reshape input to batch,n_vertices
         original_shape = batch_x.shape
         batch_x = batch_x.view((batch_x.shape[0] // self.n_vertices, self.n_vertices, self.num_features))
-
         outputs = {"log_softmax": [], "non_lesion_logits": []}
         for x in batch_x:
             for cl in self.conv_layers:
@@ -354,8 +356,10 @@ class MoNetUnet(nn.Module):
         batch_x = data
         # reshape input to batch,n_vertices
         original_shape = batch_x.shape
-
+        print(original_shape)
         batch_x = batch_x.view((batch_x.shape[0] // self.n_vertices, self.n_vertices, self.num_features))
+        print(batch_x.shape)
+        
         skip_connections = []
         intermediate_features = {
             "stage1": [],

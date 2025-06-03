@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 import logging
 import os, psutil
 import torch
@@ -10,7 +13,7 @@ import pandas as pd
 import time
 from scipy.ndimage import gaussian_filter1d
 import sklearn.metrics as skmetrics
-
+import sys
 
 def dice_coeff(pred, target, smooth=1e-15):
     """
@@ -656,6 +659,8 @@ class Trainer:
 
         # get dataset
         train_dset = GraphDataset.from_experiment(self.experiment, mode="train")
+        print(train_dset)
+        sys.exit()
         sampler = None
         shuffle = self.params["shuffle_each_epoch"]
         if self.params["oversampling"]:
