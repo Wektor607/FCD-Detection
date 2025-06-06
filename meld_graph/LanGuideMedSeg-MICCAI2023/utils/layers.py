@@ -59,12 +59,12 @@ class GuideDecoderLayer(nn.Module):
 
         self.scale = nn.Parameter(torch.tensor(1.421),requires_grad=True)
 
-    # def _chunked_attention(self, q, k, v, attn_module, chunk_size=4096):
-    #     chunks = zip(q.split(chunk_size, dim=1),
-    #                 k.split(chunk_size, dim=1),
-    #                 v.split(chunk_size, dim=1))
-    #     out_chunks = [attn_module(qc, kc, value=vc)[0] for qc, kc, vc in chunks]
-    #     return torch.cat(out_chunks, dim=1)
+    def _chunked_attention(self, q, k, v, attn_module, chunk_size=4096):
+        chunks = zip(q.split(chunk_size, dim=1),
+                    k.split(chunk_size, dim=1),
+                    v.split(chunk_size, dim=1))
+        out_chunks = [attn_module(qc, kc, value=vc)[0] for qc, kc, vc in chunks]
+        return torch.cat(out_chunks, dim=1)
 
     # def _chunked_cross_attention(self, vis, txt, attn_module, vis_pos, txt_pos, chunk_size=4096):
     #     chunks = vis.split(chunk_size, dim=1)
@@ -86,7 +86,14 @@ class GuideDecoderLayer(nn.Module):
         # Self-Attention
         vis2 = self.norm1(x)
         q = k = self.vis_pos(vis2)
-        vis2, _ = self.self_attn(q, k, value=vis2)
+        # vis2, _ = self.self_attn(q, k, value=vis2)
+        vis2 = self._chunked_attention(  # [B, N_vis, C]
+            q = q,
+            k = k,
+            v = vis2,
+            attn_module = self.self_attn,
+            chunk_size = 16384
+        )
         vis2 = self.self_attn_norm(vis2)
         vis = x + vis2
         

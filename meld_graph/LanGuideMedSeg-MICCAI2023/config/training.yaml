@@ -1,6 +1,6 @@
 TRAIN:
-  train_batch_size: 4
-  lr: 0.001 #0.0003
+  train_batch_size: 8
+  lr: 0.01 #0.0003
 
   valid_batch_size: 8
 

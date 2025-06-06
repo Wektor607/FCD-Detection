@@ -38,9 +38,6 @@ class EpilepDataset(Dataset):
         
         self.roi_list = list(self.data['ROI_PATH'])
 
-        target_shape = image_size
-        valid_indices = []
-
         cohort = MeldCohort(
             hdf5_file_root="{site_code}_featurematrix.hdf5",
             dataset=None,
@@ -48,17 +45,6 @@ class EpilepDataset(Dataset):
         )
         config = load_config("/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/example_experiment_config.py")
         self.prep = Prep(cohort=cohort, params=config.data_parameters)
-        # Exclude data where roi shape != target_shape
-        # for i, roi_path in enumerate(self.roi_list):
-        #     full_path = os.path.join(root_path, roi_path)
-        #     try:
-        #         img = nib.load(full_path)
-        #         if list(img.shape) == target_shape:
-        #             valid_indices.append(i)
-        #         else:
-        #             print(f"Skipping {roi_path}, shape = {img.shape}")
-        #     except Exception as e:
-        #         print(f"[!] Failed to load {roi_path}: {e}")
 
         # Descriptions may not be generated for some columns
         self.data['harvard_oxford'] = self.data['harvard_oxford'].fillna('')
@@ -101,15 +87,20 @@ class EpilepDataset(Dataset):
         roi = os.path.join(self.root_path, self.roi_list[idx])
         caption = self.caption_list[idx]
 
-        subject_data_list = next(iter(self.prep.get_data_preprocessed(
+        subject_data_list = self.prep.get_data_preprocessed(
             subject=self.subject_ids[idx],
             features=self.prep.params["features"],
             lobes=self.prep.params["lobes"],
             lesion_bias=False,
-        )))
-        
-        roi = subject_data_list['labels']
-        
+            harmo_code="fcd", #TODO: Make a hyperparameter
+            only_lesion=True  #TODO: Make a hyperparameter
+        )
+
+        roi = torch.cat(
+            [torch.from_numpy(d['labels']).unsqueeze(0) for d in subject_data_list],
+            dim=0
+        )
+
         token_output = self.tokenizer.encode_plus(caption, padding='max_length',
                                                         max_length=256, 
                                                         truncation=True,
@@ -124,7 +115,7 @@ class EpilepDataset(Dataset):
         roi = roi.squeeze(0)
 
         text = {'input_ids':token.squeeze(dim=0), 'attention_mask':mask.squeeze(dim=0)} 
-        return ([self.subject_ids[idx], text], roi, self.roi_list[idx])
+        return ([self.subject_ids[idx], text], roi)
 
     def transform(self,image_size=[160, 256, 256]):
 

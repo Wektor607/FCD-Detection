@@ -95,7 +95,7 @@ if __name__ == '__main__':
                         devices=devices,
                         callbacks=[model_ckpt,],#early_stopping],
                         enable_progress_bar=True,
-                        overfit_batches=1,
+                        # overfit_batches=1,
                         # strategy=strategy
                     ) 
 
@@ -105,4 +105,4 @@ if __name__ == '__main__':
     print('done training')
 
     # wandb.finish()
-# 
+
