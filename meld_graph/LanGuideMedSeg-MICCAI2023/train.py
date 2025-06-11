@@ -37,10 +37,10 @@ if __name__ == '__main__':
 
     args = get_parser()
     
-    # wandb_logger = WandbLogger(
-    #     project=args.project_name,
-    #     log_model=True
-    # )   
+    wandb_logger = WandbLogger(
+        project=args.project_name,
+        log_model=True
+    )   
     
     ds_train = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
@@ -89,11 +89,11 @@ if __name__ == '__main__':
 
     torch.set_float32_matmul_precision('high')
     trainer = pl.Trainer(
-                        # logger=wandb_logger,
+                        logger=wandb_logger,
                         min_epochs=args.min_epochs,max_epochs=args.max_epochs,
                         accelerator=accelerator, 
                         devices=devices,
-                        callbacks=[model_ckpt,],#early_stopping],
+                        callbacks=[model_ckpt, early_stopping],
                         enable_progress_bar=True,
                         # overfit_batches=1,
                         # strategy=strategy
@@ -104,5 +104,5 @@ if __name__ == '__main__':
     trainer.fit(model,dl_train,dl_valid)
     print('done training')
 
-    # wandb.finish()
+    wandb.finish()
 

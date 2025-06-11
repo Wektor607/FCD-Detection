@@ -1,8 +1,8 @@
 TRAIN:
   train_batch_size: 8
-  lr: 0.01 #0.0003
+  lr: 0.003
 
-  valid_batch_size: 8
+  valid_batch_size: 4
 
   image_size: [160, 256, 256] # [224,224]
 
@@ -19,7 +19,7 @@ TRAIN:
   run_name: FCD_finetuning
 
 MODEL:
-  bert_type: microsoft/BiomedVLP-CXR-BERT-specialized
+  bert_type: StanfordAIMI/RadBERT #microsoft/BiomedVLP-CXR-BERT-specialized
   vision_type: facebook/convnext-tiny-224
   project_dim: 768
 

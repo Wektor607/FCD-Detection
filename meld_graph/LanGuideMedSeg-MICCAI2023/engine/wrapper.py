@@ -38,11 +38,11 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # TODO: calculate coef automatically
         # If pos_weight very high, model start predict everything as 1 
         # Initial: 100
-        pos_weight = torch.tensor([15.0], device=self.device)
+        pos_weight = torch.tensor([5.0], device=self.device)
         self.bce_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
         # DiceLoss из MONAI: мы сами передаём ему [B, 1, N] → поэтому sigmoid=False
-        self.dice_fn = DiceLoss(include_background=False, sigmoid=False)
+        self.dice_fn = DiceLoss(include_background=True, sigmoid=False)
 
         # ---- метрики (они принимают прогнозы [B, N] и метки [B, N]) ----
         self.train_metrics = nn.ModuleDict({
@@ -63,7 +63,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
     def forward(self, x):
-        # Ожидаем, что self.model(x) вернёт логиты размера [B, n_vertices]
         return self.model(x)
 
     def shared_step(self, batch, batch_idx, stage: str, strategy: str='full'):
@@ -75,13 +74,11 @@ class LanGuideMedSegWrapper(pl.LightningModule):
           остальные элементы батча игнорируем
         stage: "train" | "val" | "test"
         """
-        # Распаковываем первые два элемента кортежа
         x, y = batch
-        y = y.float()  # приводим к float для BCE
+        y = y.float()
 
         B, H, N = y.shape
 
-        # 1) считаем логиты
         if stage == "train":
             self.model.train()
             preds_logits = self.model(x)  # [B, H * N]
@@ -92,92 +89,18 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         # Convert: [B,H*N] -> [B, H, N]
         preds_logits = preds_logits.view(B, H, N)
-        # 2) calculate loss by using patches
-        per_sample_losses = []
-        for i in range(B):
-            for hemi in range(H):
-                y_i = y[i, hemi, :]            # [N]
-                p_i = preds_logits[i, hemi, :] # [N]
 
-                pos_idxs = (y_i > 0).nonzero(as_tuple=False).flatten()
-
-                if pos_idxs.numel() == 0:
-                    bce_c  = self.bce_fn(p_i, y_i)         # BCE on raw logits
-                    
-                    p_sig = torch.sigmoid(p_i)                  # [patch_size]
-                    p_sig = p_sig.unsqueeze(0).unsqueeze(0)     # [1, 1, patch_size]
-                    y_chan = y_i.unsqueeze(0).unsqueeze(0) 
-                    dice_c = self.dice_fn(p_sig, y_chan)         # DiceLoss на сигмоиде и метках
-
-                    per_sample_losses.append(bce_c + dice_c)
-                  
-                elif pos_idxs.numel() > 0:
-                    if strategy == 'patch':
-                        # старое поведение: один общий интервал
-                        min_idx = pos_idxs.min().item()
-                        max_idx = pos_idxs.max().item()
-                        start = max(min_idx - self.patch_margin, 0)
-                        end   = min(max_idx + self.patch_margin + 1, N)
-
-                        p_crop = p_i[start:end]
-                        y_crop = y_i[start:end]
-
-                        p_sig = torch.sigmoid(p_crop)               # [patch_size]
-                        p_sig = p_sig.unsqueeze(0).unsqueeze(0)     # [1,1,patch_size]
-                        y_chan = y_crop.unsqueeze(0).unsqueeze(0)   # [1,1,patch_size]
-
-                        bce_c  = self.bce_fn(p_crop, y_crop)         # BCE на «сырых» логитах и метках
-                        dice_c = self.dice_fn(p_sig, y_chan)         # DiceLoss на сигмоиде и метках
-
-                        per_sample_losses.append(bce_c + dice_c)
-
-                    else:            
-                        sorted_pos = pos_idxs.sort().values  # строго возрастающий список позиций {…}
-                        clusters = []
-                        cluster = [sorted_pos[0].item()]
-                        for idx in sorted_pos[1:]:
-                            idx = idx.item()
-                            if idx - cluster[0] <= 2*self.patch_margin:
-                                cluster.append(idx)
-                            else:
-                                clusters.append(cluster)
-                                cluster = [idx]
-                        clusters.append(cluster)
-                        # print(f"Sample {i}: found {len(clusters)} clusters")
-                        for cluster in clusters:
-                            min_idx, max_idx = cluster[0], cluster[-1]
-                            start = max(min_idx - self.patch_margin, 0)
-                            end   = min(max_idx + self.patch_margin + 1, N)
-                            # print(f"  cluster {cluster[:3]}…{cluster[-3:]}")
-
-                            p_crop = p_i[start:end]
-                            y_crop = y_i[start:end]
-                            p_crop_chan = p_crop.unsqueeze(0).unsqueeze(0)
-                            y_crop_chan = y_crop.unsqueeze(0).unsqueeze(0)
-
-                            bce_c  = self.bce_fn(p_crop, y_crop)
-                            dice_c = self.dice_fn(torch.sigmoid(p_crop_chan), y_crop_chan)
-                            per_sample_losses.append(bce_c + dice_c)
-                else:
-                    continue  # если в y_i нет ни одной «1»
-
-        if len(per_sample_losses) > 0:
-            loss = torch.stack(per_sample_losses).mean()
-        else:
-            # fallback: если во всём батче нет ни одной «1»
-            bce_full  = self.bce_fn(preds_logits, y)
-            preds_chan = preds_logits.unsqueeze(1)  # [B,1,N]
-            y_chan     = y.unsqueeze(1)             # [B,1,N]
-            dice_full  = self.dice_fn(torch.sigmoid(preds_chan), y_chan)
-            loss = bce_full + dice_full
+        bce_full  = self.bce_fn(preds_logits, y)
+        dice_full  = self.dice_fn(torch.sigmoid(preds_logits), y)
+        loss = 0.3 * bce_full + 0.7 * dice_full
 
         # 3) отладочный вывод (раз в эпоху, первый батч train)
         if batch_idx == 0 and stage == "train":
-            num_active = len(per_sample_losses)
+            # num_active = len(per_sample_losses)
             print(
                 f"\n[{stage.upper()} step {self.global_step}] "
                 f"patch-loss(avg) = {loss.item():.4f} "
-                f"(активных патчей: {num_active} из {B})"
+                # f"(активных патчей: {num_active} из {B})"
             )
             sum_pos  = y.sum().item()
             sum_prob = torch.sigmoid(preds_logits).sum().item()

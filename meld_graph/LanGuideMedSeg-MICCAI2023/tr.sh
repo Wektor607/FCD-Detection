@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=train
-#SBATCH --partition=A100medium
+#SBATCH --job-name=vis+text
+#SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=1

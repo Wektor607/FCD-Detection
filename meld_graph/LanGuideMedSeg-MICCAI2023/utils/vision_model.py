@@ -2,7 +2,8 @@ from typing import List, Dict, Tuple
 import os
 import sys
 import torch.nn as nn
-from torch_geometric.nn import GraphConv
+from torch_geometric.nn import Sequential
+from torch_geometric.nn import SAGEConv
 import numpy as np
 import torch
 import subprocess
@@ -21,17 +22,30 @@ class VisionModel(nn.Module):
         super().__init__()
         self.feature_dim = feature_dim
         self.meld_script_path = meld_script_path
-        print(output_dir)
+        
         self.template_root = os.path.join(output_dir, "fs_outputs")
         self.feature_path = feature_path
         self.output_dir = output_dir
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
 
-        # GNN layers for each of the first five stages
+        # GNN layers for each of the first five stages  
+        
         self.gnn_layers = nn.ModuleList([
-            GraphConv(feat_dim, feat_dim)
+            Sequential('x, edge_index', [
+                (SAGEConv(feat_dim, feat_dim, aggregator='mean'), 'x, edge_index -> x'),
+                (nn.LayerNorm(feat_dim),              'x -> x'),
+                (nn.ReLU(),                           'x -> x'),
+            ])
             for feat_dim in feature_dim
         ])
+        # self.gnn_layers = nn.ModuleList([
+        #         nn.Sequential(
+        #             SAGEConv(feat_dim, feat_dim, aggregator='mean'),
+        #             nn.LayerNorm(feat_dim),
+        #             nn.ReLU()
+        #         )
+        #     for feat_dim in feature_dim
+        # ])
 
         # Precompute edge_index for stage1..stage5
         self.edge_index_per_stage = self._collect_edge_indices()

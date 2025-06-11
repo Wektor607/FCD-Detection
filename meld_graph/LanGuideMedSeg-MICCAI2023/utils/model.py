@@ -3,7 +3,6 @@ import sys
 from typing import List
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
-import numpy as np
 import torch.nn as nn
 from utils.layers import GuideDecoder
 
@@ -52,8 +51,7 @@ class LanGuideMedSeg(nn.Module):
                                          text_len     = text_len)
             self.decoders.append(decoder)
 
-        # 4) Финальный линейный слой: превращаем [Ni, C_skip] → [Ni, 1] (логит) на мелкой стадии
-        final_in = feature_dim[0]  # C_skip для самой мелкой стадии (stage1)
+        final_in = feature_dim[0]
         self.final_lin = nn.Linear(final_in, 1)
         self.to(device)
     
@@ -91,7 +89,7 @@ class LanGuideMedSeg(nn.Module):
                 N_to   = skip_feat.size(1)   # число «четких» вершин, куда ведет skip
 
                 # Будем считать, что N_to / N_from ≈ целое число, например 4.
-                factor = np.round(N_to / N_from)
+                factor = int(round(N_to / N_from))
 
                 # Тогда каждому индексу i в [0..N_to-1] мы сопоставим coarse-индекс:
                 #   assign[i] = i // factor
@@ -115,12 +113,10 @@ class LanGuideMedSeg(nn.Module):
             current_graphs = updated_graphs
 
         # 4) Теперь current_graphs = список B графов для самой «мелкой» стадии (stage1)
-        #    Каждый из них хранит x: [N1, C1]. Наша задача — выдать узловой логит
         logits_list: List[torch.Tensor] = []
-        for j in range(B):
-            node_feats = current_graphs[j].x   # [N1, C1]
-            logit = self.final_lin(node_feats) # [N1, 1]
-            logits_list.append(logit.squeeze(-1))
+        for g in current_graphs:
+            logit = self.final_lin(g.x)
+            logits_list.append(logit)
 
         logits = torch.stack(logits_list, dim=0)
         return logits  # List длины B: [Ni, 1] для каждого субъекта
