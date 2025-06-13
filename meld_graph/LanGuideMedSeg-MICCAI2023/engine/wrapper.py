@@ -27,6 +27,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         )
         
         self.root_dir = root_path
+        self.warmup_epochs = args.warmup_epochs
+        self.warmup_epochs_metrics = args.warmup_epochs_metrics
         self.lr = args.lr
         self.history = {}
 
@@ -38,7 +40,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # TODO: calculate coef automatically
         # If pos_weight very high, model start predict everything as 1 
         # Initial: 100
-        pos_weight = torch.tensor([5.0], device=self.device)
+        pos_weight = torch.tensor([150.0], device=self.device)
         self.bce_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
         # DiceLoss из MONAI: мы сами передаём ему [B, 1, N] → поэтому sigmoid=False
@@ -58,7 +60,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.hparams.lr)
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=200, eta_min=1e-6
+            optimizer, T_max=300, eta_min=1e-6
         )
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
@@ -81,18 +83,22 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         if stage == "train":
             self.model.train()
-            preds_logits = self.model(x)  # [B, H * N]
+            preds_logits = self.model(x, self.current_epoch)  # [B, H * N]
         else:
             self.model.eval()
             with torch.no_grad():
-                preds_logits = self.model(x)  # [B, H * N]
+                preds_logits = self.model(x, self.current_epoch)  # [B, H * N]
 
         # Convert: [B,H*N] -> [B, H, N]
         preds_logits = preds_logits.view(B, H, N)
 
         bce_full  = self.bce_fn(preds_logits, y)
         dice_full  = self.dice_fn(torch.sigmoid(preds_logits), y)
-        loss = 0.3 * bce_full + 0.7 * dice_full
+        if self.current_epoch < self.warmup_epochs_metrics:
+            loss = bce_full
+        else:
+            alpha = min((self.current_epoch - self.warmup_epochs_metrics) / self.warmup_epochs_metrics, 1.0)
+            loss = (1- alpha) * bce_full + alpha * dice_full
 
         # 3) отладочный вывод (раз в эпоху, первый батч train)
         if batch_idx == 0 and stage == "train":

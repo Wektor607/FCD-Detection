@@ -19,7 +19,8 @@ class LanGuideMedSeg(nn.Module):
                  feature_path, 
                  output_dir,
                  project_dim=512,
-                 device='cpu'):
+                 device='cpu',
+                 warmup_epochs=0):
 
         super(LanGuideMedSeg, self).__init__()
 
@@ -32,10 +33,10 @@ class LanGuideMedSeg(nn.Module):
         # Layer stage7 — shape: torch.Size([5, 2, 42, 256])  SKIP
         
         feature_dim         = [32, 32, 64, 64, 128] #, 128, 256] # stage_i[2]
-        text_lens           = [256, 256, 256, 256]  #, 256]
+        text_lens           = [256, 256, 128, 128, 64]  #, 256]
 
         self.num_stages = len(feature_dim)
-
+        self.warmup_epochs = warmup_epochs
         self.encoder = VisionModel(feature_dim, meld_script_path,
                                    feature_path, output_dir, device)
         self.text_encoder = BERTModel(bert_type, project_dim)
@@ -55,7 +56,7 @@ class LanGuideMedSeg(nn.Module):
         self.final_lin = nn.Linear(final_in, 1)
         self.to(device)
     
-    def forward(self, data):
+    def forward(self, data, current_epoch):
 
         subject_ids, text = data
         B = len(subject_ids)
@@ -83,7 +84,10 @@ class LanGuideMedSeg(nn.Module):
             for j in range(B):
                 vis_feat  = current_graphs[j].gnn_x.unsqueeze(0)   # [1, N_from, C_from]
                 skip_feat = next_graphs[j].x.unsqueeze(0)     # [1, N_to, C_to]
-                txt_emb   = text_hidden_last[j].unsqueeze(0)    # [1, L_seq, 768]
+                if current_epoch >= self.warmup_epochs:
+                    txt_emb = text_hidden_last[j].unsqueeze(0)    # [1, L_seq, 768]
+                else:
+                    txt_emb = None
 
                 N_from = vis_feat.size(1)    # число «грубых» вершин, откуда мы «поднимаемся»
                 N_to   = skip_feat.size(1)   # число «четких» вершин, куда ведет skip

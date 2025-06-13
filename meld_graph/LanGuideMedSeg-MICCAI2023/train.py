@@ -2,6 +2,7 @@ import sys
 import torch
 import wandb
 import utils.config as config
+from os.path import join as opj
 
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
@@ -17,6 +18,10 @@ import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 import argparse
 
+from meld_graph.paths import (FS_SUBJECTS_PATH, 
+                              MELD_DATA_PATH,
+                                )
+from utils.save_predictions import SavePredictionsCallback
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -32,15 +37,41 @@ def get_parser():
 
     return cfg
 
+import random
+import numpy as np
+import torch
+
+SEED = 42
+
+# Python RNG
+random.seed(SEED)
+
+# NumPy RNG
+np.random.seed(SEED)
+
+# Torch RNG for CPU and CUDA
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+
+# Гарантируем детерминированность cuDNN (но может замедлить обучение)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+# Если вы используете DataLoader с несколькими воркерами:
+def worker_init_fn(worker_id):
+    np.random.seed(SEED + worker_id)
+    random.seed(SEED + worker_id)
+
 
 if __name__ == '__main__':
 
     args = get_parser()
     
-    wandb_logger = WandbLogger(
-        project=args.project_name,
-        log_model=True
-    )   
+    # wandb_logger = WandbLogger(
+    #     project=args.project_name,
+    #     log_model=True
+    # )   
     
     ds_train = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
@@ -55,9 +86,9 @@ if __name__ == '__main__':
                     mode='valid')
 
 
-    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, shuffle=True, num_workers=args.train_batch_size, pin_memory=True)
-    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size, pin_memory=True)
-
+    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, shuffle=True, num_workers=args.train_batch_size, pin_memory=True, worker_init_fn=worker_init_fn)
+    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size, pin_memory=True, worker_init_fn=worker_init_fn)
+    
     ## 2. setting trainer
     if torch.cuda.is_available():
         accelerator = "gpu"
@@ -88,8 +119,22 @@ if __name__ == '__main__':
 
 
     torch.set_float32_matmul_precision('high')
+    # Add new parameters in Trainer very accurate, because it arise problems with memory 
+    classifier_output_dir    = opj(MELD_DATA_PATH, 'output', 'classifier_outputs', model_ckpt.__class__.__name__)
+    train_prediction_file    = opj(classifier_output_dir, 'results_best_model', 'train_predictions.hdf5')
+    test_prediction_file     = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
+    predictions_output_dir   = opj(MELD_DATA_PATH, 'output', 'predictions_reports')
+
+    # callback = SavePredictionsCallback(
+    #     subjects_dir           = FS_SUBJECTS_PATH,
+    #     train_prediction_file  = train_prediction_file,
+    #     test_prediction_file   = test_prediction_file,
+    #     predictions_output_dir = predictions_output_dir,
+    #     verbose = True
+    # )
+
     trainer = pl.Trainer(
-                        logger=wandb_logger,
+                        # logger=wandb_logger,
                         min_epochs=args.min_epochs,max_epochs=args.max_epochs,
                         accelerator=accelerator, 
                         devices=devices,
@@ -104,5 +149,31 @@ if __name__ == '__main__':
     trainer.fit(model,dl_train,dl_valid)
     print('done training')
 
-    wandb.finish()
+    # --- Подготовка тестовой выборки и DataLoader ---
+    ds_test = EpilepDataset(
+        csv_path=args.test_csv_path,             # новый CSV для теста
+        root_path=args.test_root_path,           # путь к тестовым данным
+        tokenizer=args.bert_type,
+        image_size=args.image_size,
+        mode='test'
+    )
+    dl_test = DataLoader(
+        ds_test,
+        batch_size=args.valid_batch_size,
+        shuffle=False,
+        num_workers=args.valid_batch_size,
+        pin_memory=True,
+        worker_init_fn=worker_init_fn
+    )
+
+    # --- Запуск тестового прогона ---
+    # Используем чекпоинт с наилучшим val_loss
+    print('start testing')
+    test_results = trainer.test(
+        model,
+        dataloaders=dl_test,
+        ckpt_path='best',    # можно также указать model_ckpt.best_model_path
+    )
+    print('test results:', test_results)
+    # wandb.finish()
 

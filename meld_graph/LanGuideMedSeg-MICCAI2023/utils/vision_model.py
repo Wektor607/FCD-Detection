@@ -7,8 +7,31 @@ from torch_geometric.nn import SAGEConv
 import numpy as np
 import torch
 import subprocess
+import torch.nn.functional as F
 from nibabel.freesurfer import read_geometry
 from torch_geometric.data import Data, Batch
+from torch_geometric.nn import TransformerConv, GraphNorm
+
+class ResidualBlock(nn.Module):
+    def __init__(self, dim, dropout=0.1):
+        super().__init__()
+        # in_channels=dim, out_channels=dim — сохраняем размерность
+        self.conv = SAGEConv(dim, dim, aggregator='mean')
+        self.norm1 = GraphNorm(dim) #BatchNorm doesn't work here
+        self.norm2 = GraphNorm(dim)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x, edge_index):
+        h = self.norm1(x)
+        h = self.conv(h, edge_index)
+        # h = self.relu(h)
+        # h = self.dropout(h)
+        # residual connection
+        h = x + h
+        # h = self.norm2(h) # <- necessary second normalization
+        h = self.relu(h)
+        return h
 
 class VisionModel(nn.Module):
     def __init__(
@@ -31,19 +54,17 @@ class VisionModel(nn.Module):
         # GNN layers for each of the first five stages  
         
         self.gnn_layers = nn.ModuleList([
-            Sequential('x, edge_index', [
-                (SAGEConv(feat_dim, feat_dim, aggregator='mean'), 'x, edge_index -> x'),
-                (nn.LayerNorm(feat_dim),              'x -> x'),
-                (nn.ReLU(),                           'x -> x'),
-            ])
+            ResidualBlock(feat_dim, dropout=0.1) # MAKE HYPERPARAMETERS
             for feat_dim in feature_dim
         ])
+
         # self.gnn_layers = nn.ModuleList([
-        #         nn.Sequential(
-        #             SAGEConv(feat_dim, feat_dim, aggregator='mean'),
-        #             nn.LayerNorm(feat_dim),
-        #             nn.ReLU()
-        #         )
+        #     Sequential('x, edge_index', [
+        #         (GraphNorm(feat_dim),              'x -> x'),
+        #         (SAGEConv(feat_dim, feat_dim, aggregator='mean'), 'x, edge_index -> x'),
+        #         (nn.ReLU(),                           'x -> x'),
+        #         (GraphNorm(feat_dim),              'x -> x'),
+        #     ])
         #     for feat_dim in feature_dim
         # ])
 

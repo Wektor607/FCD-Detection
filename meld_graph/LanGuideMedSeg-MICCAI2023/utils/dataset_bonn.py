@@ -52,12 +52,8 @@ class EpilepDataset(Dataset):
 
         self.caption_list = list(self.data['harvard_oxford'] + '; ' + self.data['aal'])
 
-        # Getting filtered data
-        # self.roi_list = [self.roi_list[i] for i in valid_indices]
-        # self.caption_list = [self.caption_list[i] for i in valid_indices]
-
         # TODO: Make a hyperparameters
-        start_split, end_split = 0.8, 0.9
+        start_split, end_split = 0.7, 0.9
         total_len = len(self.roi_list)
 
         if mode == 'train':
