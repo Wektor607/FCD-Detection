@@ -1,5 +1,6 @@
 from utils.model import LanGuideMedSeg
 from monai.losses import DiceLoss
+from torchvision.ops import sigmoid_focal_loss
 from torchmetrics import Accuracy, Dice
 from torchmetrics.classification import BinaryJaccardIndex
 import torch
@@ -13,7 +14,7 @@ import datetime
 
 
 class LanGuideMedSegWrapper(pl.LightningModule):
-    def __init__(self, args, root_path):
+    def __init__(self, args, root_path, tokenizer):
         super(LanGuideMedSegWrapper, self).__init__()
 
         # ---- инициализируем саму модель ----
@@ -23,7 +24,10 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             args.feature_path,
             args.output_dir,
             args.project_dim,
-            args.device
+            args.device,
+            args.warmup_epochs,
+            tokenizer
+
         )
         
         self.root_dir = root_path
@@ -42,9 +46,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # Initial: 100
         pos_weight = torch.tensor([150.0], device=self.device)
         self.bce_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-
-        # DiceLoss из MONAI: мы сами передаём ему [B, 1, N] → поэтому sigmoid=False
-        self.dice_fn = DiceLoss(include_background=True, sigmoid=False)
+        self.dice_fn = DiceLoss(include_background=False, sigmoid=True)
 
         # ---- метрики (они принимают прогнозы [B, N] и метки [B, N]) ----
         self.train_metrics = nn.ModuleDict({
@@ -92,13 +94,15 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # Convert: [B,H*N] -> [B, H, N]
         preds_logits = preds_logits.view(B, H, N)
 
-        bce_full  = self.bce_fn(preds_logits, y)
-        dice_full  = self.dice_fn(torch.sigmoid(preds_logits), y)
-        if self.current_epoch < self.warmup_epochs_metrics:
-            loss = bce_full
-        else:
-            alpha = min((self.current_epoch - self.warmup_epochs_metrics) / self.warmup_epochs_metrics, 1.0)
-            loss = (1- alpha) * bce_full + alpha * dice_full
+        # bce_full  = self.bce_fn(preds_logits, y)
+        focal_full = sigmoid_focal_loss(preds_logits, y, gamma=2.0, alpha=0.75, reduction='mean') # <- very useful to get high accuracy
+        dice_full  = self.dice_fn(preds_logits, y)
+        loss = 0.7 * focal_full + 0.3 * dice_full
+        # if self.current_epoch < self.warmup_epochs_metrics:
+        #     loss = bce_full
+        # else:
+        #     alpha = min((self.current_epoch - self.warmup_epochs_metrics) / self.warmup_epochs_metrics, 1.0)
+        #     loss = (1- alpha) * bce_full + alpha * dice_full
 
         # 3) отладочный вывод (раз в эпоху, первый батч train)
         if batch_idx == 0 and stage == "train":

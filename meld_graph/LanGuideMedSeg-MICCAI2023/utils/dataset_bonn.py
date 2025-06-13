@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import numpy as np
 import nibabel as nib
@@ -12,7 +13,6 @@ from monai.transforms import (AddChanneld, Compose, Lambdad, NormalizeIntensityd
                               RandCoarseShuffled,RandRotated,RandZoomd, Resized, 
                               ToTensord, LoadImaged, EnsureChannelFirstd)
 from torch.utils.data import Dataset
-from transformers import AutoTokenizer
 
 def load_config(config_file):
     """load config.py file and return config object"""
@@ -36,6 +36,7 @@ class EpilepDataset(Dataset):
         with open(csv_path, 'r') as f:
             self.data = pd.read_csv(f)
         
+        self.tokenizer = tokenizer
         self.roi_list = list(self.data['ROI_PATH'])
 
         cohort = MeldCohort(
@@ -50,8 +51,36 @@ class EpilepDataset(Dataset):
         self.data['harvard_oxford'] = self.data['harvard_oxford'].fillna('')
         self.data['aal'] = self.data['aal'].fillna('')
 
-        self.caption_list = list(self.data['harvard_oxford'] + '; ' + self.data['aal'])
+        # self.caption_list = list(self.data['harvard_oxford'] + '; ' + self.data['aal'])
 
+        # 2) Собираем все уникальные ROI-токены
+        unique_tokens = set()
+        processed_captions = []
+        for harv, aal in zip(self.data['harvard_oxford'], self.data['aal']):
+            # объединённая строка, разбиваем по ';'
+            phrases = (harv + '; ' + aal).split(';')
+            proc_phrases = []
+            for ph in phrases:
+                ph = ph.strip()
+                if not ph:
+                    continue
+                # ожидаем формат "30.62 percent of Right Insular Cortex"
+                m = re.match(r'([\d\.]+)\s*percent of\s*(.+)', ph, flags=re.IGNORECASE)
+                if not m:
+                    continue
+                val, region = m.groups()
+                token = self.normalize_roi_name(region)
+                unique_tokens.add(token)
+                proc_phrases.append(f"{val}% {token}")
+            
+            processed_captions.append("; ".join(proc_phrases))
+        
+        # 3) Добавляем новые токены в tokenizer и обновляем эмбеддинги
+        self.tokenizer.add_tokens(list(unique_tokens))
+
+        # 4) Используем уже предобработанные тексты
+        self.caption_list = processed_captions
+        
         # TODO: Make a hyperparameters
         start_split, end_split = 0.7, 0.9
         total_len = len(self.roi_list)
@@ -71,7 +100,7 @@ class EpilepDataset(Dataset):
         self.root_path = root_path
         self.image_size = image_size
 
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer, trust_remote_code=True)
+        # self.tokenizer = AutoTokenizer.from_pretrained(tokenizer, trust_remote_code=True)
 
     def __len__(self):
         return len(self.roi_list)
@@ -124,4 +153,23 @@ class EpilepDataset(Dataset):
 
         return trans
 
-
+    def normalize_roi_name(self, name: str) -> str:
+        name = name.lower()
+        # убрать всё в скобках
+        name = re.sub(r'\s*\(.+?\)', '', name)
+        # разбить на слова
+        toks = name.split()
+        # вынести ориентацию
+        if toks[0] in ('left','right'):
+            orient = toks.pop(0)
+        elif toks[-1] in ('left','right'):
+            orient = toks.pop(-1)
+        else:
+            orient = ''
+        # простые аббревиатуры
+        abbrev = {'cortex':'ctx', 'gyrus':'gyr', 'lobule':'lob'}
+        toks = [abbrev.get(t, t) for t in toks]
+        toks = [t.replace('-', '_') for t in toks]
+        # собрать обратно
+        parts = ([orient] if orient else []) + toks
+        return "_".join(parts)

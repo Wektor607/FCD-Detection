@@ -25,12 +25,11 @@ class ResidualBlock(nn.Module):
     def forward(self, x, edge_index):
         h = self.norm1(x)
         h = self.conv(h, edge_index)
-        # h = self.relu(h)
+        h = self.relu(h)
         # h = self.dropout(h)
         # residual connection
         h = x + h
-        # h = self.norm2(h) # <- necessary second normalization
-        h = self.relu(h)
+        h = self.norm2(h) # <- necessary second normalization
         return h
 
 class VisionModel(nn.Module):

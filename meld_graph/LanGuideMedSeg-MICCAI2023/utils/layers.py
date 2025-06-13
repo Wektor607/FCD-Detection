@@ -53,9 +53,9 @@ class GuideDecoderLayer(nn.Module):
 
         self.text_project = nn.Sequential(
             nn.Conv1d(input_text_len,output_text_len,kernel_size=1,stride=1),
-            nn.ReLU(), # nn.GELU(),
+            nn.GELU(), # nn.ReLU(),
             nn.Linear(embed_dim, in_channels),
-            nn.ReLU(), # nn.LeakyReLU(),
+            nn.LeakyReLU(), # nn.ReLU(),
         )
 
         self.vis_pos  = PositionalEncoding(in_channels)

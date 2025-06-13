@@ -5,6 +5,7 @@ import utils.config as config
 from os.path import join as opj
 
 from torch.optim import lr_scheduler
+from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from pytorch_lightning.loggers import WandbLogger
 
@@ -72,16 +73,17 @@ if __name__ == '__main__':
     #     project=args.project_name,
     #     log_model=True
     # )   
-    
+
+    tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True)
     ds_train = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
-                    tokenizer=args.bert_type,
+                    tokenizer=tokenizer,
                     image_size=args.image_size,
                     mode='train')
 
     ds_valid = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
-                    tokenizer=args.bert_type,
+                    tokenizer=tokenizer,
                     image_size=args.image_size,
                     mode='valid')
 
@@ -100,7 +102,7 @@ if __name__ == '__main__':
         devices = 1
         strategy = None
 
-    model = LanGuideMedSegWrapper(args, ds_train.root_path)
+    model = LanGuideMedSegWrapper(args, ds_train.root_path, tokenizer=tokenizer)
 
     ## 1. setting recall function
     model_ckpt = ModelCheckpoint(
@@ -153,7 +155,7 @@ if __name__ == '__main__':
     ds_test = EpilepDataset(
         csv_path=args.test_csv_path,             # новый CSV для теста
         root_path=args.test_root_path,           # путь к тестовым данным
-        tokenizer=args.bert_type,
+        tokenizer=tokenizer,
         image_size=args.image_size,
         mode='test'
     )

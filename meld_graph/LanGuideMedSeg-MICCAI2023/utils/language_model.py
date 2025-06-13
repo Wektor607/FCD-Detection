@@ -7,19 +7,16 @@ from transformers import AutoModel
 
 class BERTModel(nn.Module):
 
-    def __init__(self, bert_type, project_dim):
+    def __init__(self, bert_type, project_dim, tokenizer):
 
         super(BERTModel, self).__init__()
 
         self.model = AutoModel.from_pretrained(bert_type,output_hidden_states=True,trust_remote_code=True)
-        # hidden_size = self.model.config.hidden_size
-        
-        # self.project_head = nn.Sequential(             
-        #     nn.Linear(hidden_size, project_dim),
-        #     nn.LayerNorm(project_dim),             
-        #     nn.GELU(),             
-        #     nn.Linear(project_dim, project_dim)
-        # )
+        if tokenizer is not None:
+            new_vocab_size = len(tokenizer)
+            # resize both token embeddings и позиционные эмбеддинги
+            self.model.resize_token_embeddings(new_vocab_size)
+            
         # freeze the parameters
         for param in self.model.parameters():
             param.requires_grad = False

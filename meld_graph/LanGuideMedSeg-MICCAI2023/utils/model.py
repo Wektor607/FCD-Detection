@@ -20,7 +20,8 @@ class LanGuideMedSeg(nn.Module):
                  output_dir,
                  project_dim=512,
                  device='cpu',
-                 warmup_epochs=0):
+                 warmup_epochs=0,
+                 tokenizer=None):
 
         super(LanGuideMedSeg, self).__init__()
 
@@ -37,9 +38,10 @@ class LanGuideMedSeg(nn.Module):
 
         self.num_stages = len(feature_dim)
         self.warmup_epochs = warmup_epochs
+        self.tokenizer = tokenizer
         self.encoder = VisionModel(feature_dim, meld_script_path,
                                    feature_path, output_dir, device)
-        self.text_encoder = BERTModel(bert_type, project_dim)
+        self.text_encoder = BERTModel(bert_type, project_dim, tokenizer=self.tokenizer)
 
         self.decoders = nn.ModuleList()
         for i in range(self.num_stages-1, 0, -1):
