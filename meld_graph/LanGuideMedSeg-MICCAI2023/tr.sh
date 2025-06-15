@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=vis+text
+#SBATCH --job-name=vis+textnorm
 #SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
@@ -12,6 +12,8 @@
 
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=s17gmikh@uni-bonn.de
+
+nvidia-smi
 
 mkdir -p /home/s17gmikh/FCD-Detection/log_outputs/log
 mkdir -p /home/s17gmikh/FCD-Detection/log_outputs/error

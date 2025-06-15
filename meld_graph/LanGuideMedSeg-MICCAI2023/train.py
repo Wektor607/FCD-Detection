@@ -3,7 +3,7 @@ import torch
 import wandb
 import utils.config as config
 from os.path import join as opj
-
+import os
 from torch.optim import lr_scheduler
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
@@ -94,16 +94,29 @@ if __name__ == '__main__':
     ## 2. setting trainer
     if torch.cuda.is_available():
         accelerator = "gpu"
-        devices = "auto"
-        strategy = "ddp_sharded"
+        # TODO: Using more than 1 GPU require syncronization, because I got worse perfomance, than in 1 GPU
+        devices     =  "auto" #torch.cuda.device_count()
+        strategy    = "ddp_sharded"
     else:
         accelerator = "cpu"
-        args.device="cpu"
-        devices = 1
-        strategy = None
+        args.device ="cpu"
+        devices     = 1
+        strategy    = None
 
-    model = LanGuideMedSegWrapper(args, ds_train.root_path, tokenizer=tokenizer)
-
+    ckpt_path = None #'/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/save_model/medseg-v4.ckpt'
+    if ckpt_path is not None and os.path.exists(ckpt_path):
+        print(f"[INFO] Loading model from checkpoint: {ckpt_path}")
+        model = LanGuideMedSegWrapper.load_from_checkpoint(
+            checkpoint_path=ckpt_path,
+            args=args,
+            root_path=ds_train.root_path,
+            tokenizer=tokenizer
+        )
+    else:
+        if ckpt_path is not None:
+            print(f"[WARNING] Checkpoint file not found at {ckpt_path}. Initializing new model.")
+        model = LanGuideMedSegWrapper(args, ds_train.root_path, tokenizer=tokenizer)
+    
     ## 1. setting recall function
     model_ckpt = ModelCheckpoint(
         dirpath=args.model_save_path,
@@ -124,26 +137,29 @@ if __name__ == '__main__':
     # Add new parameters in Trainer very accurate, because it arise problems with memory 
     classifier_output_dir    = opj(MELD_DATA_PATH, 'output', 'classifier_outputs', model_ckpt.__class__.__name__)
     train_prediction_file    = opj(classifier_output_dir, 'results_best_model', 'train_predictions.hdf5')
+    val_prediction_file    = opj(classifier_output_dir, 'results_best_model', 'val_predictions.hdf5')
     test_prediction_file     = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
     predictions_output_dir   = opj(MELD_DATA_PATH, 'output', 'predictions_reports')
 
-    # callback = SavePredictionsCallback(
-    #     subjects_dir           = FS_SUBJECTS_PATH,
-    #     train_prediction_file  = train_prediction_file,
-    #     test_prediction_file   = test_prediction_file,
-    #     predictions_output_dir = predictions_output_dir,
-    #     verbose = True
-    # )
+    save_pred = SavePredictionsCallback(
+        subjects_dir           = FS_SUBJECTS_PATH,
+        train_prediction_file  = train_prediction_file,
+        val_prediction_file    = val_prediction_file,
+        test_prediction_file   = test_prediction_file,
+        predictions_output_dir = predictions_output_dir,
+        verbose = True
+    )
 
     trainer = pl.Trainer(
                         # logger=wandb_logger,
-                        min_epochs=args.min_epochs,max_epochs=args.max_epochs,
+                        min_epochs=args.min_epochs,
+                        max_epochs=args.max_epochs,
                         accelerator=accelerator, 
                         devices=devices,
+                        # strategy=strategy, ###################
                         callbacks=[model_ckpt, early_stopping],
                         enable_progress_bar=True,
-                        # overfit_batches=1,
-                        # strategy=strategy
+                        
                     ) 
 
     ## 3. start training

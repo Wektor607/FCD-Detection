@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import math
 import torch.nn.functional as F
-
+from torch.utils.checkpoint import checkpoint
 
 class PositionalEncoding(nn.Module):
 
@@ -39,6 +39,13 @@ class GuideDecoderLayer(nn.Module):
         self.self_attn_norm   = nn.LayerNorm(in_channels)
         self.cross_attn_norm  = nn.LayerNorm(in_channels)
 
+        from performer_pytorch import SelfAttention
+
+        self.self_attn_lin = SelfAttention(
+            dim=in_channels,      # размер твоего channel
+            heads=4,              # можно >1
+            causal=False          # если не autoregressive
+        )
         self.self_attn  = nn.MultiheadAttention(embed_dim=in_channels,num_heads=1,batch_first=True)
         self.cross_attn = nn.MultiheadAttention(embed_dim=in_channels,num_heads=4,batch_first=True)
 
@@ -53,9 +60,9 @@ class GuideDecoderLayer(nn.Module):
 
         self.text_project = nn.Sequential(
             nn.Conv1d(input_text_len,output_text_len,kernel_size=1,stride=1),
-            nn.GELU(), # nn.ReLU(),
+            nn.GELU(),
             nn.Linear(embed_dim, in_channels),
-            nn.LeakyReLU(), # nn.ReLU(),
+            nn.LeakyReLU(),
         )
 
         self.vis_pos  = PositionalEncoding(in_channels)
@@ -64,10 +71,9 @@ class GuideDecoderLayer(nn.Module):
         self.norm1    = nn.LayerNorm(in_channels)
         self.norm2    = nn.LayerNorm(in_channels)
         self.txt_norm = nn.LayerNorm(in_channels)
-        # self.residual_txt = nn.Linear(embed_dim, in_channels)
+        self.chunk_size = 16384
         self.scale = nn.Parameter(torch.tensor(1.421),requires_grad=True)
 
-        # self.scale    = nn.Parameter(torch.log(torch.tensor(1e-2)), requires_grad=True)
 
     def _chunked_attention(self, q, k, v, attn_module, chunk_size=4096):
         chunks = zip(q.split(chunk_size, dim=1),
@@ -76,7 +82,7 @@ class GuideDecoderLayer(nn.Module):
         out_chunks = [attn_module(qc, kc, value=vc)[0] for qc, kc, vc in chunks]
         return torch.cat(out_chunks, dim=1)
 
-    def _adaptive_chunked_attn(self, q, k, v, 
+    def _adaptive_chunked_attn(self, q, k, v, attn_module,
                                init_chunk=16384, min_chunk=512):
         """
         Пробуем разбивать по init_chunk, и если всё ещё OOM, 
@@ -87,7 +93,7 @@ class GuideDecoderLayer(nn.Module):
             try:
                 return self._chunked_attention(
                     q=q, k=k, v=v,
-                    attn_module=self.self_attn,
+                    attn_module=attn_module,
                     chunk_size=chunk
                 )
             except RuntimeError as e:
@@ -98,9 +104,30 @@ class GuideDecoderLayer(nn.Module):
                     continue
                 # если либо другая ошибка, либо уже слишком мало – пробрасываем
                 raise
+    
+    def _overlap_chunked_attention(self, q, k, v, attn_module, chunk_size: int, overlap: int):
+        B, N, C = q.shape
+        step = chunk_size - overlap
+        out = q.new_zeros(B, N, C)
+        counts = q.new_zeros(B, N, 1)
+        for start in range(0, N, step):
+            end = min(N, start + chunk_size)
+            q_chunk = q[:, start:end]
+            k_chunk = k[:, start:end]
+            v_chunk = v[:, start:end]
 
+            out_chunk, _ = attn_module(q_chunk, k_chunk, value=v_chunk)
+            Lc = end - start
+            left_cut = overlap if start > 0 else 0
+            right_cut = overlap if end < N else 0
+            valid_q = slice(left_cut, Lc - right_cut)
+
+            idxs = torch.arange(start + left_cut, start + Lc - right_cut, device=q.device)
+            out[:, idxs, :] += out_chunk[:, valid_q, :]
+            counts[:, idxs, :] += 1
+        return out / counts.clamp(min=1.0)
+    
     def forward(self, x, txt):
-
         '''
         x:[B N C1]
         txt:[B,L,C]
@@ -108,15 +135,22 @@ class GuideDecoderLayer(nn.Module):
         # Self-Attention
         vis2 = self.norm1(x)
         q = k = self.vis_pos(vis2)
-        # try:
-        #     vis2, _ = self.self_attn(q, k, value=vis2)
-        # except RuntimeError as e:
-        # torch.cuda.empty_cache()
-        vis2 = self._adaptive_chunked_attn(  # [B, N_vis, C]
-            q = q,
-            k = k,
-            v = vis2)
-            
+
+        vis2 = self.self_attn_lin(vis2) # Linear time: O(n)
+
+        # vis2, _ = self.self_attn(q, k, value=vis2)
+        
+        # vis2 = self._adaptive_chunked_attn(  # [B, N_vis, C]
+        #     q = q,
+        #     k = k,
+        #     v = vis2,
+        #     attn_module=self.self_attn)
+        
+        # vis2 = self._overlap_chunked_attention(
+        #     q, k, vis2, self.self_attn,
+        #     chunk_size=self.chunk_size, overlap=self.chunk_size // 8
+        # )
+
         vis2 = self.self_attn_norm(vis2)
         vis = x + vis2
         
@@ -124,11 +158,16 @@ class GuideDecoderLayer(nn.Module):
             # Cross-Attention
             vis2 = self.norm2(vis)
             
-            # txt_residual = self.residual_txt(txt)
             txt  = self.text_project(txt)
-            # skip-coonection + normalization
-            # txt = txt_residual + txt_proj
-            txt = self.txt_norm(txt)
+            
+            # txt = self.txt_norm(txt) # <- a little bit lower accuracy if we use text normalization
+
+            # vis2 = self._adaptive_chunked_attn(  # [B, N_vis, C]
+            #     q = self.vis_pos(vis2),
+            #     k = self.txt_pos(txt),
+            #     v = txt,
+            #     attn_module=self.cross_attn)
+            
             vis2, _ = self.cross_attn(
                         query=self.vis_pos(vis2),
                         key=self.txt_pos(txt),
@@ -136,8 +175,9 @@ class GuideDecoderLayer(nn.Module):
             
             vis2 = self.cross_attn_norm(vis2)
                         # The scaling factor must not be negative! 
-            alpha = F.softplus(self.scale)     # всегда >0, градиент не умирает
-            vis = vis + alpha * vis2
+            # alpha = F.softplus(self.scale)     # всегда >0, градиент не умирает
+            # vis = vis + alpha * vis2
+            vis = vis + self.scale * vis2
             # print(f"[DEBUG] α = {alpha.item():.4f}")
 
         return vis
@@ -156,7 +196,7 @@ class GuideDecoder(nn.Module):
             nn.Linear(total_dim, hidden),
             nn.BatchNorm1d(hidden), 
             nn.ReLU(), # Worse with GELU
-            nn.Dropout(0.1),
+            nn.Dropout(0.2),
             nn.Linear(hidden, out_channels),
             nn.BatchNorm1d(out_channels),
             nn.ReLU(), # Worse with GELU
@@ -168,7 +208,10 @@ class GuideDecoder(nn.Module):
         B2, N_skip, C_skip = skip_vis.shape
         assert B == B2, "Batch size mismatch между vis и skip_vis"
 
-        vis_coarse = self.guide_layer(vis, txt)
+        if txt is not None:
+            vis_coarse = self.guide_layer(vis, txt)
+        else:
+            vis_coarse = vis
         
         # 2) Graph Unpooling: «разворачиваем» coarse→fine через assign
         # assign: [N_fine], в диапазоне [0..N_coarse−1]

@@ -25,10 +25,10 @@ class ResidualBlock(nn.Module):
     def forward(self, x, edge_index):
         h = self.norm1(x)
         h = self.conv(h, edge_index)
-        h = self.relu(h)
-        # h = self.dropout(h)
         # residual connection
         h = x + h
+        h = self.relu(h)
+        # h = self.dropout(h)
         h = self.norm2(h) # <- necessary second normalization
         return h
 
@@ -56,16 +56,6 @@ class VisionModel(nn.Module):
             ResidualBlock(feat_dim, dropout=0.1) # MAKE HYPERPARAMETERS
             for feat_dim in feature_dim
         ])
-
-        # self.gnn_layers = nn.ModuleList([
-        #     Sequential('x, edge_index', [
-        #         (GraphNorm(feat_dim),              'x -> x'),
-        #         (SAGEConv(feat_dim, feat_dim, aggregator='mean'), 'x, edge_index -> x'),
-        #         (nn.ReLU(),                           'x -> x'),
-        #         (GraphNorm(feat_dim),              'x -> x'),
-        #     ])
-        #     for feat_dim in feature_dim
-        # ])
 
         # Precompute edge_index for stage1..stage5
         self.edge_index_per_stage = self._collect_edge_indices()

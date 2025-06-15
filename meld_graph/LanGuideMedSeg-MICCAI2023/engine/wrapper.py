@@ -2,7 +2,8 @@ from utils.model import LanGuideMedSeg
 from monai.losses import DiceLoss
 from torchvision.ops import sigmoid_focal_loss
 from torchmetrics import Accuracy, Dice
-from torchmetrics.classification import BinaryJaccardIndex
+
+from torchmetrics.classification import BinaryJaccardIndex, Precision
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
@@ -31,8 +32,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         )
         
         self.root_dir = root_path
-        self.warmup_epochs = args.warmup_epochs
-        self.warmup_epochs_metrics = args.warmup_epochs_metrics
         self.lr = args.lr
         self.history = {}
 
@@ -44,14 +43,15 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # TODO: calculate coef automatically
         # If pos_weight very high, model start predict everything as 1 
         # Initial: 100
-        pos_weight = torch.tensor([150.0], device=self.device)
-        self.bce_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        # pos_weight = torch.tensor([150.0], device=self.device)
+        # self.bce_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.dice_fn = DiceLoss(include_background=False, sigmoid=True)
 
         # ---- метрики (они принимают прогнозы [B, N] и метки [B, N]) ----
         self.train_metrics = nn.ModuleDict({
             "acc":  Accuracy(task="binary"),
             "dice": Dice(),
+            "ppv":  Precision(task="binary"),
             "MIoU": BinaryJaccardIndex()
         })
         self.val_metrics   = deepcopy(self.train_metrics)
@@ -62,14 +62,11 @@ class LanGuideMedSegWrapper(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.hparams.lr)
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=300, eta_min=1e-6
+            optimizer, T_max=300, eta_min=1e-4
         )
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
-    def forward(self, x):
-        return self.model(x)
-
-    def shared_step(self, batch, batch_idx, stage: str, strategy: str='full'):
+    def shared_step(self, batch, batch_idx, stage: str):
         """
         Общий код для train/val/test.
         batch = (x, y, ...), где
@@ -98,11 +95,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         focal_full = sigmoid_focal_loss(preds_logits, y, gamma=2.0, alpha=0.75, reduction='mean') # <- very useful to get high accuracy
         dice_full  = self.dice_fn(preds_logits, y)
         loss = 0.7 * focal_full + 0.3 * dice_full
-        # if self.current_epoch < self.warmup_epochs_metrics:
-        #     loss = bce_full
-        # else:
-        #     alpha = min((self.current_epoch - self.warmup_epochs_metrics) / self.warmup_epochs_metrics, 1.0)
-        #     loss = (1- alpha) * bce_full + alpha * dice_full
 
         # 3) отладочный вывод (раз в эпоху, первый батч train)
         if batch_idx == 0 and stage == "train":
@@ -129,7 +121,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
                 # логируем только на шаге train
                 self.log(name, value, prog_bar=True, on_step=True, on_epoch=False)
 
-        return loss
+        return loss #, preds_prob
 
     def training_step(self, batch, batch_idx):
         # shared_step возвращает тензор «loss»
@@ -142,10 +134,11 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
+        # loss, prods = self.shared_step(batch, batch_idx, stage="val")
         loss = self.shared_step(batch, batch_idx, stage="val")
         # логируем «val_loss»
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=False)
-        return loss  # возвращаем тензор, Lightning его примет в shared_epoch_end
+        return loss, #prods  # возвращаем тензор, Lightning его примет в shared_epoch_end
 
     def test_step(self, batch, batch_idx):
         loss = self.shared_step(batch, batch_idx, stage="test")
@@ -162,12 +155,17 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # 1) Собираем тензоры loss
         losses = []
         for o in outputs:
-            if isinstance(o, dict):
+            print(f"[DEBUG] o = {o}, type = {type(o)}")
+            if isinstance(o, tuple):
+                losses.append(o[0].detach())
+            elif isinstance(o, dict):
                 # training_step вернул dict с ключом "loss"
                 losses.append(o["loss"].detach())
-            else:
+            elif isinstance(o, torch.Tensor):
                 # validation_step / test_step возвращали тензор
                 losses.append(o.detach())
+            else:
+                raise TypeError(f"[ERROR] Unexpected output type in epoch_end: {type(o)}")
         losses = torch.stack(losses)  # [num_batches]
         avg_loss = losses.mean().item()
 
@@ -200,6 +198,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             f"\n[TRAIN epoch {stats['epoch']}] "
             f"loss={stats['train_loss']:.4f}, "
             f"acc={stats['train_acc']:.4f}, "
+            f"ppv={stats['train_ppv']:.4f}, "
             f"dice={stats['train_dice']:.4f}, "
             f"MIoU={stats['train_MIoU']:.4f}"
         )
@@ -215,6 +214,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             f"[VAL   epoch {stats['epoch']}] "
             f"loss={stats['val_loss']:.4f}, "
             f"acc={stats['val_acc']:.4f}, "
+            f"ppv={stats['val_ppv']:.4f}, "
             f"dice={stats['val_dice']:.4f}, "
             f"MIoU={stats['val_MIoU']:.4f}"
         )
@@ -243,6 +243,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             f"\n[TEST  epoch {stats['epoch']}] "
             f"loss={stats['test_loss']:.4f}, "
             f"acc={stats['test_acc']:.4f}, "
+            f"ppv={stats['test_ppv']:.4f}, "
             f"dice={stats['test_dice']:.4f}, "
             f"MIoU={stats['test_MIoU']:.4f}"
         )

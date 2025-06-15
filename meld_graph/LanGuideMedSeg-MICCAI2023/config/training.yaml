@@ -6,10 +6,9 @@ TRAIN:
 
   image_size: [160, 256, 256] # [224,224]
 
-  min_epochs: 20
+  min_epochs: 50
   max_epochs: 300
   warmup_epochs: 0
-  warmup_epochs_metrics: 15
   patience: 20
 
   device: 0

@@ -16,10 +16,21 @@ class BERTModel(nn.Module):
             new_vocab_size = len(tokenizer)
             # resize both token embeddings и позиционные эмбеддинги
             self.model.resize_token_embeddings(new_vocab_size)
-            
-        # freeze the parameters
-        for param in self.model.parameters():
-            param.requires_grad = False
+        
+        # 1) freeze the parameters
+        for p in self.model.parameters():
+            p.requires_grad = False
+
+        # 2) Разморозим последние unfreeze_last_k слоёв BERT
+        #    BertEncoder хранит их в .encoder.layer: список из 12 BertLayer
+        for layer in self.model.encoder.layer[-3:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+
+        # 3) И pooler (если вы хотите дообучать его выход)
+        for p in self.model.pooler.parameters():
+            p.requires_grad = True
+
 
     def forward(self, input_ids, attention_mask):
 
