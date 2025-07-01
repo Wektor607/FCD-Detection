@@ -1,2 +1,0 @@
-cluster_id,peak_x,peak_y,peak_z,cluster_mean,volume_mm,harvard_oxford,aal
-    1,   50,  -33,   41,   96,18605,34.67% Right_Supramarginal_Gyrus_anterior_division; 32.06% Right_Supramarginal_Gyrus_posterior_division; 20.76% Right_Postcentral_Gyrus; 5.17% Right_Superior_Parietal_Lobule,44.20% SupraMarginal_R; 26.48% Postcentral_R; 14.88% Parietal_Inf_R; 12.74% no_label

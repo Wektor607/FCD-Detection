@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=vis+textnorm
+#SBATCH --job-name=mlp-2
 #SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1

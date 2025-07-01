@@ -21,6 +21,7 @@ import pandas as pd
 import argparse
 import tempfile
 import shutil
+
 from os.path import join as opj
 from meld_graph.paths import (FS_SUBJECTS_PATH, 
                               MELD_DATA_PATH,
@@ -40,7 +41,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=False,
-    experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT,):       
+    experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT):       
     ''' function to predict on new subject using trained MELD classifier'''
     
     # create dataset csv
@@ -82,15 +83,32 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     
     for subject_id in subject_ids:  
         features = eva.data_dictionary[subject_id]["feature_maps"]
+        result   = eva.data_dictionary[subject_id]["result"]
         
-        save_dir = f"./data/input/{subject_id}/anat/features"
+        save_dir = f"./data/input/ds004199/{subject_id}/anat/features"
         os.makedirs(save_dir, exist_ok=True)
 
-        save_path = os.path.join(save_dir, "feature_maps.npz")
+        feat_path = os.path.join(save_dir, "feature_maps.npz")
         np.savez_compressed(
-            save_path,
+            feat_path,
             **{stage: tensor.detach().cpu().numpy() for stage, tensor in features.items()}
         )
+
+        print(f"Saved features to {feat_path}")
+
+        res_path = os.path.join(save_dir, "result.npz")
+        if isinstance(result, np.ndarray):
+            np.savez_compressed(res_path, result=result)        
+        elif isinstance(result, dict):
+            np.savez_compressed(
+                res_path,
+                **{f"pred_{hemi}": arr.detach().cpu().numpy()
+                for hemi, arr in result.items()}
+            )
+        else:
+            raise TypeError(f"Неожиданный тип result: {type(result)}")
+
+        print(f"Saved prediction result to {res_path}")
 
     #threshold predictions
     eva.threshold_and_cluster()

@@ -6,7 +6,7 @@ TRAIN:
 
   image_size: [160, 256, 256] # [224,224]
 
-  min_epochs: 50
+  min_epochs: 20
   max_epochs: 300
   warmup_epochs: 0
   patience: 20
@@ -21,7 +21,7 @@ TRAIN:
 
 MODEL:
   bert_type: StanfordAIMI/RadBERT #microsoft/BiomedVLP-CXR-BERT-specialized
-  vision_type: facebook/convnext-tiny-224
+  # vision_type: facebook/convnext-tiny-224
   project_dim: 768
 
   meld_script_path: ../meldgraph.sh
@@ -29,8 +29,8 @@ MODEL:
   output_dir: ../data/output
 
 DATA:
-  train_csv_path: ../data/preprocessed/NewFinal.csv # ./data/QaTa-COV19-v2/prompt/train.csv
+  train_csv_path: ../data/preprocessed/Res_full.csv # ./data/QaTa-COV19-v2/prompt/train.csv
   train_root_path: ../data/preprocessed # ./data/QaTa-COV19-v2/Train
 
-  test_csv_path: ../data/preprocessed/NewFinal.csv #./data/QaTa-COV19-v2/prompt/test.csv
+  test_csv_path: ../data/preprocessed/Res_full.csv #./data/QaTa-COV19-v2/prompt/test.csv
   test_root_path: ../data/preprocessed #./data/QaTa-COV19-v2/Test

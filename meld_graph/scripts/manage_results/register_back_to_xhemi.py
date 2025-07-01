@@ -6,7 +6,7 @@ from subprocess import Popen
 from meld_graph.tools_pipeline import get_m
 
 
-def register_subject_to_xhemi(subject_id, subjects_dir, output_dir, template = 'fsaverage_sym', verbose=False):
+def register_subject_to_xhemi(subject_id, subjects_dir, output_dir, template = 'fsaverage_sym', verbose=False, plus_name=None):
     ''' move the predictions from fsaverage to native space
     inputs:
         subject_id :  subject ID 
@@ -82,7 +82,11 @@ def register_subject_to_xhemi(subject_id, subjects_dir, output_dir, template = '
     shutil.move(f'{subjects_dir}/{subject_id}/mri/rh.prediction.nii.gz', f'{save_dir}/rh.prediction.nii.gz')
         
     #combine vols from left and right hemis
-    command=f'mri_concat --i {save_dir}/lh.prediction.nii.gz --i {save_dir}/rh.prediction.nii.gz --o {save_dir}/prediction.nii.gz --combine'
+    if plus_name is not None:
+        output = f"{save_dir}/prediction_{plus_name}.nii.gz"
+    else:
+        output = f"{save_dir}/prediction.nii.gz"
+    command=f'mri_concat --i {save_dir}/lh.prediction.nii.gz --i {save_dir}/rh.prediction.nii.gz --o {output} --combine'
     proc = Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
     stdout, stderr= proc.communicate()
     if verbose:

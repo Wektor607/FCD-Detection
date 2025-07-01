@@ -35,6 +35,7 @@ def move_predictions_to_mgh(subject_id, subjects_dir, prediction_file, verbose=F
     if not os.path.isdir(classifier_dir):
         os.mkdir(classifier_dir)
     predictions = load_prediction(subject_id, prediction_file, prediction_name="cluster_thresholded_salient")
+    
     for hemi in ["lh", "rh"]:
         prediction_h = predictions[hemi]
         overlay = np.zeros_like(c.cortex_mask, dtype=int)

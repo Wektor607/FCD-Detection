@@ -4,6 +4,7 @@ import torch.nn as nn
 import math
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
+from torch_geometric.nn import GraphNorm
 
 class PositionalEncoding(nn.Module):
 
@@ -39,13 +40,13 @@ class GuideDecoderLayer(nn.Module):
         self.self_attn_norm   = nn.LayerNorm(in_channels)
         self.cross_attn_norm  = nn.LayerNorm(in_channels)
 
-        from performer_pytorch import SelfAttention
+        # from performer_pytorch import SelfAttention
 
-        self.self_attn_lin = SelfAttention(
-            dim=in_channels,      # размер твоего channel
-            heads=4,              # можно >1
-            causal=False          # если не autoregressive
-        )
+        # self.self_attn_lin = SelfAttention(
+        #     dim=in_channels,      
+        #     heads=4,              
+        #     causal=False          
+        # )
         self.self_attn  = nn.MultiheadAttention(embed_dim=in_channels,num_heads=1,batch_first=True)
         self.cross_attn = nn.MultiheadAttention(embed_dim=in_channels,num_heads=4,batch_first=True)
 
@@ -105,29 +106,7 @@ class GuideDecoderLayer(nn.Module):
                 # если либо другая ошибка, либо уже слишком мало – пробрасываем
                 raise
     
-    def _overlap_chunked_attention(self, q, k, v, attn_module, chunk_size: int, overlap: int):
-        B, N, C = q.shape
-        step = chunk_size - overlap
-        out = q.new_zeros(B, N, C)
-        counts = q.new_zeros(B, N, 1)
-        for start in range(0, N, step):
-            end = min(N, start + chunk_size)
-            q_chunk = q[:, start:end]
-            k_chunk = k[:, start:end]
-            v_chunk = v[:, start:end]
-
-            out_chunk, _ = attn_module(q_chunk, k_chunk, value=v_chunk)
-            Lc = end - start
-            left_cut = overlap if start > 0 else 0
-            right_cut = overlap if end < N else 0
-            valid_q = slice(left_cut, Lc - right_cut)
-
-            idxs = torch.arange(start + left_cut, start + Lc - right_cut, device=q.device)
-            out[:, idxs, :] += out_chunk[:, valid_q, :]
-            counts[:, idxs, :] += 1
-        return out / counts.clamp(min=1.0)
-    
-    def forward(self, x, txt):
+    def forward(self, x, txt, chunk):
         '''
         x:[B N C1]
         txt:[B,L,C]
@@ -136,20 +115,17 @@ class GuideDecoderLayer(nn.Module):
         vis2 = self.norm1(x)
         q = k = self.vis_pos(vis2)
 
-        vis2 = self.self_attn_lin(vis2) # Linear time: O(n)
+        # vis2 = self.self_attn_lin(vis2) # Linear time: O(n)
 
         # vis2, _ = self.self_attn(q, k, value=vis2)
-        
-        # vis2 = self._adaptive_chunked_attn(  # [B, N_vis, C]
-        #     q = q,
-        #     k = k,
-        #     v = vis2,
-        #     attn_module=self.self_attn)
-        
-        # vis2 = self._overlap_chunked_attention(
-        #     q, k, vis2, self.self_attn,
-        #     chunk_size=self.chunk_size, overlap=self.chunk_size // 8
-        # )
+        if chunk:
+            vis2 = self._adaptive_chunked_attn(  # [B, N_vis, C]
+                q = q,
+                k = k,
+                v = vis2,
+                attn_module=self.self_attn)
+        else:
+            vis2, _ = self.self_attn(q, k, value=vis2)
 
         vis2 = self.self_attn_norm(vis2)
         vis = x + vis2
@@ -161,12 +137,6 @@ class GuideDecoderLayer(nn.Module):
             txt  = self.text_project(txt)
             
             # txt = self.txt_norm(txt) # <- a little bit lower accuracy if we use text normalization
-
-            # vis2 = self._adaptive_chunked_attn(  # [B, N_vis, C]
-            #     q = self.vis_pos(vis2),
-            #     k = self.txt_pos(txt),
-            #     v = txt,
-            #     attn_module=self.cross_attn)
             
             vis2, _ = self.cross_attn(
                         query=self.vis_pos(vis2),
@@ -174,9 +144,9 @@ class GuideDecoderLayer(nn.Module):
                         value=txt)
             
             vis2 = self.cross_attn_norm(vis2)
-                        # The scaling factor must not be negative! 
-            # alpha = F.softplus(self.scale)     # всегда >0, градиент не умирает
-            # vis = vis + alpha * vis2
+                        
+            # alpha = F.softplus(self.scale) 
+            # vis = alpha * vis + (1 - alpha) * vis2
             vis = vis + self.scale * vis2
             # print(f"[DEBUG] α = {alpha.item():.4f}")
 
@@ -184,14 +154,26 @@ class GuideDecoderLayer(nn.Module):
 
 class GuideDecoder(nn.Module):
 
-    def __init__(self,in_channels, out_channels, text_len) -> None:
+    def __init__(self,in_channels, out_channels, text_len, input_text_len) -> None:
 
         super().__init__()
         
-        self.guide_layer = GuideDecoderLayer(in_channels, text_len)   # for skip
+        self.guide_layer = GuideDecoderLayer(in_channels, text_len, input_text_len)   # for skip
         
         total_dim = in_channels + out_channels
         hidden = total_dim // 2
+        self.hidden = hidden
+
+        # MLP
+        self.lin1    = nn.Linear(total_dim, hidden)
+        self.gn1     = GraphNorm(hidden)
+        self.lnorm1  = nn.LayerNorm(hidden)
+        self.lin2    = nn.Linear(hidden, out_channels)
+        self.gn2     = GraphNorm(out_channels)
+        self.lnorm2  = nn.LayerNorm(out_channels)
+        self.act     = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+
         self.mlp = nn.Sequential(
             nn.Linear(total_dim, hidden),
             nn.BatchNorm1d(hidden), 
@@ -203,13 +185,19 @@ class GuideDecoder(nn.Module):
             # nn.Dropout(0.1)            
         )
 
-    def forward(self, vis, skip_vis, txt, assign):
+        # self.mlp = nn.Sequential(
+        #     nn.Linear(total_dim, hidden),
+        #     nn.GELU(),
+        #     nn.Linear(hidden, out_channels),
+        # )
+
+    def forward(self, vis, skip_vis, txt, assign, chunk):
         B, N_in, C_in = vis.shape
         B2, N_skip, C_skip = skip_vis.shape
         assert B == B2, "Batch size mismatch между vis и skip_vis"
 
         if txt is not None:
-            vis_coarse = self.guide_layer(vis, txt)
+            vis_coarse = self.guide_layer(vis, txt, chunk)
         else:
             vis_coarse = vis
         
@@ -230,6 +218,23 @@ class GuideDecoder(nn.Module):
         cat_flat    = cat.view(B * N, Ctot)
         out_flat    = self.mlp(cat_flat)
 
+        # batch = torch.arange(B, device=cat.device).repeat_interleave(N)
+
+        # x           = self.lin1(cat_flat)                # [B·N, hidden]
+        # x           = self.gn1(x, batch) # self.lnorm1(self.gn1(x, batch))                 # GraphNorm по каждому графу
+        # x           = self.act(x)
+        # x           = self.dropout(x)
+        # # out         = x.view(B, N, -1)                      # [B, N_max]
+        # x           = self.lin2(x)                       # [B·N, out_dim]
+        # x           = self.gn2(x, batch) #self.lnorm2(self.gn2(x, batch))
+        # out_flat    = self.act(x)
+
+        # for name, p in self.mlp.named_parameters():
+        #     if p.grad is None:
+        #         print(f"{name} grad is None")
+        #     else:
+        #         print(f"{name} grad norm: {p.grad.norm().item():.4f}")
+                
         out         = out_flat.view(B, N, -1)                      # [B, N_max]
 
         return out

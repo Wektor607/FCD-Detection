@@ -4,10 +4,66 @@ import re
 import ants
 import numpy as np
 import nibabel as nib
-
+import json
 from nilearn import datasets
 from atlasreader import create_output
 from nilearn.datasets import fetch_icbm152_2009
+import csv
+
+# ── NEW: load all pred_reports into a dict keyed by subject ID ──
+import os
+import re
+import json
+
+# удаляем любые кавычки: " ' “ ” ‘ ’
+_RE_QUOTES = re.compile(r'[\"\'\u201c\u201d\u2018\u2019]')
+
+def load_pred_reports(json_path):
+    """
+    Читает JSON с полями:
+      - "image": ["/…/sub-XXXXX_…"]
+      - "pred_report": "…"
+    Возвращает dict: subj_id -> предобработанный текст отчёта
+    """
+    with open(json_path, 'r') as f:
+        entries = json.load(f)
+
+    report_map = {}
+    for e in entries:
+        img  = os.path.basename(e["image"][0])
+        subj = img.split('_')[0]            # "sub-XXXXX"
+        text = e.get("pred_report", "") \
+                .replace('\n', ' ') \
+                .strip()
+        # 1) Сжать пробелы
+        text = re.sub(r'\s+', ' ', text)
+        # 2) Удалить кавычки
+        text = _RE_QUOTES.sub('', text)
+        report_map[subj] = text
+
+    return report_map
+
+def save_pred_reports_raw(report_map, out_path):
+    """
+    Writes a simple CSV without any quoting:
+      subject_id,report_text
+    Any commas in report_text will be literal commas (so this is not a fully compliant CSV).
+    """
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["subject_id", "report_text"])
+        for subj, report in sorted(report_map.items()):
+            # убираем переносы строк, оставшиеся табуляции не сломают CSV, потому что они экранируются
+            clean = report.replace('\n', ' ').replace('\r', ' ')
+            writer.writerow([subj, clean])
+
+# point this to your JSON
+PRED_JSON = "/home/s17gmikh/FCD-Detection/meld_graph/data/pred_report.json"
+PRED_REPORTS = load_pred_reports(PRED_JSON)
+save_pred_reports_raw(PRED_REPORTS, "/home/s17gmikh/FCD-Detection/meld_graph/data/pred_reports_summary.csv")
+
+# ────────────────────────────────────────────────────────────────
 
 def process_data():
     # Get absolute path to the directory where the script is located

@@ -10,9 +10,8 @@ from torchmetrics import Accuracy, Dice
 from torchmetrics.classification import BinaryJaccardIndex, Precision
 from torch.optim import lr_scheduler
 from transformers import AutoTokenizer
-from torch.utils.data import DataLoader
-from pytorch_lightning.loggers import WandbLogger
 import subprocess
+from torch.utils.data import DataLoader
 
 from utils.data import EpilepDataset
 from engine.wrapper import LanGuideMedSegWrapper
@@ -83,34 +82,17 @@ def mgh_cleaner():
     ]
     subprocess.run(cleanup_cmd, check=True)
 
+
 if __name__ == '__main__':
     mgh_cleaner()
+
     args = get_parser()
     
     check = args.meld_check
-    wandb_logger = WandbLogger(
-        project=args.project_name,
-        log_model=True
-    )   
 
     tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True)
-    ds_train = EpilepDataset(csv_path=args.train_csv_path,
-                    root_path=args.train_root_path,
-                    tokenizer=tokenizer,
-                    mode='train',
-                    meld_path=args.meld_script_path,
-                    output_dir=args.output_dir,
-                    feature_path=args.feature_path)
 
-    ds_valid = EpilepDataset(csv_path=args.train_csv_path,
-                    root_path=args.train_root_path,
-                    tokenizer=tokenizer,
-                    mode='valid',
-                    meld_path=args.meld_script_path,
-                    output_dir=args.output_dir,
-                    feature_path=args.feature_path)
-
-    # --- Подготовка тестовой выборки и DataLoader ---
+     # --- Подготовка тестовой выборки и DataLoader ---
     ds_test = EpilepDataset(
         csv_path=args.test_csv_path,             # новый CSV для теста
         root_path=args.test_root_path,           # путь к тестовым данным
@@ -121,21 +103,6 @@ if __name__ == '__main__':
         feature_path=args.feature_path
     )
 
-    dl_train = DataLoader(ds_train, 
-                        batch_size=args.train_batch_size, 
-                        shuffle=True, 
-                        num_workers=args.train_batch_size, 
-                        pin_memory=True, 
-                        worker_init_fn=worker_init_fn, 
-                        persistent_workers=True)
-    
-    dl_valid = DataLoader(ds_valid, 
-                        batch_size=args.valid_batch_size, 
-                        shuffle=False, 
-                        num_workers=args.valid_batch_size, 
-                        pin_memory=True, 
-                        worker_init_fn=worker_init_fn, 
-                        persistent_workers=True)
     dl_test = DataLoader(
         ds_test,
         batch_size=args.valid_batch_size,
@@ -146,6 +113,58 @@ if __name__ == '__main__':
         worker_init_fn=worker_init_fn,
         persistent_workers=True
     )
+    
+    # Checking MELD results on test data
+    if check:
+        test_metrics = nn.ModuleDict({
+            "acc":  Accuracy(task="binary"),
+            "dice": Dice(),
+            "ppv":  Precision(task="binary"),
+            "MIoU": BinaryJaccardIndex()
+        })
+        cohort = MeldCohort()
+        
+        cortex_mask = torch.from_numpy(cohort.cortex_mask)   # shape [N], dtype=torch.bool
+
+        metrics_history = { name: [] for name in test_metrics.keys() }
+
+        for batch in dl_test:
+            (subject_ids, text), y = batch
+            B, H, N = y.shape
+
+            for b, sid in enumerate(subject_ids):
+                # извлекаем GT для кортикальных вершин
+                gt = y[b]                        # [2, N]
+                gt_cortex = gt[:, cortex_mask]   # [2, N_cortex]
+                gt_flat = gt_cortex.flatten()    # [2*N_cortex]
+
+                # загружаем ваши предсказания
+                nii_path = os.path.join(
+                    MELD_DATA_PATH, f"input/{sid}/anat/features", "result.npz",
+                )
+                arr = np.load(nii_path)['result']
+                pred = torch.from_numpy(arr.astype("float32"))  # [2, N]
+
+                # 3) обновляем метрики, сохраняем в history
+                for name, metric in test_metrics.items():
+                    metric.update(pred, gt_flat.long())
+                    val = metric.compute().item()
+                    metric.reset()
+
+                    print(f"{sid} {name} = {val:.4f}")
+                    metrics_history[name].append(val)
+
+                print('---')
+
+        # 4) после всех субъектов считаем медиану и 2.5–97.5 перцентили
+        import numpy as np
+
+        print("\n=== Сводная статистика по всем субъектам ===")
+        for name, values in metrics_history.items():
+            vals = np.array(values)
+            med = np.median(vals)
+            lo, hi = np.percentile(vals, [2.5, 97.5])
+            print(f"{name:>5}: median={med:.4f}  [{lo:.4f}–{hi:.4f}]")
 
     ## 2. setting trainer
     if torch.cuda.is_available():
@@ -159,32 +178,16 @@ if __name__ == '__main__':
         devices     = 1
         strategy    = None
 
-    # if alpha == 0.8 and gamma == 2 and coef == (0.6, 0.2, 0.2):
-    #     ckpt_path = './save_model/medseg.ckpt'
-    # else:
-    ckpt_path = None
+    ckpt_path = './save_model/medseg.ckpt'
     # Vis+Text: './save_model/medseg-v5.ckpt'
     print(f"[INFO] Loading model from checkpoint: {ckpt_path}")
-    if ckpt_path is not None:
-        model = LanGuideMedSegWrapper.load_from_checkpoint(
-            checkpoint_path=ckpt_path,
-            args=args,
-            tokenizer=tokenizer,
-            max_len = ds_test.max_length,
-            # alpha=alpha,
-            # gamma=gamma,
-            # coef=coef
-
-        )
-    else:
-        model = LanGuideMedSegWrapper(
-            args, 
-            tokenizer=tokenizer,
-            max_len = ds_train.max_length,
-            # alpha=alpha,
-            # gamma=gamma,
-            # coef=coef
-        )
+    model = LanGuideMedSegWrapper.load_from_checkpoint(
+        checkpoint_path=ckpt_path,
+        args=args,
+        tokenizer=tokenizer,
+        max_len = ds_test.max_length
+        # alpha=alpha_pos,
+    )
 
     ## 1. setting recall function
     model_ckpt = ModelCheckpoint(
@@ -202,7 +205,6 @@ if __name__ == '__main__':
     )
 
     trainer = pl.Trainer(
-                        logger=wandb_logger,
                         min_epochs=args.min_epochs,
                         max_epochs=args.max_epochs,
                         accelerator=accelerator, 
@@ -212,28 +214,16 @@ if __name__ == '__main__':
                         enable_progress_bar=True,
                         
                     ) 
+        
+    # 3) Evaluate on TEST
+    test_results = trainer.test(
+        model,
+        dataloaders=dl_test,
+        ckpt_path=ckpt_path,
+        verbose=True,
+    )
+    print("=== TEST metrics ===")
+    print(test_results)
 
-    # # 3. start training
-    print('start training')
-    trainer.fit(model,dl_train,dl_valid)
-    print('done training')
-
-
-    # --- Запуск тестового прогона ---    
-    print('start testing')
-    if ckpt_path is not None:
-        test_results = trainer.test(
-            model,
-            dataloaders=dl_test,
-            ckpt_path=ckpt_path,    # можно также указать model_ckpt.best_model_path
-        )
-    else:
-        test_results = trainer.test(
-            model,
-            dataloaders=dl_test,
-            ckpt_path='best',    # можно также указать model_ckpt.best_model_path
-        )
-    print('test results:', test_results)
-    wandb.finish()
-    
+    mgh_cleaner()
 

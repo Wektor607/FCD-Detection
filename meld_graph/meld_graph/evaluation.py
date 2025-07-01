@@ -1,6 +1,7 @@
 import logging
 import os
 import torch
+import sys
 import torch_geometric.data
 from meld_graph.dataset import GraphDataset
 from meld_graph.models import PredictionForSaliency
@@ -85,6 +86,7 @@ class Evaluator:
             )
 
         # update dataset, cohort and subjects if provided or take from experiment
+        
         if cohort != None:
             self.cohort = cohort
         else:
@@ -311,10 +313,16 @@ class Evaluator:
 
                     combined = {}
                     for stage in lh_dict.keys():
-                        lh = lh_dict[stage]  # [N_lh, C]
-                        rh = rh_dict[stage]  # [N_rh, C]
-                        
-                        combined[stage] = torch.cat([lh, rh], dim=0)  # [N_lh + N_rh, C]
+                        lh = lh_dict[stage]  # [1, N_lh, C]
+                        rh = rh_dict[stage]  # [1, N_rh, C]
+                        # if stage == "stage1":
+                        #     lh = lh.squeeze(0)[self.cohort.cortex_mask]
+                        #     rh = rh.squeeze(0)[self.cohort.cortex_mask]
+                        #     lh = lh.unsqueeze(0)
+                        #     rh = rh.unsqueeze(0)
+                        #     print(lh.shape)
+
+                        combined[stage] = torch.cat([lh, rh], dim=0)  # [1, N_lh + N_rh, C]
 
                     combined_feature_maps_list.append(combined)
                 

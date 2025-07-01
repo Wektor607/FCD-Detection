@@ -8,6 +8,7 @@
 # 4. Convert predicitons and masks into atlas format and get descriptions from atlas mask
 
 import os
+import csv
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -16,6 +17,7 @@ import shutil
 import numpy as np
 import pandas as pd
 
+from pathlib import Path
 from get_reports import process_data
 from meld_graph.paths import MELD_DATA_PATH
 from utils.get_reports import find_file_with_suffix
@@ -42,13 +44,13 @@ def get_subj_list(folder, output_folder, output_file):
 
     print(f"✅ Saved {len(subject_ids)} subject IDs to {output_file}")
 
-def preprocess_func(list_ids, subj_path, harmo_code):
+def preprocess_func(list_ids, subj_path, harmo_code, full_name, transform_mode, json_disc):
     # Getting a list of pre-processed files
     # get_subj_list('data/output/fs_outputs', 'data', 'subjects_list.csv')
 
     # Necessary for getting affine matrix for transformations
     # process_data()
-    
+    print('OPA')
     list_ids=os.path.join(MELD_DATA_PATH, list_ids)
     try:
         sub_list_df=pd.read_csv(list_ids)
@@ -63,9 +65,11 @@ def preprocess_func(list_ids, subj_path, harmo_code):
     list_paths   = []
     report_paths = []
     roi_paths    = []
+    print('HERE')
     for subj_id in subject_ids:
         featmat_path = project_path(f"data/output/preprocessed_surf_data/{subj_id}_featurematrix_combat.hdf5")
         roi_path  = find_file_with_suffix(project_path(f"data/output/preprocessed_surf_data/MELD_{harmo_code}"), f"{subj_id}_featurematrix.hdf5")
+        # roi_path  = find_file_with_suffix(project_path(f"data/input/ds004199/{subj_id}/anat"), "_FLAIR_roi.nii.gz")
         subj_new = project_path(os.path.join(subj_path, "preprocessed", subj_id))
         os.makedirs(subj_new, exist_ok=True)
         
@@ -83,12 +87,78 @@ def preprocess_func(list_ids, subj_path, harmo_code):
         roi_paths.append(roi_path)
         report_paths.append(project_path(f"data/input/{subj_id}/anat/report"))
 
-    generate_full_data(list_paths, roi_paths, report_paths, project_path(os.path.join(subj_path, "preprocessed", "NewFinal.csv")))
+    print(json_disc)
+    generate_full_data(list_paths, 
+                       roi_paths, 
+                       report_paths, 
+                       project_path(os.path.join(subj_path, "preprocessed", f"Res_{transform_mode}.csv")), 
+                       full_name,
+                       transform_mode,
+                       json_disc)
 
-def generate_full_data(list_paths, roi_paths, report_paths, result_file):
+def extract_hemisphere(text: str) -> str:
+    """Find Left/Right in the text and return e.g. 'Right hemisphere'."""
+    m = re.search(r'\b(Left|Right)\b', text)
+    return f"{m.group(1)} hemisphere" if m else text
+
+
+_LOBE_MAP = {
+    'Frontal':      'Frontal lobe',
+    'Parietal':     'Parietal lobe',
+    'Temporal':     'Temporal lobe',
+    'Occipital':    'Occipital lobe',
+    'Insular':      'Insular lobe',
+    'Cingulate':    'Limbic lobe',
+    'Parahippocampal': 'Limbic lobe',
+    'Caudate':      'Subcortical nuclei',
+    'Putamen':      'Subcortical nuclei',
+    'Fusiform':     'Occipital lobe',
+}
+
+
+def extract_hemisphere_lobes(text: str) -> str:
     """
-    Parameters:
-        - 
+    Take a cleaned string like
+      "Right Superior Frontal Gyrus; Right Insular Cortex"
+    and turn it into
+      "Right Frontal lobe; Right Insular lobe"
+    keeping only unique hemisphere+lobe entries.
+    """
+    entries = []
+    for part in re.split(r'\s*;\s*', text):
+        hemi_m = re.search(r'\b(Left|Right)\b', part)
+        hemi   = hemi_m.group(1) if hemi_m else None
+        lobe   = None
+        for key, val in _LOBE_MAP.items():
+            if key in part:
+                lobe = val
+                break
+        if hemi and lobe:
+            entries.append(f"{hemi} {lobe}")
+    # remove duplicates, preserve order
+    seen = set()
+    out  = []
+    for e in entries:
+        if e not in seen:
+            seen.add(e)
+            out.append(e)
+    return "; ".join(out) if out else text
+
+
+def generate_full_data(
+    list_paths,
+    roi_paths,
+    report_paths,
+    result_file,
+    full_name: bool,
+    transform_mode: str = "full",   # <-- new!
+    json_disc: dict = None
+):
+    """
+    transform_mode:
+      - "full"            : keep the original cleaned region string
+      - "hemisphere"      : reduce each entry to "Left hemisphere"/"Right hemisphere"
+      - "hemisphere_lobe" : reduce each entry to "Right Frontal lobe" etc.
     """
     region_aliases = {
         '%': ' percent of',
@@ -156,59 +226,97 @@ def generate_full_data(list_paths, roi_paths, report_paths, result_file):
         'no label': 'Unlabeled region'
     }
 
-    new_csv = pd.DataFrame(columns=['DATA_PATH', 'ROI_PATH', 'harvard_oxford', 'aal'])
-    for path, roi_hdf5_path, report in zip(list_paths, roi_paths, report_paths):
+    abbrev_map = {
+        r'\bSup\b': 'Superior',
+        r'\bInf\b': 'Inferior',
+        r'\bTri\b': 'Triangular',
+        r'\bOper\b': 'Opercular',
+        r'\bOrb\b': 'Orbital',
+        r'\bMid\b': 'Middle',
+        r'\bMed\b': 'Medial',
+        r'\bSupp\b': 'Supplementary',
+        r'\bOFCpost\b': 'Orbitofrontal_cortex_posterior',
+    }
+
+
+    def clean_region_string(text: str) -> str:
+        if not isinstance(text, str):
+            return text
+        parts = re.split(r'[;,]', text)
+        cleaned = []
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            if re.search(r'\b(no_label|Unlabeled|no labels?)\b',
+                         part, flags=re.IGNORECASE):
+                continue
+            cleaned.append(part)
+        return "; ".join(cleaned).replace("_", " ")
+
+    def apply_region_aliases(series, aliases):
+        s = series
+        for short, full in aliases.items():
+            s = s.str.replace(short, full, regex=True)
         
-        roi_path  = find_file_with_suffix(path, '_FLAIR_roi')
-        pred_path = find_file_with_suffix(path, '_combat')
+        s = s.str.replace(r'\bR(?=;|\s*$)', 'Right', regex=True)
+        print("After: ", s)
+        s = s.str.replace(r'\bL(?=;|\s*$)', 'Left',  regex=True)
+        return s
 
-        print(f"Processing report for: {path}")
+    print(json_disc)
+    if json_disc is not None:
+        new_csv = pd.DataFrame(columns=[
+        'DATA_PATH', 'ROI_PATH', 'description'
+        ])
+        df = pd.read_csv(json_disc, sep='\t')
+        for path, roi_hdf5_path, rep_name in zip(list_paths, roi_paths, df['report_text']):
+            pred_path   = find_file_with_suffix(path, '_combat')            
+            print(rep_name)
+            new_csv.loc[len(new_csv)] = [
+                pred_path,
+                roi_hdf5_path,
+                rep_name,
+            ]
+    else:    
+        new_csv = pd.DataFrame(columns=[
+        'DATA_PATH', 'ROI_PATH', 'harvard_oxford', 'aal'
+        ])
+        for path, roi_hdf5_path, report in zip(list_paths, roi_paths, report_paths):
+            pred_path   = find_file_with_suffix(path, '_combat')
+            report_path = find_file_with_suffix(report, 'z_trans_clusters')
+            df          = pd.read_csv(report_path)
 
-        report_path = find_file_with_suffix(report, 'z_trans_clusters')
-        data = pd.read_csv(report_path)
+            for col in ['harvard_oxford', 'aal']:
+                df[col] = df[col].apply(clean_region_string)
+                if full_name:
+                    df[col] = apply_region_aliases(df[col], abbrev_map)#region_aliases)
+                df[col] = df[col].apply(clean_region_string)
+                # **new**: apply the chosen transform mode
+                if transform_mode == "hemisphere":
+                    df[col] = df[col].apply(extract_hemisphere)
+                elif transform_mode == "hemisphere_lobe":
+                    df[col] = df[col].apply(extract_hemisphere_lobes)
 
-        for col_name in ['aal', 'harvard_oxford']:
-            data[col_name] = apply_region_aliases(data[col_name], region_aliases)
-            data[col_name] = data[col_name].apply(clean_region_string)
+            new_csv.loc[len(new_csv)] = [
+                pred_path,
+                roi_hdf5_path,
+                df['harvard_oxford'].iloc[0],
+                df['aal'].iloc[0],
+            ]
 
-        new_csv.loc[len(new_csv)] = [
-            pred_path,
-            roi_hdf5_path,
-            data['harvard_oxford'].iloc[0],
-            data['aal'].iloc[0]
-        ]
-
-    if os.path.exists(result_file):
-        old_csv = pd.read_csv(result_file)
-        combined = pd.concat([old_csv, new_csv], ignore_index=True)
-        combined.drop_duplicates(inplace=True)
-        combined.to_csv(result_file, index=False)
-    else:
-        new_csv.to_csv(result_file, index=False)
-
-def clean_region_string(text):
-    """Remove 'Unlabeled' and normalize spacing/punctuation"""
-    if not isinstance(text, str):
-        return text
-    # Remove 'Unlabeled' and 'no labels' entries
-    text = re.sub(r'\s*\d+(\.\d+)?\s*percent of (Unlabeled region|no labels)', '', text)
-    # Normalize semicolons
-    text = re.sub(r';{2,}', ';', text).strip('; ').strip()
-    return text
-
-def apply_region_aliases(series, aliases):
-    """Replace region name tokens in a Series using provided mapping"""
-    for short, full in aliases.items():
-        series = series.str.replace(short, full, regex=True)
-    
-    # Handle R/L at end of words (not followed by ;)
-    series = series.apply(lambda text: re.sub(r'\bR(?=;|\s*$)', 'Right', text))
-    series = series.apply(lambda text: re.sub(r'\bL(?=;|\s*$)', 'Left', text))
-    return series
+    Path(result_file).parent.mkdir(parents=True, exist_ok=True)
+    new_csv.to_csv(
+    result_file,
+    sep=',',                # таб-разделитель
+    index=False,
+    quoting=csv.QUOTE_NONE,  # не оборачивать поля в кавычки
+    escapechar='\\',         # экранировать любые спецсимволы бэкслэшем
+    )
 
 # get_subj_list('data/output/fs_outputs',
 #               'data',
 #               'subjects_list.csv')
 
-
-preprocess_func("subjects_list.csv", "data", "fcd")
+if __name__ == "__main__":
+    preprocess_func("subjects_list.csv", "data", "fcd", full_name=True, transform_mode="full", json_disc=None)#"/home/s17gmikh/FCD-Detection/meld_graph/data/pred_reports_summary.csv")
