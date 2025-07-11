@@ -1,1 +1,1 @@
-../../.git/annex/objects/zV/pV/MD5E-s6774--565aa19f0c03c2e81857ceaca78376c4.py/MD5E-s6774--565aa19f0c03c2e81857ceaca78376c4.py
+/annex/objects/MD5E-s6774--565aa19f0c03c2e81857ceaca78376c4.py
