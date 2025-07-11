@@ -1,1 +1,1 @@
-../../.git/annex/objects/JW/46/MD5E-s5257--e98fc2aa683740df518df92fa7d2187e.py/MD5E-s5257--e98fc2aa683740df518df92fa7d2187e.py
+/annex/objects/MD5E-s5257--e98fc2aa683740df518df92fa7d2187e.py

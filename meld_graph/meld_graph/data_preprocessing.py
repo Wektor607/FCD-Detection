@@ -1,1 +1,1 @@
-../../.git/annex/objects/pk/Qm/MD5E-s68987--7d12e67ad3fd56e27088ed9121d61357.py/MD5E-s68987--7d12e67ad3fd56e27088ed9121d61357.py
+/annex/objects/MD5E-s68987--7d12e67ad3fd56e27088ed9121d61357.py

@@ -1,1 +1,1 @@
-../../../.git/annex/objects/k6/Xj/MD5E-s2179--9e73a2dbd6237e48424396d5d2d9174b.py/MD5E-s2179--9e73a2dbd6237e48424396d5d2d9174b.py
+/annex/objects/MD5E-s2179--9e73a2dbd6237e48424396d5d2d9174b.py

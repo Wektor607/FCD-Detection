@@ -1,1 +1,1 @@
-../../../.git/annex/objects/v1/Xk/MD5E-s13616--d97d5df9a0010d7cfe4b05238e881131.py/MD5E-s13616--d97d5df9a0010d7cfe4b05238e881131.py
+/annex/objects/MD5E-s13616--d97d5df9a0010d7cfe4b05238e881131.py
