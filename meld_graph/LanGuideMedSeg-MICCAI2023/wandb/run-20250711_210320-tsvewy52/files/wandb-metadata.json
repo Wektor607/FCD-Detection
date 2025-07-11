@@ -1,0 +1,31 @@
+{
+  "os": "Linux-4.18.0-425.19.2.el8_7.x86_64-x86_64-with-glibc2.28",
+  "python": "CPython 3.9.15",
+  "startedAt": "2025-07-11T19:03:20.113032Z",
+  "program": "/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/train.py",
+  "codePath": "meld_graph/LanGuideMedSeg-MICCAI2023/train.py",
+  "git": {
+    "remote": "git@github.com:Wektor607/FCD-Detection.git",
+    "commit": "0ec98a60fdd4c7e8f40faed0ea7f0d3cebf40d8f"
+  },
+  "email": "1069035F@mail.ru",
+  "root": ".",
+  "host": "login-01.bender",
+  "executable": "/home/s17gmikh/miniconda3/envs/MELD-env/bin/python3",
+  "codePathLocal": "train.py",
+  "cpu_count": 32,
+  "cpu_count_logical": 64,
+  "disk": {
+    "/": {
+      "total": "21453602816",
+      "used": "6642900992"
+    }
+  },
+  "memory": {
+    "total": "810783903744"
+  },
+  "cpu": {
+    "count": 32,
+    "countLogical": 64
+  }
+}

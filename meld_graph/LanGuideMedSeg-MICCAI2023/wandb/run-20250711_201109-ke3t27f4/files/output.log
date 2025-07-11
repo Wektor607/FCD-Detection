@@ -1,0 +1,261 @@
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/huggingface_hub/file_download.py:943: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+⚠️ Эти участники отсутствуют и будут пропущены: ['sub-00120']
+141 19 9
+[INFO] Loading model from checkpoint: ./save_model/medseg-v1.ckpt
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/lightning_fabric/utilities/cloud_io.py:48: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  return torch.load(f, map_location=map_location)
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/huggingface_hub/file_download.py:943: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/transformers/modeling_utils.py:399: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  return torch.load(checkpoint_file, map_location="cpu")
+Some weights of the model checkpoint at StanfordAIMI/RadBERT were not used when initializing BertModel: ['cls.predictions.transform.dense.weight', 'cls.predictions.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.decoder.bias']
+- This IS expected if you are initializing BertModel from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertModel from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+start training
+You are using a CUDA device ('NVIDIA A40') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:612: UserWarning: Checkpoint directory ./save_model exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name          | Type               | Params
+-----------------------------------------------------
+0 | model         | LanGuideMedSeg     | 110 M
+1 | dice_fn       | DiceLoss           | 0
+2 | train_metrics | ModuleDict         | 0
+3 | dice          | Dice               | 0
+4 | ppv           | BinaryPrecision    | 0
+5 | iou           | BinaryJaccardIndex | 0
+6 | acc           | BinaryAccuracy     | 0
+7 | val_metrics   | ModuleDict         | 0
+8 | test_metrics  | ModuleDict         | 0
+-----------------------------------------------------
+45.0 M    Trainable params
+65.2 M    Non-trainable params
+110 M     Total params
+440.829   Total estimated model params size (MB)
+SLURM auto-requeueing enabled. Setting signal handlers.
+Sanity Checking DataLoader 0: 100%|██████████| 2/2 [00:16<00:00,  8.31s/it]
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 32 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+================================================================================ 2025-07-11 20:11:55
+[VAL   epoch 0] loss=0.6393, acc=0.9960, fp=0.0017, ppv=0.2735, dice=0.2444, MIoU=0.1392
+<<<<<< reach best val_loss : 0.6393 >>>>>>
+Epoch 0:   0%|          | 0/14 [00:00<?, ?it/s]                            
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:224: PossibleUserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 32 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  rank_zero_warn(
+/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py:1600: PossibleUserWarning: The number of training batches (9) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+  rank_zero_warn(
+[TRAIN step 0] patch-loss(avg) = 0.6139
+mean_prob=0.0036, pred_pos_frac=0.0035, true_pos_frac=0.0041
+Epoch 0: 100%|██████████| 14/14 [06:08<00:00, 26.36s/it, loss=0.645, v_num=27f4, acc=0.997, spec=0.00212, dice=0.312, ppv=0.270, MIoU=0.185]
+================================================================================ 2025-07-11 20:18:04
+[VAL   epoch 0] loss=0.6305, acc=0.9944, fp=0.0024, ppv=0.2246, dice=0.1953, MIoU=0.1082
+<<<<<< reach best val_loss : 0.6305 >>>>>>
+Epoch 0: 100%|██████████| 14/14 [06:08<00:00, 26.36s/it, loss=0.645, v_num=27f4, acc=0.997, spec=0.00212, dice=0.312, ppv=0.270, MIoU=0.185]
+[TRAIN epoch 0] loss=0.6449, acc=0.9959, fp=0.0023, ppv=0.2362, dice=0.2551, MIoU=0.1462
+Epoch 1:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.645, v_num=27f4, acc=0.997, spec=0.00212, dice=0.312, ppv=0.270, MIoU=0.185]         
+Epoch 0, global step 9: 'val_loss' reached 0.63045 (best 0.63045), saving model to './save_model/medseg-v2.ckpt' as top 1
+[TRAIN step 9] patch-loss(avg) = 0.6562
+mean_prob=0.0030, pred_pos_frac=0.0029, true_pos_frac=0.0023
+Epoch 1: 100%|██████████| 14/14 [06:10<00:00, 26.46s/it, loss=0.645, v_num=27f4, acc=0.997, spec=0.00183, dice=0.250, ppv=0.236, MIoU=0.143]
+================================================================================ 2025-07-11 20:24:27
+[VAL   epoch 1] loss=0.6307, acc=0.9942, fp=0.0026, ppv=0.2150, dice=0.1948, MIoU=0.1079
+Epoch 1: 100%|██████████| 14/14 [06:10<00:00, 26.46s/it, loss=0.645, v_num=27f4, acc=0.997, spec=0.00183, dice=0.250, ppv=0.236, MIoU=0.143]
+[TRAIN epoch 1] loss=0.6447, acc=0.9957, fp=0.0025, ppv=0.2225, dice=0.2519, MIoU=0.1441
+Epoch 2:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.645, v_num=27f4, acc=0.997, spec=0.00183, dice=0.250, ppv=0.236, MIoU=0.143]         
+Epoch 1, global step 18: 'val_loss' was not in top 1
+[TRAIN step 18] patch-loss(avg) = 0.6607
+mean_prob=0.0043, pred_pos_frac=0.0042, true_pos_frac=0.0024
+Epoch 2: 100%|██████████| 14/14 [06:09<00:00, 26.37s/it, loss=0.644, v_num=27f4, acc=0.997, spec=0.00239, dice=0.115, ppv=0.0825, MIoU=0.0608]
+================================================================================ 2025-07-11 20:30:36
+[VAL   epoch 2] loss=0.6312, acc=0.9942, fp=0.0026, ppv=0.2143, dice=0.1954, MIoU=0.1083
+Epoch 2: 100%|██████████| 14/14 [06:09<00:00, 26.38s/it, loss=0.644, v_num=27f4, acc=0.997, spec=0.00239, dice=0.115, ppv=0.0825, MIoU=0.0608]
+[TRAIN epoch 2] loss=0.6454, acc=0.9955, fp=0.0027, ppv=0.2154, dice=0.2488, MIoU=0.1421
+Epoch 3:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.644, v_num=27f4, acc=0.997, spec=0.00239, dice=0.115, ppv=0.0825, MIoU=0.0608]         
+Epoch 2, global step 27: 'val_loss' was not in top 1
+[TRAIN step 27] patch-loss(avg) = 0.6669
+mean_prob=0.0042, pred_pos_frac=0.0040, true_pos_frac=0.0018
+Epoch 3: 100%|██████████| 14/14 [06:08<00:00, 26.32s/it, loss=0.643, v_num=27f4, acc=0.993, spec=0.00371, dice=0.218, ppv=0.200, MIoU=0.122]  
+================================================================================ 2025-07-11 20:36:45
+[VAL   epoch 3] loss=0.6315, acc=0.9942, fp=0.0026, ppv=0.2163, dice=0.1956, MIoU=0.1084
+Epoch 3: 100%|██████████| 14/14 [06:08<00:00, 26.32s/it, loss=0.643, v_num=27f4, acc=0.993, spec=0.00371, dice=0.218, ppv=0.200, MIoU=0.122]
+[TRAIN epoch 3] loss=0.6453, acc=0.9955, fp=0.0027, ppv=0.2147, dice=0.2484, MIoU=0.1418
+Epoch 4:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.643, v_num=27f4, acc=0.993, spec=0.00371, dice=0.218, ppv=0.200, MIoU=0.122]         
+Epoch 3, global step 36: 'val_loss' was not in top 1
+[TRAIN step 36] patch-loss(avg) = 0.6771
+mean_prob=0.0029, pred_pos_frac=0.0028, true_pos_frac=0.0008
+Epoch 4: 100%|██████████| 14/14 [06:10<00:00, 26.48s/it, loss=0.649, v_num=27f4, acc=0.997, spec=0.00236, dice=0.0633, ppv=0.0372, MIoU=0.0327]
+================================================================================ 2025-07-11 20:42:55
+[VAL   epoch 4] loss=0.6319, acc=0.9944, fp=0.0024, ppv=0.2232, dice=0.1957, MIoU=0.1085
+Epoch 4: 100%|██████████| 14/14 [06:10<00:00, 26.48s/it, loss=0.649, v_num=27f4, acc=0.997, spec=0.00236, dice=0.0633, ppv=0.0372, MIoU=0.0327]
+[TRAIN epoch 4] loss=0.6452, acc=0.9956, fp=0.0026, ppv=0.2206, dice=0.2512, MIoU=0.1436
+Epoch 5:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.649, v_num=27f4, acc=0.997, spec=0.00236, dice=0.0633, ppv=0.0372, MIoU=0.0327]         
+Epoch 4, global step 45: 'val_loss' was not in top 1
+[TRAIN step 45] patch-loss(avg) = 0.6337
+mean_prob=0.0032, pred_pos_frac=0.0032, true_pos_frac=0.0023
+Epoch 5: 100%|██████████| 14/14 [06:05<00:00, 26.10s/it, loss=0.643, v_num=27f4, acc=0.997, spec=0.00224, dice=0.178, ppv=0.140, MIoU=0.0974] 
+================================================================================ 2025-07-11 20:49:01
+[VAL   epoch 5] loss=0.6321, acc=0.9945, fp=0.0022, ppv=0.2329, dice=0.1961, MIoU=0.1087
+Epoch 5: 100%|██████████| 14/14 [06:05<00:00, 26.10s/it, loss=0.643, v_num=27f4, acc=0.997, spec=0.00224, dice=0.178, ppv=0.140, MIoU=0.0974]
+[TRAIN epoch 5] loss=0.6442, acc=0.9958, fp=0.0024, ppv=0.2302, dice=0.2549, MIoU=0.1461
+Epoch 6:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.643, v_num=27f4, acc=0.997, spec=0.00224, dice=0.178, ppv=0.140, MIoU=0.0974]         
+Epoch 5, global step 54: 'val_loss' was not in top 1
+[TRAIN step 54] patch-loss(avg) = 0.6866
+mean_prob=0.0039, pred_pos_frac=0.0039, true_pos_frac=0.0044
+Epoch 6: 100%|██████████| 14/14 [06:06<00:00, 26.15s/it, loss=0.643, v_num=27f4, acc=0.996, spec=0.00272, dice=0.166, ppv=0.119, MIoU=0.0903] 
+================================================================================ 2025-07-11 20:55:07
+[VAL   epoch 6] loss=0.6320, acc=0.9945, fp=0.0022, ppv=0.2331, dice=0.1959, MIoU=0.1086
+Epoch 6: 100%|██████████| 14/14 [06:06<00:00, 26.15s/it, loss=0.643, v_num=27f4, acc=0.996, spec=0.00272, dice=0.166, ppv=0.119, MIoU=0.0903]
+[TRAIN epoch 6] loss=0.6440, acc=0.9959, fp=0.0023, ppv=0.2372, dice=0.2576, MIoU=0.1479
+Epoch 7:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.643, v_num=27f4, acc=0.996, spec=0.00272, dice=0.166, ppv=0.119, MIoU=0.0903]         
+Epoch 6, global step 63: 'val_loss' was not in top 1
+[TRAIN step 63] patch-loss(avg) = 0.6751
+mean_prob=0.0025, pred_pos_frac=0.0024, true_pos_frac=0.0008
+Epoch 7: 100%|██████████| 14/14 [06:11<00:00, 26.56s/it, loss=0.642, v_num=27f4, acc=0.993, spec=0.00266, dice=0.339, ppv=0.420, MIoU=0.204] 
+================================================================================ 2025-07-11 21:01:19
+[VAL   epoch 7] loss=0.6317, acc=0.9944, fp=0.0023, ppv=0.2271, dice=0.1962, MIoU=0.1087
+Epoch 7: 100%|██████████| 14/14 [06:11<00:00, 26.56s/it, loss=0.642, v_num=27f4, acc=0.993, spec=0.00266, dice=0.339, ppv=0.420, MIoU=0.204]
+[TRAIN epoch 7] loss=0.6439, acc=0.9959, fp=0.0023, ppv=0.2375, dice=0.2606, MIoU=0.1499
+Epoch 8:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.642, v_num=27f4, acc=0.993, spec=0.00266, dice=0.339, ppv=0.420, MIoU=0.204]         
+Epoch 7, global step 72: 'val_loss' was not in top 1
+[TRAIN step 72] patch-loss(avg) = 0.6330
+mean_prob=0.0027, pred_pos_frac=0.0026, true_pos_frac=0.0012
+Epoch 8: 100%|██████████| 14/14 [06:09<00:00, 26.36s/it, loss=0.643, v_num=27f4, acc=0.995, spec=0.00357, dice=0.161, ppv=0.122, MIoU=0.0876]
+================================================================================ 2025-07-11 21:07:28
+[VAL   epoch 8] loss=0.6316, acc=0.9944, fp=0.0023, ppv=0.2266, dice=0.1969, MIoU=0.1092
+Epoch 8: 100%|██████████| 14/14 [06:09<00:00, 26.36s/it, loss=0.643, v_num=27f4, acc=0.995, spec=0.00357, dice=0.161, ppv=0.122, MIoU=0.0876]
+[TRAIN epoch 8] loss=0.6432, acc=0.9958, fp=0.0024, ppv=0.2350, dice=0.2602, MIoU=0.1495
+Epoch 9:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.643, v_num=27f4, acc=0.995, spec=0.00357, dice=0.161, ppv=0.122, MIoU=0.0876]         
+Epoch 8, global step 81: 'val_loss' was not in top 1
+[TRAIN step 81] patch-loss(avg) = 0.6522
+mean_prob=0.0031, pred_pos_frac=0.0030, true_pos_frac=0.0018
+Epoch 9: 100%|██████████| 14/14 [06:28<00:00, 27.77s/it, loss=0.64, v_num=27f4, acc=0.996, spec=0.00193, dice=0.236, ppv=0.222, MIoU=0.134]  
+================================================================================ 2025-07-11 21:13:57
+[VAL   epoch 9] loss=0.6314, acc=0.9944, fp=0.0023, ppv=0.2278, dice=0.1969, MIoU=0.1092
+Epoch 9: 100%|██████████| 14/14 [06:28<00:00, 27.77s/it, loss=0.64, v_num=27f4, acc=0.996, spec=0.00193, dice=0.236, ppv=0.222, MIoU=0.134]
+[TRAIN epoch 9] loss=0.6431, acc=0.9958, fp=0.0024, ppv=0.2345, dice=0.2599, MIoU=0.1494
+Epoch 10:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.64, v_num=27f4, acc=0.996, spec=0.00193, dice=0.236, ppv=0.222, MIoU=0.134]        
+Epoch 9, global step 90: 'val_loss' was not in top 1
+[TRAIN step 90] patch-loss(avg) = 0.6494
+mean_prob=0.0029, pred_pos_frac=0.0028, true_pos_frac=0.0014
+Epoch 10: 100%|██████████| 14/14 [06:28<00:00, 27.74s/it, loss=0.642, v_num=27f4, acc=0.997, spec=0.00234, dice=0.235, ppv=0.155, MIoU=0.133]  
+================================================================================ 2025-07-11 21:20:25
+[VAL   epoch 10] loss=0.6315, acc=0.9943, fp=0.0024, ppv=0.2233, dice=0.1978, MIoU=0.1098
+Epoch 10: 100%|██████████| 14/14 [06:28<00:00, 27.74s/it, loss=0.642, v_num=27f4, acc=0.997, spec=0.00234, dice=0.235, ppv=0.155, MIoU=0.133]
+[TRAIN epoch 10] loss=0.6431, acc=0.9958, fp=0.0024, ppv=0.2337, dice=0.2605, MIoU=0.1497
+Epoch 11:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.642, v_num=27f4, acc=0.997, spec=0.00234, dice=0.235, ppv=0.155, MIoU=0.133]         
+Epoch 10, global step 99: 'val_loss' was not in top 1
+[TRAIN step 99] patch-loss(avg) = 0.6567
+mean_prob=0.0031, pred_pos_frac=0.0031, true_pos_frac=0.0014
+Epoch 11: 100%|██████████| 14/14 [06:24<00:00, 27.50s/it, loss=0.643, v_num=27f4, acc=0.991, spec=0.00399, dice=0.284, ppv=0.315, MIoU=0.166]
+================================================================================ 2025-07-11 21:26:50
+[VAL   epoch 11] loss=0.6320, acc=0.9945, fp=0.0022, ppv=0.2337, dice=0.1980, MIoU=0.1098
+Epoch 11: 100%|██████████| 14/14 [06:24<00:00, 27.50s/it, loss=0.643, v_num=27f4, acc=0.991, spec=0.00399, dice=0.284, ppv=0.315, MIoU=0.166]
+[TRAIN epoch 11] loss=0.6442, acc=0.9959, fp=0.0024, ppv=0.2370, dice=0.2617, MIoU=0.1505
+Epoch 12:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.643, v_num=27f4, acc=0.991, spec=0.00399, dice=0.284, ppv=0.315, MIoU=0.166]         
+Epoch 11, global step 108: 'val_loss' was not in top 1
+[TRAIN step 108] patch-loss(avg) = 0.5776
+mean_prob=0.0029, pred_pos_frac=0.0028, true_pos_frac=0.0020
+Epoch 12: 100%|██████████| 14/14 [06:28<00:00, 27.72s/it, loss=0.64, v_num=27f4, acc=0.994, spec=0.00229, dice=0.169, ppv=0.200, MIoU=0.0921]
+================================================================================ 2025-07-11 21:33:18
+[VAL   epoch 12] loss=0.6318, acc=0.9945, fp=0.0022, ppv=0.2333, dice=0.1984, MIoU=0.1101
+Epoch 12: 100%|██████████| 14/14 [06:28<00:00, 27.72s/it, loss=0.64, v_num=27f4, acc=0.994, spec=0.00229, dice=0.169, ppv=0.200, MIoU=0.0921]
+[TRAIN epoch 12] loss=0.6436, acc=0.9960, fp=0.0022, ppv=0.2441, dice=0.2640, MIoU=0.1521
+Epoch 13:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.64, v_num=27f4, acc=0.994, spec=0.00229, dice=0.169, ppv=0.200, MIoU=0.0921]         
+Epoch 12, global step 117: 'val_loss' was not in top 1
+[TRAIN step 117] patch-loss(avg) = 0.6026
+mean_prob=0.0035, pred_pos_frac=0.0034, true_pos_frac=0.0032
+Epoch 13: 100%|██████████| 14/14 [06:22<00:00, 27.32s/it, loss=0.645, v_num=27f4, acc=0.995, spec=0.00296, dice=0.214, ppv=0.200, MIoU=0.120] 
+================================================================================ 2025-07-11 21:39:41
+[VAL   epoch 13] loss=0.6317, acc=0.9945, fp=0.0023, ppv=0.2299, dice=0.1988, MIoU=0.1104
+Epoch 13: 100%|██████████| 14/14 [06:22<00:00, 27.32s/it, loss=0.645, v_num=27f4, acc=0.995, spec=0.00296, dice=0.214, ppv=0.200, MIoU=0.120]
+[TRAIN epoch 13] loss=0.6435, acc=0.9959, fp=0.0024, ppv=0.2392, dice=0.2641, MIoU=0.1522
+Epoch 14:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.645, v_num=27f4, acc=0.995, spec=0.00296, dice=0.214, ppv=0.200, MIoU=0.120]         
+Epoch 13, global step 126: 'val_loss' was not in top 1
+[TRAIN step 126] patch-loss(avg) = 0.6785
+mean_prob=0.0026, pred_pos_frac=0.0025, true_pos_frac=0.0012
+Epoch 14: 100%|██████████| 14/14 [06:17<00:00, 26.94s/it, loss=0.643, v_num=27f4, acc=0.996, spec=0.00299, dice=0.125, ppv=0.0965, MIoU=0.0666]
+================================================================================ 2025-07-11 21:45:58
+[VAL   epoch 14] loss=0.6315, acc=0.9946, fp=0.0022, ppv=0.2359, dice=0.1992, MIoU=0.1106
+Epoch 14: 100%|██████████| 14/14 [06:17<00:00, 26.94s/it, loss=0.643, v_num=27f4, acc=0.996, spec=0.00299, dice=0.125, ppv=0.0965, MIoU=0.0666]
+[TRAIN epoch 14] loss=0.6427, acc=0.9960, fp=0.0022, ppv=0.2475, dice=0.2684, MIoU=0.1550
+Epoch 15:   0%|          | 0/14 [00:00<?, ?it/s, loss=0.643, v_num=27f4, acc=0.996, spec=0.00299, dice=0.125, ppv=0.0965, MIoU=0.0666]         
+Epoch 14, global step 135: 'val_loss' was not in top 1
+[TRAIN step 135] patch-loss(avg) = 0.5849
+mean_prob=0.0030, pred_pos_frac=0.0030, true_pos_frac=0.0026
+Epoch 15:  36%|███▌      | 5/14 [03:16<05:54, 39.36s/it, loss=0.647, v_num=27f4, acc=0.998, spec=0.002, dice=0.132, ppv=0.0856, MIoU=0.0704]  
+Traceback (most recent call last):
+  File "/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/train.py", line 267, in <module>
+    # trainer.fit(model,dl_train,dl_valid)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 608, in fit
+    call._call_and_handle_interrupt(
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/call.py", line 38, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 650, in _fit_impl
+    self._run(model, ckpt_path=self.ckpt_path)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 1103, in _run
+    results = self._run_stage()
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 1182, in _run_stage
+    self._run_train()
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py", line 1205, in _run_train
+    self.fit_loop.run()
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/loops/loop.py", line 199, in run
+    self.advance(*args, **kwargs)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/loops/fit_loop.py", line 267, in advance
+    self._outputs = self.epoch_loop.run(self._data_fetcher)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/loops/loop.py", line 199, in run
+    self.advance(*args, **kwargs)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/loops/epoch/training_epoch_loop.py", line 187, in advance
+    batch = next(data_fetcher)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/utilities/fetching.py", line 184, in __next__
+    return self.fetching_function()
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/utilities/fetching.py", line 265, in fetching_function
+    self._fetch_next_batch(self.dataloader_iter)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/utilities/fetching.py", line 280, in _fetch_next_batch
+    batch = next(iterator)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/supporters.py", line 569, in __next__
+    return self.request_next_batch(self.loader_iters)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pytorch_lightning/trainer/supporters.py", line 581, in request_next_batch
+    return apply_to_collection(loader_iters, Iterator, next)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/lightning_utilities/core/apply_func.py", line 66, in apply_to_collection
+    return function(data, *args, **kwargs)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 701, in __next__
+    data = self._next_data()
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 757, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/torch/utils/data/_utils/fetch.py", line 52, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/torch/utils/data/_utils/fetch.py", line 52, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/utils/data.py", line 143, in __getitem__
+    subject_data_list = self.prep.get_data_preprocessed(
+  File "/home/s17gmikh/FCD-Detection/meld_graph/meld_graph/data_preprocessing.py", line 191, in get_data_preprocessed
+    vals_array, lesion = subj.load_feature_lesion_data(features, hemi=hemi, harmo_code=harmo_code, only_features=only_features)
+  File "/home/s17gmikh/FCD-Detection/meld_graph/meld_graph/meld_cohort.py", line 655, in load_feature_lesion_data
+    lesion_values = np.ceil(self.load_feature_values(".on_lh.lesion.mgh", hemi=hemi, harmo_code=harmo_code)).astype(int)
+  File "/home/s17gmikh/FCD-Detection/meld_graph/meld_graph/meld_cohort.py", line 627, in load_feature_values
+    surf_dir_path = os.path.join("BONN", self.scanner, "patient", self.site_code, hemi)
+  File "/home/s17gmikh/FCD-Detection/meld_graph/meld_graph/meld_cohort.py", line 404, in scanner
+    scanner = self.get_demographic_features('Scanner')
+  File "/home/s17gmikh/FCD-Detection/meld_graph/meld_graph/meld_cohort.py", line 548, in get_demographic_features
+    df = pd.read_csv(csv_file_path, header=0, encoding="latin", sep="\t")
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pandas/util/_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pandas/util/_decorators.py", line 331, in wrapper
+    return func(*args, **kwargs)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 950, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 605, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 1442, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pandas/io/parsers/readers.py", line 1735, in _make_engine
+    self.handles = get_handle(
+  File "/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/pandas/io/common.py", line 856, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: '/home/s17gmikh/FCD-Detection/meld_graph/data/input/ds004199/participants_with_scanner.tsv'
