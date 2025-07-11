@@ -278,9 +278,9 @@ def calculate_loss(loss_dict, estimates_dict, labels,
 
         cur_labels = labels
         if loss_def in ['dice', 'cross_entropy', 'focal_loss','mae_loss','soft_cross_entropy']:
-            cur_estimates = estimates_dict[f'{prefix}log_softmax']
+            cur_estimates = estimates_dict[f'{prefix}log_softmax'] # +
         elif loss_def == 'distance_regression':
-            cur_estimates = estimates_dict[f'{prefix}non_lesion_logits']
+            cur_estimates = estimates_dict[f'{prefix}non_lesion_logits'] # +
         elif loss_def == 'object_detection':
             #object detection only on bottleneck. pass current labels for classification mask
             if deep_supervision_level is not None:
