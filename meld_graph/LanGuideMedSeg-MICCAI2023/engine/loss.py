@@ -17,7 +17,6 @@ def dice_coeff(pred, target, smooth=1e-15):
     """
     # make target one-hot encoded (also works for soft targets)
     target_hot = torch.transpose(torch.stack((1 - target, target)), 0, 1)
-
     iflat = pred.contiguous()
     tflat = target_hot.contiguous()
     intersection = (iflat * tflat).sum(dim=0)
@@ -151,6 +150,7 @@ class DistanceRegressionLoss(torch.nn.Module):
         if self.weigh_by_gt:
             loss = torch.div(loss, torch.add(distance_map, 1))
         loss = loss.mean()
+        
         return loss
 
 
@@ -175,6 +175,7 @@ class FocalLoss(torch.nn.Module):
 
     def forward(self, inputs, target, **kwargs):
         target = target.view(-1, 1)
+        
         logpt = inputs
         logpt = logpt.gather(1, target)
         logpt = logpt.view(-1)
@@ -260,10 +261,12 @@ def calculate_loss(loss_dict, estimates_dict, labels,
     losses = {}
     for loss_def in loss_dict.keys():
         # TODO if deep supverision level
-        if deep_supervision_level is None:
-            prefix = ""
-        else:
-            prefix = f"ds{deep_supervision_level}_"
+        # Return later
+        prefix = ""
+        # if deep_supervision_level is None:
+        #     prefix = ""
+        # else:
+        #     prefix = f"ds{deep_supervision_level}_"
 
         cur_labels = labels
         if loss_def in ['dice', 'cross_entropy', 'focal_loss','mae_loss','soft_cross_entropy']:

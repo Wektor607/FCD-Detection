@@ -5,16 +5,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 import wandb
 import utils.config as config
 from os.path import join as opj
-import torch.nn as nn
-from torchmetrics import Accuracy, Dice
-from torchmetrics.classification import BinaryJaccardIndex, Precision
-from torch.optim import lr_scheduler
+
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from pytorch_lightning.loggers import WandbLogger
 import subprocess
 
 from utils.data import EpilepDataset
+# from engine.wrapper_new_loss import LanGuideMedSegWrapper
 from engine.wrapper import LanGuideMedSegWrapper
 
 import pytorch_lightning as pl    
@@ -95,6 +93,37 @@ def _filter_existing(data: pd.DataFrame, ids: list[str]) -> list[str]:
         print(f"⚠️ Эти участники отсутствуют и будут пропущены: {missing}")
     return valid_ids
 
+import random
+from torch.utils.data import Sampler
+
+class LesionOversampleSampler(Sampler):
+    """
+    Сэмплер, который берёт ВСЕ healthy-примеры ровно по одному разу,
+    а lesion-примеры — с replacement, чтобы заполнить всю эпоху.
+    """
+    def __init__(self, labels, seed=42):
+        self.labels = labels
+        random.seed(seed)
+        # индексы здоровых и lesion
+        self.hc_idx  = [i for i, l in enumerate(labels) if l == 0]
+        self.les_idx = [i for i, l in enumerate(labels) if l == 1]
+        # хотим ровно len(labels) выборок за эпoху
+        self.epoch_size = len(labels)
+
+    def __iter__(self):
+        # начинаем с всех hc-индексов
+        idxs = self.hc_idx.copy()
+        # сколько нужно докинуть lesion'ов
+        n_les_to_sample = self.epoch_size - len(idxs)
+        # добавляем lesion с replacement
+        idxs += random.choices(self.les_idx, k=n_les_to_sample)
+        # перемешиваем всю эпоху
+        random.shuffle(idxs)
+        return iter(idxs)
+
+    def __len__(self):
+        return self.epoch_size
+
 if __name__ == '__main__':
     args = get_parser()
     
@@ -127,12 +156,15 @@ if __name__ == '__main__':
     df = pd.read_csv('../data/input/ds004199/participants.tsv', sep='\t')
 
     train_ids = df[df.split=='train']['participant_id'].tolist()
+    # train_ids = df[(df.split == 'train') & (df.group != 'hc')]['participant_id'].tolist()
+    print(train_ids)
     test_all  = df[df.split=='test']['participant_id'].tolist()
 
     train_ids = _filter_existing(data, train_ids)
     test_all = _filter_existing(data, test_all)
 
     val_ids, test_ids = train_test_split(test_all, test_size=0.3, random_state=42, shuffle=True)
+    print(val_ids)
     print(len(train_ids), len(val_ids), len(test_ids))
     
     ds_train = EpilepDataset(csv_path=args.train_csv_path,
@@ -142,7 +174,8 @@ if __name__ == '__main__':
                     meld_path=args.meld_script_path,
                     output_dir=args.output_dir,
                     feature_path=args.feature_path,
-                    subject_ids=train_ids)
+                    subject_ids=train_ids,
+                    aug_flag=True) # CHANGE
 
     ds_valid = EpilepDataset(csv_path=args.train_csv_path,
                     root_path=args.train_root_path,
@@ -153,22 +186,29 @@ if __name__ == '__main__':
                     feature_path=args.feature_path,
                     subject_ids=val_ids)
 
-    ds_test = EpilepDataset(
-        csv_path=args.test_csv_path,             
-        root_path=args.test_root_path,           
-        tokenizer=tokenizer,
-        mode='test',
-        meld_path=args.meld_script_path,
-        output_dir=args.output_dir,
-        feature_path=args.feature_path,
-        subject_ids=test_ids)
+    from torch.utils.data import WeightedRandomSampler
+
+    # # Split fcd and hc patients near equal
+    hc_set = set(df[df.group == 'hc']['participant_id'])
+    subject_ids = ds_train.subject_ids  # или как вы их храните
+    labels = [0 if sid in hc_set else 1 for sid in subject_ids]
+    # class_counts = np.bincount(labels)
+    # print(f"[DEBUG] Class counts: {class_counts}")
+    # weights = 1. / class_counts
+    # sample_weights = [weights[l] for l in labels]
+    # print(sample_weights)
+    # sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
+
+    sampler = LesionOversampleSampler(labels, seed=SEED)
 
     dl_train = DataLoader(ds_train, 
                         batch_size=args.train_batch_size, 
-                        shuffle=True, 
-                        num_workers=0, #args.train_batch_size, 
+                        # shuffle=True, 
+                        sampler=sampler,
+                        num_workers=2, #0
                         pin_memory=True, 
                         worker_init_fn=worker_init_fn, 
+                        
                         # persistent_workers=True
                         )
     
@@ -179,22 +219,11 @@ if __name__ == '__main__':
     dl_valid = DataLoader(ds_valid, 
                         batch_size=args.valid_batch_size, 
                         shuffle=False, 
-                        num_workers=0,#args.valid_batch_size, 
+                        num_workers=2, #0
                         pin_memory=True, 
                         worker_init_fn=worker_init_fn, 
                         # persistent_workers=True
                         )
-    
-    dl_test = DataLoader(
-        ds_test,
-        batch_size=args.valid_batch_size,
-        shuffle=False,
-        num_workers=0, #args.valid_batch_size,
-        # num_workers=1,
-        pin_memory=True,
-        worker_init_fn=worker_init_fn,
-        # persistent_workers=True
-    )
 
     ## 2. setting trainer
     if torch.cuda.is_available():
@@ -211,7 +240,7 @@ if __name__ == '__main__':
     # if alpha == 0.8 and gamma == 2 and coef == (0.6, 0.2, 0.2):
     #     ckpt_path = './save_model/medseg.ckpt'
     # else:
-    ckpt_path = './save_model/medseg-v1.ckpt'
+    ckpt_path = None #'./save_model/medseg-v2.ckpt'
     # Vis+Text: './save_model/medseg-v5.ckpt'
     print(f"[INFO] Loading model from checkpoint: {ckpt_path}")
     if ckpt_path is not None:
@@ -219,7 +248,7 @@ if __name__ == '__main__':
             checkpoint_path=ckpt_path,
             args=args,
             tokenizer=tokenizer,
-            max_len = ds_test.max_length,
+            max_len = ds_valid.max_length,
             # alpha=alpha,
             # gamma=gamma,
             # coef=coef
@@ -239,15 +268,15 @@ if __name__ == '__main__':
     model_ckpt = ModelCheckpoint(
         dirpath=args.model_save_path,
         filename=args.model_save_filename,
-        monitor='val_loss',
+        monitor='val_dice',#'val_loss',
         save_top_k=1,
-        mode='min',
+        mode='max', #'min',
         verbose=True,
     )
 
-    early_stopping = EarlyStopping(monitor = 'val_loss',
+    early_stopping = EarlyStopping(monitor='val_dice',#'val_loss',
                             patience=args.patience,
-                            mode = 'min'
+                            mode='max', #'min',
     )
 
     trainer = pl.Trainer(
@@ -259,10 +288,10 @@ if __name__ == '__main__':
                         # strategy=strategy, ###################
                         callbacks=[model_ckpt, early_stopping],
                         enable_progress_bar=True,
-                        
+                        log_every_n_steps=18
                     ) 
 
-    # # 3. start training
+    # 3. start training
     print('start training')
     trainer.fit(model,dl_train,dl_valid)
     print('done training')

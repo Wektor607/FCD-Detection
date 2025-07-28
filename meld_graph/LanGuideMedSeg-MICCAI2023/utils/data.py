@@ -41,7 +41,8 @@ class EpilepDataset(Dataset):
                  meld_path='', 
                  output_dir='', 
                  feature_path='', 
-                 subject_ids=None):
+                 subject_ids=None,
+                 aug_flag=False):
 
         super(EpilepDataset, self).__init__()
 
@@ -50,7 +51,7 @@ class EpilepDataset(Dataset):
         self.output_dir     = output_dir
         self.feature_path   = feature_path
         self.subject_ids    = subject_ids
-        
+        self.aug_flag       = aug_flag
         with open(csv_path, 'r') as f:
             self.data = pd.read_csv(
                 f,
@@ -71,12 +72,14 @@ class EpilepDataset(Dataset):
 
         # 3) задаём sub как индекс, чтобы удобнее было выбирать
         self.data   = self.data.set_index('sub')
-        
+        self.data = self.data.loc[subject_ids]
+
         cohort      = MeldCohort(
             hdf5_file_root='{site_code}_featurematrix.hdf5',
             dataset=None,
             data_dir=BASE_PATH
         )
+
         self.config = load_config('/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/example_experiment_config.py')
         self.prep   = Prep(cohort=cohort, params=self.config.data_parameters)
 
@@ -92,26 +95,11 @@ class EpilepDataset(Dataset):
             # 4) Preproccesed text
             # self.caption_list = processed_captions
             # sep = self.tokenizer.sep_token
-            self.caption_list           = self.data['harvard_oxford'].to_list()
+            # self.caption_list           = self.data['harvard_oxford'].to_list()
         
-        self.roi_list       = self.data.loc[self.subject_ids, 'ROI_PATH'].tolist()
-        self.caption_list   = self.data.loc[self.subject_ids, 'harvard_oxford'].tolist()
-        
-        # TODO: Make a hyperparameters
-        # start_split, end_split = 0.7, 0.9
-        # total_len = len(self.roi_list)
-        
-        # if mode == 'train':
-        #     idx_range = slice(0, int(start_split * total_len))
-        # elif mode == 'valid':
-        #     idx_range = slice(int(start_split * total_len), int(end_split * total_len))
-        # else:  # test
-        #     idx_range = slice(int(end_split * total_len), total_len)
+        self.roi_list     = list(self.data['ROI_PATH'])
+        self.caption_list = list(self.data['harvard_oxford'])
 
-        # self.subject_ids = [os.path.basename(path).split('_')[0] for path in self.roi_list[idx_range]]
-
-        # self.roi_list = self.roi_list[idx_range]
-        # self.caption_list = self.caption_list[idx_range]
         
         self.root_path = root_path
 
@@ -119,14 +107,14 @@ class EpilepDataset(Dataset):
     def __len__(self):
         return len(self.roi_list)
 
-    def run_meld_prediction(self, subject_id: str, mode: str):
+    def run_meld_prediction(self, subject_id: str, mode: str, aug_flag: bool):
         command = [
             self.meld_path,
             "run_script_prediction.py",
             "-id", subject_id,
             "-harmo_code", "fcd",
             "-demos", "participants_with_scanner.tsv",
-            *(["--aug_mode", "train"] if mode == "train" else []),
+            *(["--aug_mode", "train"] if aug_flag else []),
         ]
         try:
             subprocess.run(command, check=True)
@@ -136,10 +124,9 @@ class EpilepDataset(Dataset):
         
     def __getitem__(self, idx):
 
-        trans = self.transform()
+        # trans = self.transform()
 
         caption = self.caption_list[idx]
-
         subject_data_list = self.prep.get_data_preprocessed(
             subject=self.subject_ids[idx],
             features=self.prep.params['features'],
@@ -152,12 +139,10 @@ class EpilepDataset(Dataset):
         )
 
         # Generating features
-        # features_dir = os.path.join(self.feature_path, "input", "ds004199", self.subject_ids[idx], "anat", "features")
         features_dir = os.path.join(self.feature_path, "preprocessed", self.subject_ids[idx], "features")
         npz_path = os.path.join(features_dir, "feature_maps.npz")
         if not os.path.isfile(npz_path):
-            # not os.path.isfile(os.path.join(self.output_dir, "predictions_reports", f"{self.subject_ids[idx]}", "predictions/prediction.nii.gz")) or \
-            self.run_meld_prediction(self.subject_ids[idx], self.mode)
+            self.run_meld_prediction(self.subject_ids[idx], self.mode, aug_flag=self.aug_flag)
             if not os.path.isfile(npz_path):
                 raise FileNotFoundError(f"Failed to generate NPZ for {self.subject_ids[idx]}")
 
@@ -183,20 +168,19 @@ class EpilepDataset(Dataset):
                                                         return_tensors='pt')
         token, mask = token_output['input_ids'],token_output['attention_mask']
 
-        data = {'roi':roi, 'token':token, 'mask':mask,} # 'meld_pred': meld_pred}#, 'num_feats': pcts}
-        data = trans(data)
-
-        roi, token, mask = data['roi'], data['token'], data['mask'] #, data['meld_pred']#, data['num_feats']
+        # data = {'roi':roi, 'token':token, 'mask':mask,} # 'meld_pred': meld_pred}#, 'num_feats': pcts}
+        # data = trans(data)
+        # roi, token, mask = data['roi'], data['token'], data['mask'] #, data['meld_pred']#, data['num_feats']
         text = {'input_ids': token.squeeze(dim=0), 'attention_mask': mask.squeeze(dim=0)} 
         return ([self.subject_ids[idx], text], roi)
 
-    def transform(self):
+    # def transform(self):
 
-        trans = Compose([
-            # LoadImaged(['roi'], reader='NibabelReader'),
-            # EnsureChannelFirstd(keys=['roi']),
-            # Resized(keys=['roi'], spatial_size=image_size, mode='nearest'),
-            ToTensord(['roi', 'token', 'mask',]), # 'meld_pred']),#'num_feats']),
-        ])
+    #     trans = Compose([
+    #         # LoadImaged(['roi'], reader='NibabelReader'),
+    #         # EnsureChannelFirstd(keys=['roi']),
+    #         # Resized(keys=['roi'], spatial_size=image_size, mode='nearest'),
+    #         ToTensord(['roi', 'token', 'mask',]), # 'meld_pred']),#'num_feats']),
+    #     ])
 
-        return trans
+    #     return trans

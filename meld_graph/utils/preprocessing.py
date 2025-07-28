@@ -310,7 +310,9 @@ def generate_full_data(
                         df[col] = df[col].apply(extract_hemisphere)
                     elif transform_mode == "hemisphere_lobe":
                         df[col] = df[col].apply(extract_hemisphere_lobes)
-
+                    elif transform_mode == "full+hemisphere":
+                        hemi = df[col].apply(extract_hemisphere)
+                        df[col] = df[col] + '; ' + hemi
                 new_csv.loc[len(new_csv)] = [
                     pred_path,
                     roi_hdf5_path,
@@ -328,7 +330,7 @@ def generate_full_data(
     )
 
 if __name__ == "__main__":
-    preprocess_func("subjects_list.csv", "data", "fcd", full_name=True, transform_mode="full", json_disc=None)#"/home/s17gmikh/FCD-Detection/meld_graph/data/pred_reports_summary.csv")
+    preprocess_func("subjects_list.csv", "data", "fcd", full_name=True, transform_mode="full+hemisphere", json_disc=None)#"/home/s17gmikh/FCD-Detection/meld_graph/data/pred_reports_summary.csv")
     # get_subj_list('data/output/fs_outputs',
     #           'data',
     #           'healthy_subjects_list.csv')

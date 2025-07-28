@@ -1,9 +1,0 @@
-/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/huggingface_hub/file_download.py:943: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
-  warnings.warn(
-⚠️ Эти участники отсутствуют и будут пропущены: ['sub-00120']
-Traceback (most recent call last):
-  File "/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/train.py", line 114, in <module>
-    ds_test = EpilepDataset(
-  File "/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/utils/data.py", line 113, in __init__
-    raise RuntimeError("Тестовые subject_ids ещё не сгенерированы")
-RuntimeError: Тестовые subject_ids ещё не сгенерированы

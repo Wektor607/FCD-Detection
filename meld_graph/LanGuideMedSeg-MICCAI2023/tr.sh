@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=dice
-#SBATCH --partition=A40short
+#SBATCH --job-name=full+train_coef+no_resblock_mlp
+#SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=1
@@ -28,6 +28,6 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
-python3 train.py
+# python3 train.py
 
-# WANDB_MODE=disabled python3 train.py
+WANDB_MODE=disabled python3 train.py

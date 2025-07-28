@@ -36,11 +36,12 @@ class LanGuideMedSeg(nn.Module):
         
         feature_dim             = [32, 32, 64, 64, 128, 128, 256]
         if max_len == 256:
-            text_lens           = [256, 128, 128, 64, 64, 32, 32] # [128, 64, 64, 32, 32, 16, 16]
+            text_lens           = [128, 64, 64, 32, 32, 16, 16] # [256, 256, 128, 128, 64, 64, 32]
         else:
             text_lens           = [384, 384, 256, 256, 128, 128, 64] 
 
         self.num_stages = len(feature_dim)
+        self.warmup_epochs = warmup_epochs
         self.tokenizer = tokenizer
         self.encoder = VisionModel(feature_dim, meld_script_path,
                                    feature_path, output_dir, device)
@@ -59,8 +60,11 @@ class LanGuideMedSeg(nn.Module):
             self.decoders.append(decoder)
 
         final_in = feature_dim[0]
-        self.final_lin = nn.Linear(final_in, 1)
-        nn.init.constant_(self.final_lin.bias, 1.0)
+        # сегментационная голова: 2 канала (background vs lesion)
+        self.final_lin  = nn.Linear(final_in, 2)
+        # голова регрессии расстояния (non-lesion logits)
+        self.dist_lin   = nn.Linear(final_in, 1)
+        self.to(device)
     
     def forward(self, data):
 
@@ -89,7 +93,7 @@ class LanGuideMedSeg(nn.Module):
             updated_graphs: List[Data] = []
             for j in range(B):
                 vis_feat  = current_graphs[j].gnn_x.unsqueeze(0)   # [1, N_from, C_from]
-                skip_feat = next_graphs[j].gnn_x.unsqueeze(0)     # [1, N_to, C_to]
+                skip_feat = next_graphs[j].x.unsqueeze(0)     # [1, N_to, C_to]
                 
                 # if stage_to > 1: # Old version     
                 if stage_to > 1:                    
@@ -100,12 +104,22 @@ class LanGuideMedSeg(nn.Module):
                 N_from = vis_feat.size(1)    # число «грубых» вершин, откуда мы «поднимаемся»
                 N_to   = skip_feat.size(1)   # число «четких» вершин, куда ведет skip
 
-                ratio = N_to / N_from
-                assign = (torch.arange(N_to, device=vis_feat.device) * ratio).floor().long()
-                assign = assign.clamp(0, N_from - 1)  # чтобы не было выхода за границы
+                # Будем считать, что N_to / N_from ≈ целое число, например 4.
+                factor = int(round(N_to / N_from))
+
+                # Тогда каждому индексу i в [0..N_to-1] мы сопоставим coarse-индекс:
+                #   assign[i] = i // factor
+                # Итого assign.shape == [N_to], а значения лежат в [0 .. N_from-1].
+                assign = torch.arange(N_to, device=vis_feat.device) // factor
+                assign = assign.to(dtype=torch.int64)
+                
                 # Запускаем decoder
 
-                chunk = (N_from > 50000)
+                if N_from > 50000:
+                    chunk = True
+                else:
+                    chunk = False
+
                 out_feat = decoder(vis_feat, skip_feat, txt_emb, assign, chunk)  # [1, N_out, C_to]
 
                 # Сохраняем обратно в Data: обновляем x у графа стадии stage_to
@@ -121,11 +135,22 @@ class LanGuideMedSeg(nn.Module):
             current_graphs = updated_graphs
         
         # 4) Теперь current_graphs = список B графов для самой «мелкой» стадии (stage1)
-        logits_list: List[torch.Tensor] = []
+        outputs = {
+            "log_softmax":       [],
+            "non_lesion_logits": [] 
+        }
         for g in current_graphs:
-            logit = self.final_lin(g.gnn_x)
-            logits_list.append(logit)
-
-        logits = torch.stack(logits_list, dim=0)
-        return logits  # List длины B: [Ni, 1] для каждого субъекта
+            seg_logits  = self.final_lin(g.x)
+            dist_logits = self.dist_lin(g.x)
+            
+            outputs["log_softmax"].append(
+                nn.LogSoftmax(dim=1)(seg_logits)  # [N,2]
+            )
+            outputs["non_lesion_logits"].append(
+                dist_logits.squeeze(-1)                     # [N]
+            )
+            
+        outputs["log_softmax"] = torch.cat(outputs["log_softmax"], dim=0)       # [B*H*V, 2]
+        outputs["non_lesion_logits"] = torch.cat(outputs["non_lesion_logits"], dim=0)  # [B*H*V]
+        return outputs  # List длины B: [Ni, 1] для каждого субъекта
     

@@ -33,23 +33,24 @@ sequential = [
 # parallel: these experiments are run in parallel. For each parallel experiment, all experiments in sequential will be launched=
 parallel = []
 losses=[
-   
-       {
-       'network_parameters': {
-            'name': base_name + '_dcop_with_combat',
-            'training_parameters':{"deep_supervision": {
-            "levels": [6, 5, 4, 3, 2, 1],
-            "weight": [0.5, 0.25, 0.125, 0.0625,0.03125,0.0150765],
-        },
-         "max_epochs_lr_decay": 1000,
-        "max_patience": 1000,
-
+    {
+    'network_parameters': {
+        'name': base_name + '_dcop_with_combat',
+        'training_parameters':{"deep_supervision": {
+        "levels": [6, 5, 4, 3, 2, 1],
+        "weight": [0.5, 0.25, 0.125, 0.0625,0.03125,0.0150765],
+    },
+    "max_epochs_lr_decay": 1000,
+    "max_patience": 1000,
     "loss_dictionary": {
-            "cross_entropy": {"weight": 1},
-            "dice": {"class_weights": [0.0, 1.0], "weight": 1},
-            "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1},
-            "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
-            "object_detection":{"apply_to_bottleneck": True, "weight": 1},
+            # "cross_entropy": {"weight": 1}, <- doesn't work
+            # 'focal_loss':{'weight':0.1, 'alpha':0.4, 'gamma':4},
+            'focal_loss': {'weight': 1, 'alpha': 0.75, 'gamma': 2},
+            # 'dice'      : {'class_weights': [0.01, 0.99], 'weight': 0.9},
+            # "dice": {"class_weights": [0.0, 1.0], "weight": 0.1},
+            # "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1},
+            # "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
+            # "object_detection":{"apply_to_bottleneck": True, "weight": 1},
         },
         "stopping_metric":{'name':'loss','sign':1},
         'metric_smoothing':False,
@@ -70,8 +71,10 @@ losses=[
         },
             },
         
-       'data_parameters': {'hdf5_file_root': "{site_code}_{group}_featurematrix_combat_6_kernels.hdf5",
-                           "features": [
+       'data_parameters': {
+           "lobes": False,
+           'hdf5_file_root': "{site_code}_{group}_featurematrix_combat_6_kernels.hdf5",
+            "features": [
         '.combat.on_lh.pial.K_filtered.sm20.mgh',
         '.combat.on_lh.thickness.sm3.mgh',
         ".combat.on_lh.thickness_regression.sm3.mgh",
@@ -107,7 +110,7 @@ losses=[
         '.inter_z.asym.intra_z.combat.on_lh.wm_FLAIR_0.5.sm3.mgh',
         '.inter_z.asym.intra_z.combat.on_lh.wm_FLAIR_1.sm3.mgh',
     ],
-        'object_detection':True,
+    'object_detection':True,
     "preprocessing_parameters": {
         "scaling": None, 
         "zscore": '../data/feature_means_kernel3.json',
@@ -130,7 +133,6 @@ losses=[
         "run_synthetic": False,
     },
     'synth_on_the_fly':False,}},
-    
     ]
 
 

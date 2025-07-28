@@ -619,13 +619,13 @@ class MeldSubject:
         # read data from hdf5
         with self.cohort._site_hdf5(self.site_code, self.group, feature=feature, harmo_code=harmo_code) as f:
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
-            # print(hdf5_filename)
+
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
             if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
                 surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
             else:
                 surf_dir_path = os.path.join("BONN", self.scanner, "patient", self.site_code, hemi)
-            # print(surf_dir_path)
+            
             # print(f[os.path.join("BONN", self.scanner, "patient", self.site_code)])
             try:
                 surf_dir = f[surf_dir_path]
@@ -655,7 +655,6 @@ class MeldSubject:
             lesion_values = np.ceil(self.load_feature_values(".on_lh.lesion.mgh", hemi=hemi, harmo_code=harmo_code)).astype(int)
         else:
             lesion_values = None
-            
         if not only_lesion:
             feature_values = []
             for feature in features:

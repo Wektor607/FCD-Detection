@@ -195,7 +195,7 @@ class Augment:
         # apply just once
         # if mesh_transform:
         #     tdd = self.apply_indices(indices, tdd)
-
+    
         # Gaussian noise
         if np.random.rand() < self.get_p_param("noise"):
             tdd["features"] = self.add_gaussian_noise(tdd["features"])
@@ -214,8 +214,8 @@ class Augment:
             tdd["features"] = self.add_low_res(tdd["features"])
 
         # gamma intensity
-        if np.random.rand() < self.get_p_param("gamma") / 2:
-            tdd["features"] = self.add_gamma_scale(tdd["features"])
+        # if np.random.rand() < self.get_p_param("gamma") / 2:
+        #     tdd["features"] = self.add_gamma_scale(tdd["features"])
         # inverted gamma intensity
         if np.random.rand() < self.get_p_param("gamma") / 2:
             tdd["features"] = -self.add_gamma_scale(-tdd["features"])

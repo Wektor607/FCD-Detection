@@ -23,7 +23,7 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x, edge_index):
         h = self.norm1(x) # <- give higher perfomance
-        h = self.conv(x, edge_index)
+        h = self.conv(h, edge_index)
         # residual connection
         h = x + h
         h = self.relu(h)
@@ -210,7 +210,7 @@ class VisionModel(nn.Module):
                 feat = torch.mean(feat_torch, dim=0)  # shape = (H, N_i, C_i)
                 H, N, C = feat.shape
                 feat_tensor = feat.view(H * N, C)
-                
+
                 # Retrieve precomputed edge_index
                 _, edge_index = self.edge_index_per_stage[stage]
                 data = Data(x=feat_tensor, 

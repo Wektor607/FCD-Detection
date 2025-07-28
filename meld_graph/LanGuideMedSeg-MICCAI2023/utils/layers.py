@@ -5,6 +5,7 @@ import math
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 from torch_geometric.nn import GraphNorm
+from performer_pytorch import SelfAttention
 
 class PositionalEncoding(nn.Module):
 
@@ -27,8 +28,6 @@ class PositionalEncoding(nn.Module):
         x = x + nn.Parameter(self.pe[:, :x.size(1)],requires_grad=False) #size = [batch, L, d_model]
         return self.dropout(x) # size = [batch, L, d_model]
 
-
-
 class GuideDecoderLayer(nn.Module):
 
     def __init__(self, in_channels:int, output_text_len:int, input_text_len:int=256, embed_dim:int=768, chunk_size:int=4096):
@@ -40,11 +39,9 @@ class GuideDecoderLayer(nn.Module):
         self.self_attn_norm   = nn.LayerNorm(in_channels)
         self.cross_attn_norm  = nn.LayerNorm(in_channels)
 
-        # from performer_pytorch import SelfAttention
-
         # self.self_attn_lin = SelfAttention(
         #     dim=in_channels,      
-        #     heads=4,              
+        #     heads=1,              
         #     causal=False          
         # )
         self.self_attn  = nn.MultiheadAttention(embed_dim=in_channels,num_heads=1,batch_first=True)
@@ -72,7 +69,7 @@ class GuideDecoderLayer(nn.Module):
         self.norm1    = nn.LayerNorm(in_channels)
         self.norm2    = nn.LayerNorm(in_channels)
         self.txt_norm = nn.LayerNorm(in_channels)
-        self.chunk_size = 16384
+        
         self.scale = nn.Parameter(torch.tensor(1.421),requires_grad=True)
         # self.scale = nn.Parameter(torch.tensor(0.5),requires_grad=True)
 
@@ -85,12 +82,11 @@ class GuideDecoderLayer(nn.Module):
         return torch.cat(out_chunks, dim=1)
 
     def _adaptive_chunked_attn(self, q, k, v, attn_module,
-                               init_chunk=16384, min_chunk=512):
+                               chunk=16384, min_chunk=512):
         """
         Пробуем разбивать по init_chunk, и если всё ещё OOM, 
         каждый раз делим на 2, пока не упадём ниже min_chunk.
         """
-        chunk = init_chunk
         while True:
             try:
                 return self._chunked_attention(
@@ -116,9 +112,6 @@ class GuideDecoderLayer(nn.Module):
         vis2 = self.norm1(x)
         q = k = self.vis_pos(vis2)
 
-        # vis2 = self.self_attn_lin(vis2) # Linear time: O(n)
-
-        # vis2, _ = self.self_attn(q, k, value=vis2)
         if chunk:
             vis2 = self._adaptive_chunked_attn(  # [B, N_vis, C]
                 q = q,
@@ -177,17 +170,18 @@ class GuideDecoder(nn.Module):
         self.act     = nn.ReLU()
         self.dropout = nn.Dropout(0.1)
 
-        # self.mlp = nn.Sequential(
-        #     nn.Linear(total_dim, hidden),
-        #     nn.BatchNorm1d(hidden), 
-        #     nn.ReLU(), # Worse with GELU
-        #     nn.Dropout(0.1),
-        #     nn.Linear(hidden, out_channels),
-        #     nn.BatchNorm1d(out_channels),
-        #     nn.ReLU(), # Worse with GELU
-        #     # nn.Dropout(0.1)            
-        # )
+        self.mlp = nn.Sequential(
+            nn.Linear(total_dim, hidden),
+            nn.BatchNorm1d(hidden), 
+            nn.ReLU(), # Worse with GELU
+            nn.Dropout(0.1),
+            nn.Linear(hidden, out_channels),
+            nn.BatchNorm1d(out_channels),
+            nn.ReLU(), # Worse with GELU
+            # nn.Dropout(0.1)            
+        )
 
+        self.res_proj = nn.Linear(total_dim, out_channels)
         # self.mlp = nn.Sequential(
         #     nn.Linear(total_dim, hidden),
         #     nn.GELU(),
@@ -199,11 +193,8 @@ class GuideDecoder(nn.Module):
         B2, N_skip, C_skip = skip_vis.shape
         assert B == B2, "Batch size mismatch между vis и skip_vis"
 
-        if txt is not None:
-            vis_coarse = self.guide_layer(vis, txt, chunk)
-        else:
-            vis_coarse = vis
-        
+        vis_coarse = self.guide_layer(vis, txt, chunk)
+
         # 2) Graph Unpooling: «разворачиваем» coarse→fine через assign
         # assign: [N_fine], в диапазоне [0..N_coarse−1]
         # сделаем gather: из vis_coarse2 по dim=1
@@ -219,7 +210,7 @@ class GuideDecoder(nn.Module):
         cat         = torch.cat([vis_upsampled, skip_vis], dim=-1)
         B, N, Ctot  = cat.shape
         cat_flat    = cat.view(B * N, Ctot)
-        # out_flat    = self.mlp(cat_flat)
+        # out_flat    = self.mlp(cat_flat) # <- bad results
 
         batch = torch.arange(B, device=cat.device).repeat_interleave(N)
 
@@ -238,12 +229,12 @@ class GuideDecoder(nn.Module):
         # x           = self.dropout(x)
         # out_flat    = x.view(B, N, -1)                      # [B, N_max]
 
-        # for name, p in self.mlp.named_parameters():
-        #     if p.grad is None:
-        #         print(f"{name} grad is None")
-        #     else:
-        #         print(f"{name} grad norm: {p.grad.norm().item():.4f}")
-                
-        out         = out_flat.view(B, N, -1)                      # [B, N_max]
+        # MLP-2 + Residual 
+        out         = (self.res_proj(cat_flat) + out_flat).view(B, N, -1)                      # [B, N_max]
+        # out         = out_flat.view(B, N, -1)
+        
+        # With out MLP
+        # out = self.res_proj(cat_flat).view(B, N, -1)                      # [B, N_max]
 
         return out
+    

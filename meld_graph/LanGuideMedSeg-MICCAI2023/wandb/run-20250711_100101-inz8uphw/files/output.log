@@ -1,8 +1,0 @@
-/home/s17gmikh/miniconda3/envs/MELD-env/lib/python3.9/site-packages/huggingface_hub/file_download.py:943: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
-  warnings.warn(
-Traceback (most recent call last):
-  File "/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/train.py", line 97, in <module>
-    ds_train = EpilepDataset(csv_path=args.train_csv_path,
-  File "/home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/utils/data.py", line 117, in __init__
-    self.subject_ids = self._filter_existing(train_ids)
-AttributeError: 'EpilepDataset' object has no attribute '_filter_existing'

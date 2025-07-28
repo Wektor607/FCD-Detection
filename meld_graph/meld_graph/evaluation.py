@@ -287,6 +287,7 @@ class Evaluator:
                 geodesic_array = []
                 saliency_array = []
                 feature_maps_array = []
+                estimatess = {}
 
             subj_id = self.subject_ids[i // 2]
             
@@ -352,12 +353,7 @@ class Evaluator:
                     for stage in lh_dict.keys():
                         lh = lh_dict[stage]  # [1, N_lh, C]
                         rh = rh_dict[stage]  # [1, N_rh, C]
-                        # if stage == "stage1":
-                        #     lh = lh.squeeze(0)[self.cohort.cortex_mask]
-                        #     rh = rh.squeeze(0)[self.cohort.cortex_mask]
-                        #     lh = lh.unsqueeze(0)
-                        #     rh = rh.unsqueeze(0)
-                        #     print(lh.shape)
+
 
                         combined[stage] = torch.cat([lh, rh], dim=0)  # [1, N_lh + N_rh, C]
 
@@ -380,7 +376,7 @@ class Evaluator:
                     "result": np.concatenate(prediction_array),
                     "distance_map": np.concatenate(distance_map_array),
                     "borderzone": np.concatenate(geodesic_array) < 20,
-                    "feature_maps": combined_feature_maps_tensor
+                    "feature_maps": combined_feature_maps_tensor,
                 }
                 
                 # save prediction

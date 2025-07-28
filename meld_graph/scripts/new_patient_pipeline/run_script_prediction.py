@@ -83,9 +83,9 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     )
     
     for subject_id in subject_ids:  
-        features = eva.data_dictionary[subject_id]["feature_maps"]
-        result   = eva.data_dictionary[subject_id]["result"]
-        
+        features        = eva.data_dictionary[subject_id]["feature_maps"]
+        result          = eva.data_dictionary[subject_id]["result"]
+        # estimates    = eva.data_dictionary[subject_id]["estimates"]
         save_dir = f"./data/preprocessed/{subject_id}/features"
         os.makedirs(save_dir, exist_ok=True)
 
@@ -97,6 +97,9 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
 
         print(f"Saved features to {feat_path}")
 
+        # estimates_path = os.path.join(save_dir, "estimates.npz")
+        # np.savez_compressed(estimates_path, 
+        #                     estimates)
         res_path = os.path.join(save_dir, "result.npz")
         if isinstance(result, np.ndarray):
             np.savez_compressed(res_path, result=result)        
@@ -112,15 +115,15 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         print(f"Saved prediction result to {res_path}")
 
     #threshold predictions
-    eva.threshold_and_cluster()
-    #write results in csv
-    eva.stat_subjects()
-    #plot images 
-    if plot_images: 
-        eva.plot_subjects_prediction()
-    #compute saliency:
-    if saliency:
-        eva.calculate_saliency()
+    # eva.threshold_and_cluster()
+    # #write results in csv
+    # eva.stat_subjects()
+    # #plot images 
+    # if plot_images: 
+    #     eva.plot_subjects_prediction()
+    # #compute saliency:
+    # if saliency:
+    #     eva.calculate_saliency()
 
 def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test'):
     harmo_code = str(harmo_code)

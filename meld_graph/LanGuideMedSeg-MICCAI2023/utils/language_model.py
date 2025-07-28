@@ -24,7 +24,7 @@ class BERTModel(nn.Module):
 
         # 2) unfreeze_last_k слоёв BERT
         #    BertEncoder store them in .encoder.layer: list of 12 BertLayer
-        for layer in self.model.encoder.layer[-6:]:
+        for layer in self.model.encoder.layer[-3:]:
             for p in layer.parameters():
                 p.requires_grad = True
 
