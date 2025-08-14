@@ -197,12 +197,15 @@ class MeldCohort:
             hdf5_file_root = self.hdf5_file_root
         
         # p = os.path.join(self.data_dir, f"{site_code}", hdf5_file_root.format(site_code=site_code, group=group))
-        if feature == ".on_lh.lesion.mgh":
-            # p = os.path.join(self.data_dir, f"MELD_{harmo_code}", f"{site_code}_featurematrix.hdf5")
-            p = os.path.join(self.data_dir, f"MELD", f"{site_code}_featurematrix.hdf5")
-        else:
-            p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group))
 
+        # if feature == ".on_lh.lesion.mgh":
+        #     # p = os.path.join(self.data_dir, f"MELD_{harmo_code}", f"{site_code}_featurematrix.hdf5")
+        #     p = os.path.join(self.data_dir, f"MELD", f"{site_code}_featurematrix.hdf5")
+        # else:
+        #     p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group))
+        
+        group_for_path = "control" if "_C_" in site_code else group
+        p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group_for_path))
         # open existing file or create new one
         if os.path.isfile(p) and not write:
             f = h5py.File(p, "r")
@@ -505,11 +508,14 @@ class MeldSubject:
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
 
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
-            if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
+            if "MELD" in hdf5_filename:
+                surf_dir_path = hemi
+            elif any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
                 surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
             else:
-                surf_dir_path = os.path.join("BONN", self.scanner,"patient", self.site_code, hemi)
-            print(surf_dir_path)
+                surf_dir_path = os.path.join("BONN", self.scanner, "patient", self.site_code, hemi)
+            # print('Here')
+            # print(surf_dir_path)
             keys =  list(f[surf_dir_path].keys())
             # remove lesion and boundaries from list of features
             if ".on_lh.lesion.mgh" in keys:
@@ -619,14 +625,15 @@ class MeldSubject:
         # read data from hdf5
         with self.cohort._site_hdf5(self.site_code, self.group, feature=feature, harmo_code=harmo_code) as f:
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
-
             # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
-            if any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
+            
+            if "MELD" in hdf5_filename:
+                surf_dir_path = hemi
+            elif any(x in os.path.basename(hdf5_filename) for x in ["_smoothed", "_combat"]):
                 surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
             else:
                 surf_dir_path = os.path.join("BONN", self.scanner, "patient", self.site_code, hemi)
-            
-            # print(f[os.path.join("BONN", self.scanner, "patient", self.site_code)])
+
             try:
                 surf_dir = f[surf_dir_path]
             except KeyError:
@@ -635,6 +642,7 @@ class MeldSubject:
                 feature_values[:] = surf_dir[feature][:]
             else:
                 self.log.debug(f"missing feature: {feature} set to zero")
+            
         return feature_values
 
     def load_feature_lesion_data(self, features, hemi="lh", features_to_ignore=[], harmo_code=None, only_lesion=False, only_features=False):

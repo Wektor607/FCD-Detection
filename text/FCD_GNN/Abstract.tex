@@ -1,0 +1,22 @@
+\documentclass[FCD_GNN.tex]{subfiles}
+
+\begin{document}
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Numerous methods have been developed for the detection of tumors in internal organs such as the lungs, brain, kidneys, 
+and breast \parencite{Durgam2025LungCancer, Abdusalomov2023BrainTumor, Sharma2025KidneyCT, Mehmood2025BreastCancer}. 
+However, detecting epileptogenic lesions remains significantly more challenging. Unlike tumors, these lesions do not typically 
+increase in size over time, and there is a severe shortage of publicly available annotated datasets. Researchers often need 
+to contact hospitals and clinical centers directly to obtain even a minimal number of scans. Although recent studies have 
+demonstrated that deep learning models can detect epileptogenic lesions \parencite{Ripart2025MELD}, their performance in terms of Intersection over 
+Union (\acs{iou}) rarely exceeds 35\%, highlighting the ongoing difficulty of this task.
+
+At the same time, recent work on tumor detection using text-guided approaches has shown promising results \parencite{Li2024LGMSeg, Li2025Mulmodseg, Zhang2025OrganAware}. 
+Notably, \parencite{Zhong2023Ariadne} demonstrated that training on only 10\% of the dataset can yield performance comparable to using the full dataset. 
+Inspired by these advances, this study proposes a new method that combines visual and textual features to improve Focal Cortical Dysplasia detection under limited data conditions. 
+The proposed approach further demonstrates that incorporating textual descriptions significantly enhances segmentation accuracy. 
+We present a comparison of multiple types of textual annotations and analyze their influence on model performance.
+
+% \thispagestyle{empty}
+\end{document}

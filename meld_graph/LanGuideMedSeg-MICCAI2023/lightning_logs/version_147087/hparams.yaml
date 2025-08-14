@@ -1,0 +1,26 @@
+bert_type: StanfordAIMI/RadBERT
+device: 0
+feature_path: ../data
+image_size:
+- 160
+- 256
+- 256
+lr: 0.003
+max_epochs: 300
+meld_check: false
+meld_script_path: ../meldgraph.sh
+min_epochs: 20
+model_save_filename: medseg
+model_save_path: ./save_model
+output_dir: ../data/output
+patience: 20
+project_dim: 768
+project_name: FCD_detection
+run_name: FCD_finetuning
+test_csv_path: ../data/preprocessed/Res_full+hemisphere_invers.csv
+test_root_path: ../data/preprocessed
+train_batch_size: 8
+train_csv_path: ../data/preprocessed/Res_full+hemisphere_invers.csv
+train_root_path: ../data/preprocessed
+valid_batch_size: 4
+warmup_epochs: 0

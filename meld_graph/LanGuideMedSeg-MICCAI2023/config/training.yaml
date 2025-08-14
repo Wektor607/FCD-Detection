@@ -26,11 +26,13 @@ MODEL:
 
   meld_script_path: ../meldgraph.sh
   feature_path: ../data
-  output_dir: ../data/output
+  output_dir: ../data/input
 
 DATA:
-  train_csv_path: ../data/preprocessed/Res_full.csv # ./data/QaTa-COV19-v2/prompt/train.csv
-  train_root_path: ../data/preprocessed # ./data/QaTa-COV19-v2/Train
+  train_csv_path: ../data/preprocessed/MELD_BONN_dataset_lobe+hemi.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv # ./data/QaTa-COV19-v2/prompt/train.csv
+  train_root_path: ../data/preprocessed/meld_files # ./data/QaTa-COV19-v2/Train
 
-  test_csv_path: ../data/preprocessed/Res_full.csv #./data/QaTa-COV19-v2/prompt/test.csv
-  test_root_path: ../data/preprocessed #./data/QaTa-COV19-v2/Test
+  test_csv_path: ../data/preprocessed/MELD_BONN_dataset_lobe+hemi.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv #./data/QaTa-COV19-v2/prompt/test.csv
+  test_root_path: ../data/preprocessed/meld_files #./data/QaTa-COV19-v2/Test
+
+  split_path: ../data/preprocessed/MELD_BONN_splits.csv

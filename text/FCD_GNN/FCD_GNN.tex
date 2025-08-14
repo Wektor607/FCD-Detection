@@ -1,0 +1,50 @@
+\documentclass[12pt, %font size
+english, % document language
+a4paper, %paper type
+twoside, % two sided printing
+twoside=semi,
+%openright, % start new chapter on right side only ( inserts blank pages )
+DIV=11,      % This parameter organizes the borders (detailed explanation at http://texdoc.net/texmf-dist/doc/latex/koma-script/scrguide.pdf
+BCOR=8mm]{scrbook} % BCOR sets the space, used by the type of  book. (e.g. glued, hard cover..)
+%scrreprt is used for larger texts with chapters (Master or Bachelor Thesis)
+%scrartcl is used when there are no chapters ( for smaller paper)
+
+\input{setup/packages.tex}
+\input{setup/acronyms.tex}
+
+\begin{document}
+\frontmatter
+		\input{setup/titlepage.tex}
+        \input{setup/declaration.tex}
+        \subfile{Abstract.tex}
+        
+        \tableofcontents
+        % \listoffigures
+        % \listoftables
+        % \listofalgorithms
+        
+        %\addcontentsline{toc}{chapter}{Acronyms}		
+		\printacronyms[name = {List of Acronyms}]
+		
+        \newpage
+        
+        
+
+\mainmatter
+        \subfile{Introduction}
+        \subfile{RelatedWorks}
+        \subfile{Methods}
+        \subfile{Results}
+        \subfile{Discussion}
+        \subfile{Conclusion}
+
+\backmatter
+        \subfile{Appendix}
+        
+        \FloatBarrier
+        
+        \begin{singlespacing}
+            \printbibliography[heading=bibintoc,title={References}]
+        \end{singlespacing}
+\end{document}
+

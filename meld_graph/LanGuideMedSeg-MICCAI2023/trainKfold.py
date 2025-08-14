@@ -133,9 +133,7 @@ if __name__ == '__main__':
 
     val_ids, test_ids = train_test_split(test_all, test_size=0.3, random_state=SEED, shuffle=True)
     train_ids = train_ids + val_ids
-    
-    # train_ids = train_ids[:5]
-    # test_ids = test_ids[:3]
+
     fold_metrics = []
     n_splits = 5
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=SEED)

@@ -16,7 +16,6 @@ class SpiralConv(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.seq_length = indices.size(1)
-
         self.layer = nn.Linear(in_channels * self.seq_length, out_channels)
         if norm is not None:
             if norm == "instance":
@@ -39,6 +38,7 @@ class SpiralConv(nn.Module):
         torch.nn.init.constant_(self.layer.bias, 0)
 
     def forward(self, x, device):
+
         n_nodes, _ = self.indices.size()
         if x.dim() == 2:
             x = torch.index_select(x, 0, self.indices.contiguous().to(device).view(-1))
@@ -47,7 +47,9 @@ class SpiralConv(nn.Module):
             raise RuntimeError(
                 'x.dim() is expected to be 2, but received {}'.format(
                     x.dim()))
+                
         x = self.layer(x)
+        
         if self.norm is not None:
             x = self.norm(x)
         return x

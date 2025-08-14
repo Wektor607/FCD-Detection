@@ -1,0 +1,109 @@
+/home/s17gmikh/miniconda3/envs/MELD-env/bin/python
+Setting MELD_DATA_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats
+Setting EXPERIMENT_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/models
+Setting FS_SUBJECTS_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs
+Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/meld_params
+Fold 1/5
+Train IDs: 519
+Validation IDs: 130
+[INFO] Loading model from checkpoint: ./save_model/medseg_fold1-v1.ckpt
+384
+256
+192
+128
+96
+64
+start testing
+Testing: 0it [00:00, ?it/s]huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
+To disable this warning, you can either:
+	- Avoid using `tokenizers` before the fork if possible
+	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
+Testing:   0%|          | 0/72 [00:00<?, ?it/s]Testing DataLoader 0:   0%|          | 0/72 [00:00<?, ?it/s]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H101_3T_FCD_00043'] Dice=0.825, PPV=0.738, IoU=0.703, Acc=0.998
+[TEST sample 'MELD_H101_3T_FCD_00066'] Dice=0.387, PPV=0.539, IoU=0.240, Acc=0.995
+[TEST sample 'MELD_H101_3T_FCD_00048'] Dice=0.471, PPV=0.319, IoU=0.308, Acc=0.997
+[TEST sample 'MELD_H101_3T_FCD_00064'] Dice=0.634, PPV=0.946, IoU=0.464, Acc=0.985
+Testing DataLoader 0:   1%|▏         | 1/72 [00:44<52:21, 44.25s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H101_3T_FCD_00061'] Dice=0.636, PPV=0.553, IoU=0.467, Acc=0.994
+[TEST sample 'MELD_H101_3T_FCD_00092'] Dice=0.771, PPV=0.759, IoU=0.627, Acc=0.996
+[TEST sample 'MELD_H101_3T_FCD_00099'] Dice=0.295, PPV=0.173, IoU=0.173, Acc=0.989
+[TEST sample 'MELD_H101_3T_FCD_00032'] Dice=0.486, PPV=0.675, IoU=0.321, Acc=0.994
+Testing DataLoader 0:   3%|▎         | 2/72 [01:03<36:59, 31.71s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H101_3T_FCD_00121'] Dice=0.246, PPV=0.212, IoU=0.140, Acc=0.995
+[TEST sample 'MELD_H101_3T_FCD_00136'] Dice=0.274, PPV=0.160, IoU=0.159, Acc=0.989
+[TEST sample 'MELD_H101_3T_FCD_00125'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.992
+[TEST sample 'MELD_H101_3T_FCD_00134'] Dice=0.001, PPV=0.001, IoU=0.000, Acc=0.990
+Testing DataLoader 0:   4%|▍         | 3/72 [01:22<31:46, 27.63s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H101_3T_FCD_00006'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.985
+[TEST sample 'MELD_H101_3T_FCD_00144'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.986
+[TEST sample 'MELD_H101_3T_FCD_00020'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.984
+[TEST sample 'MELD_H101_3T_FCD_00142'] Dice=0.520, PPV=0.359, IoU=0.351, Acc=0.992
+Testing DataLoader 0:   6%|▌         | 4/72 [01:42<29:02, 25.63s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H101_3T_FCD_00107'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.988
+[TEST sample 'MELD_H101_3T_FCD_00074'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.989
+[TEST sample 'MELD_H101_3T_FCD_00128'] Dice=0.469, PPV=0.690, IoU=0.306, Acc=0.992
+[TEST sample 'MELD_H101_3T_FCD_00108'] Dice=0.577, PPV=0.476, IoU=0.406, Acc=0.997
+Testing DataLoader 0:   7%|▋         | 5/72 [02:02<27:15, 24.41s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H101_3T_FCD_00009'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.991
+[TEST sample 'MELD_H101_3T_FCD_00004'] Dice=0.803, PPV=0.721, IoU=0.671, Acc=0.998
+[TEST sample 'MELD_H101_3T_FCD_00095'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
+[TEST sample 'MELD_H101_3T_FCD_00034'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
+Testing DataLoader 0:   8%|▊         | 6/72 [02:21<25:59, 23.63s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H101_3T_FCD_00103'] Dice=0.544, PPV=0.390, IoU=0.374, Acc=0.991
+[TEST sample 'MELD_H101_3T_FCD_00145'] Dice=0.540, PPV=0.400, IoU=0.370, Acc=0.994
+[TEST sample 'MELD_H101_3T_FCD_00100'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.996
+[TEST sample 'MELD2_H7_3T_FCD_001'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.983
+Testing DataLoader 0:  10%|▉         | 7/72 [02:41<24:57, 23.04s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD2_H7_3T_FCD_004'] Dice=0.401, PPV=0.628, IoU=0.251, Acc=0.986
+[TEST sample 'MELD2_H7_3T_FCD_005'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.983
+[TEST sample 'MELD2_H7_3T_FCD_009'] Dice=0.447, PPV=0.899, IoU=0.288, Acc=0.963
+[TEST sample 'MELD_H10_3T_FCD_0002'] Dice=0.535, PPV=0.404, IoU=0.366, Acc=0.979
+Testing DataLoader 0:  11%|█         | 8/72 [03:01<24:14, 22.72s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H10_3T_FCD_0009'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.978
+[TEST sample 'MELD_H10_3T_FCD_0013'] Dice=0.431, PPV=0.505, IoU=0.275, Acc=0.987
+[TEST sample 'MELD_H10_3T_FCD_0014'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.977
+[TEST sample 'MELD_H10_3T_FCD_0016'] Dice=0.687, PPV=0.639, IoU=0.523, Acc=0.981
+Testing DataLoader 0:  12%|█▎        | 9/72 [03:23<23:44, 22.61s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H11_3T_FCD_0002'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
+[TEST sample 'MELD_H11_3T_FCD_0006'] Dice=0.703, PPV=0.558, IoU=0.543, Acc=0.997
+[TEST sample 'MELD_H11_3T_FCD_0007'] Dice=0.355, PPV=0.216, IoU=0.216, Acc=0.990
+[TEST sample 'MELD_H11_3T_FCD_0009'] Dice=0.491, PPV=0.325, IoU=0.325, Acc=0.997
+Testing DataLoader 0:  14%|█▍        | 10/72 [03:44<23:09, 22.41s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H11_3T_FCD_0010'] Dice=0.607, PPV=0.823, IoU=0.436, Acc=0.987
+[TEST sample 'MELD_H11_3T_FCD_0011'] Dice=0.217, PPV=0.154, IoU=0.122, Acc=0.995
+[TEST sample 'MELD_H11_3T_FCD_0015'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
+[TEST sample 'MELD_H11_3T_FCD_0019'] Dice=0.780, PPV=0.757, IoU=0.639, Acc=0.997
+Testing DataLoader 0:  15%|█▌        | 11/72 [04:04<22:33, 22.19s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H11_3T_FCD_0020'] Dice=0.619, PPV=0.453, IoU=0.448, Acc=0.995
+[TEST sample 'MELD_H11_3T_FCD_0025'] Dice=0.611, PPV=0.446, IoU=0.440, Acc=0.995
+[TEST sample 'MELD_H11_3T_FCD_0027'] Dice=0.671, PPV=0.623, IoU=0.505, Acc=0.992
+[TEST sample 'MELD_H11_3T_FCD_0028'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.975
+Testing DataLoader 0:  17%|█▋        | 12/72 [04:23<21:59, 21.99s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H11_3T_FCD_0030'] Dice=0.635, PPV=0.466, IoU=0.465, Acc=0.993
+[TEST sample 'MELD_H11_3T_FCD_0031'] Dice=0.359, PPV=0.219, IoU=0.219, Acc=0.991
+[TEST sample 'MELD_H11_3T_FCD_0040'] Dice=0.616, PPV=0.452, IoU=0.445, Acc=0.995
+[TEST sample 'MELD_H11_3T_FCD_0041'] Dice=0.736, PPV=0.694, IoU=0.583, Acc=0.996
+Testing DataLoader 0:  18%|█▊        | 13/72 [04:44<21:30, 21.87s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H11_3T_FCD_0042'] Dice=0.543, PPV=0.381, IoU=0.373, Acc=0.996
+[TEST sample 'MELD_H11_3T_FCD_0044'] Dice=0.220, PPV=0.124, IoU=0.124, Acc=0.990
+[TEST sample 'MELD_H11_3T_FCD_0045'] Dice=0.438, PPV=0.281, IoU=0.281, Acc=0.990
+[TEST sample 'MELD_H12_3T_FCD_0003'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.985
+Testing DataLoader 0:  19%|█▉        | 14/72 [05:03<20:59, 21.71s/it]w_focal=0.402, w_fp=0.271, w_dice=0.327
+[TEST sample 'MELD_H12_3T_FCD_0006'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.979
+[TEST sample 'MELD_H12_3T_FCD_0007'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.953
+[TEST sample 'MELD_H12_3T_FCD_0009'] Dice=0.541, PPV=0.455, IoU=0.371, Acc=0.980
+[TEST sample 'MELD_H12_3T_FCD_0011'] Dice=0.705, PPV=0.822, IoU=0.545, Acc=0.993
+Testing DataLoader 0:  21%|██        | 15/72 [05:24<20:34, 21.66s/it]

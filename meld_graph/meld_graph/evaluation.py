@@ -294,11 +294,16 @@ class Evaluator:
             if self.augment is not None:
                 print("Augmentation applied\n")
                 subj_dict = {
-                    "features": data.x.cpu().numpy()
+                    "features": data.x.cpu().numpy(),
+                    "labels": data.y.cpu().numpy(),
+                    "distances": data.distance_map.cpu().numpy(),
                 }
-                augmented = self.augment.apply(subject_data_dict=subj_dict)
+                augmented = self.augment.apply(subject_data_dict=subj_dict, hemi= 0 if hemi == "lh" else 1)
+
                 data.x = torch.from_numpy(augmented["features"]).float()
-            
+                data.y = torch.from_numpy(augmented["labels"])
+                data.num_nodes = len(augmented["features"])
+
             data = data.to(device)
             labels = data.y.squeeze()
             geo_distance = data.distance_map

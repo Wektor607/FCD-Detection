@@ -249,9 +249,6 @@ if __name__ == '__main__':
             args=args,
             tokenizer=tokenizer,
             max_len = ds_valid.max_length,
-            # alpha=alpha,
-            # gamma=gamma,
-            # coef=coef
 
         )
     else:
@@ -259,9 +256,6 @@ if __name__ == '__main__':
             args, 
             tokenizer=tokenizer,
             max_len = ds_train.max_length,
-            # alpha=alpha,
-            # gamma=gamma,
-            # coef=coef
         )
 
     ## 1. setting recall function

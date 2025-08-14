@@ -173,6 +173,7 @@ class FocalLoss(torch.nn.Module):
             self.alpha = torch.Tensor([self.alpha, 1 - self.alpha])
         self.size_average = size_average
 
+    # Orig
     def forward(self, inputs, target, **kwargs):
         target = target.view(-1, 1)
         

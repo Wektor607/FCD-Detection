@@ -66,16 +66,18 @@ class EpilepDataset(Dataset):
 
         # 2) вытаскиваем sub-ID
         self.data['sub'] = self.data['DATA_PATH'].apply(
-            lambda p: os.path.basename(p).split('_')[0] 
+            lambda p: os.path.basename(p).split('_patient')[0].split('_control')[0]#.split('_')[0] 
                     if isinstance(p, str) else None
         )
 
         # 3) задаём sub как индекс, чтобы удобнее было выбирать
         self.data   = self.data.set_index('sub')
+        
         self.data = self.data.loc[subject_ids]
-
+        
         cohort      = MeldCohort(
-            hdf5_file_root='{site_code}_featurematrix.hdf5',
+            # hdf5_file_root='{site_code}_featurematrix.hdf5',
+            hdf5_file_root='{site_code}_{group}_featurematrix_combat.hdf5',
             dataset=None,
             data_dir=BASE_PATH
         )
@@ -92,15 +94,10 @@ class EpilepDataset(Dataset):
             self.data['harvard_oxford'] = self.data['harvard_oxford'].fillna('')
             self.data['aal']            = self.data['aal'].fillna('')
             self.max_length             = 256
-            # 4) Preproccesed text
-            # self.caption_list = processed_captions
-            # sep = self.tokenizer.sep_token
-            # self.caption_list           = self.data['harvard_oxford'].to_list()
         
         self.roi_list     = list(self.data['ROI_PATH'])
         self.caption_list = list(self.data['harvard_oxford'])
 
-        
         self.root_path = root_path
 
 
@@ -108,23 +105,31 @@ class EpilepDataset(Dataset):
         return len(self.roi_list)
 
     def run_meld_prediction(self, subject_id: str, mode: str, aug_flag: bool):
+        # command = [
+        #     self.meld_path,
+        #     'run_script_prediction.py',
+        #     '-id', subject_id,
+        #     '-harmo_code', 'fcd',
+        #     '-demos', 'participants_with_scanner.tsv',
+        #     *(['--aug_mode', 'train'] if aug_flag else []),
+        # ]
+        # TEST IT
         command = [
             self.meld_path,
-            "run_script_prediction.py",
-            "-id", subject_id,
-            "-harmo_code", "fcd",
-            "-demos", "participants_with_scanner.tsv",
-            *(["--aug_mode", "train"] if aug_flag else []),
+            'run_script_prediction_meld.py',
+            '-id', subject_id,
+            '-harmo_code', 'fcd',
+            '-demos', 'input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv',
+            *(['--aug_mode', 'train'] if aug_flag else []),
         ]
+        # Run: ./meldgraph.sh run_script_prediction_meld.py --list_ids /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --demographic_file /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv
         try:
             subprocess.run(command, check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Error running MELD prediction for {subject_id}: {e}")
+            print(f'Error running MELD prediction for {subject_id}: {e}')
             raise
         
     def __getitem__(self, idx):
-
-        # trans = self.transform()
 
         caption = self.caption_list[idx]
         subject_data_list = self.prep.get_data_preprocessed(
@@ -132,19 +137,20 @@ class EpilepDataset(Dataset):
             features=self.prep.params['features'],
             lobes=self.prep.params['lobes'],
             lesion_bias=False,
-            distance_maps=True,
+            distance_maps=False,
             harmo_code='fcd', #TODO: Make a hyperparameter
             only_lesion=False,  #TODO: Make a hyperparameter
-            only_features= self.roi_list[idx] is None
+            only_features= self.roi_list[idx] is None,
+            combine_hemis=self.prep.params["combine_hemis"]
         )
 
         # Generating features
-        features_dir = os.path.join(self.feature_path, "preprocessed", self.subject_ids[idx], "features")
-        npz_path = os.path.join(features_dir, "feature_maps.npz")
+        features_dir = os.path.join(self.feature_path, 'preprocessed', 'meld_files', self.subject_ids[idx], 'features')
+        npz_path = os.path.join(features_dir, 'feature_maps.npz')
         if not os.path.isfile(npz_path):
             self.run_meld_prediction(self.subject_ids[idx], self.mode, aug_flag=self.aug_flag)
             if not os.path.isfile(npz_path):
-                raise FileNotFoundError(f"Failed to generate NPZ for {self.subject_ids[idx]}")
+                raise FileNotFoundError(f'Failed to generate NPZ for {self.subject_ids[idx]}')
 
         labels_tensors = []
         for d in subject_data_list:
@@ -157,8 +163,6 @@ class EpilepDataset(Dataset):
                 labels_tensors.append(
                     torch.from_numpy(d['labels']).long()
                 )
-
-        # склеиваем в тензор shape = (n_hemi, n_verts)
         roi = torch.stack(labels_tensors, dim=0)
 
         token_output = self.tokenizer.encode_plus(caption, padding='max_length',
@@ -168,19 +172,5 @@ class EpilepDataset(Dataset):
                                                         return_tensors='pt')
         token, mask = token_output['input_ids'],token_output['attention_mask']
 
-        # data = {'roi':roi, 'token':token, 'mask':mask,} # 'meld_pred': meld_pred}#, 'num_feats': pcts}
-        # data = trans(data)
-        # roi, token, mask = data['roi'], data['token'], data['mask'] #, data['meld_pred']#, data['num_feats']
         text = {'input_ids': token.squeeze(dim=0), 'attention_mask': mask.squeeze(dim=0)} 
         return ([self.subject_ids[idx], text], roi)
-
-    # def transform(self):
-
-    #     trans = Compose([
-    #         # LoadImaged(['roi'], reader='NibabelReader'),
-    #         # EnsureChannelFirstd(keys=['roi']),
-    #         # Resized(keys=['roi'], spatial_size=image_size, mode='nearest'),
-    #         ToTensord(['roi', 'token', 'mask',]), # 'meld_pred']),#'num_feats']),
-    #     ])
-
-    #     return trans

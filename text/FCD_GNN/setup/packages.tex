@@ -1,0 +1,61 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel} % sets up english hyphenation
+\usepackage{csquotes} % for language-dependent quotes in biblatex
+\usepackage{eurosym} %includes the euro symbol 
+\usepackage[dvipsnames, hyperref]{xcolor} % enables more advanced color support for hyperref
+
+\usepackage{acro}
+
+\usepackage{graphicx} % enables loading of graphics
+\graphicspath{ {images/}{../images/}{guidelines/images/}}
+
+\usepackage[
+  backend=biber,
+  style=numeric-comp,  % числовые ссылки [1], с компрессией диапазонов
+  sorting=none,        % порядок в списке – как в тексте
+  maxbibnames=100,
+  giveninits,
+  backref=true,        % ссылки из библиографии назад в места цитирования
+  doi=false, isbn=false, url=false, eprint=false
+]{biblatex}
+\addbibresource{literature.bib} % Add a bibliography file. (\bibliography{bib file} is less flexible and should not be used anymore although its still supported by biblatex)
+
+\usepackage{subfiles} % Use this package if you want to seperately compile child documents
+
+% Create nice tables in your document
+\usepackage{pdflscape} % Provides the landscape environment for landscape tables
+\usepackage{tabu}     % provides advanced tables
+\usepackage{array,multirow}
+\usepackage{booktabs} % enables reference bookstyle tables
+\usepackage{longtable} % Make multipage tables without creating a new table for every page
+
+\usepackage[format=plain, labelfont=bf]{caption}
+\usepackage{subcaption} % enables use of multiple figures in a figure
+\captionsetup{compatibility=false}
+\usepackage{enumitem} % allows customization of enumeration and itemize environment
+
+%\usepackage{parskip} %alternatively parskip replaces paragraph indentation by increased in-betweeen-paragraph linespacing 
+\usepackage{setspace} % helps setup line spacing
+%\onehalfspacing % increases linespacing to one and half
+\usepackage{placeins} % provides FloatBarrier
+\usepackage[ruled,vlined]{algorithm2e} %algorithm package
+\linespread{1.1} % Definition of the linespread
+
+\usepackage[tbtags]{mathtools}
+\DeclareMathOperator*{\somefunc}{somefunc}
+     
+\usepackage[unicode=true]{hyperref}
+\hypersetup{
+  colorlinks=true, % цветные ссылки
+  linkcolor=red!35!black,
+  citecolor=green!35!black,
+  urlcolor=magenta!35!black,
+  pdfauthor={Mikhelson German},
+  pdftitle={Detection of Focal Cortical Dysplasia Type II Using Text Descriptions}
+}
+
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Specify headers and footers in different file for better overview
+\input{setup/headfoot.tex}

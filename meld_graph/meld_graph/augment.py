@@ -3,6 +3,7 @@ import numpy as np
 import nibabel as nb
 import copy
 import time
+import sys
 from scipy import sparse
 import meld_graph.mesh_tools as mt
 import torch
@@ -21,12 +22,22 @@ class Transform:
         self.indices = np.load(os.path.join(SCRIPTS_DIR, params_transform["file"]))
         self.indices = self.indices.astype("int")
 
-    def get_indices(self):
-        """Randomly choose a precalculated transformation"""
-        transf = np.random.randint(0, len(self.indices))
+    def get_indices(self, hemi):
+        # """Randomly choose a precalculated transformation"""
+        indices_hemi = self.indices[hemi]
+        transf = np.random.randint(0, len(indices_hemi))
         # initiate lambdas and indices to speed up
-        indices = copy.deepcopy(self.indices[transf])
+        indices = copy.deepcopy(indices_hemi[transf])
         return indices
+
+        # # Random choice
+        # idx_hemi = self.indices[hemi]          # (T, N) или (T, N, 3)
+        # t = np.random.randint(0, len(idx_hemi))
+        # idx = copy.deepcopy(idx_hemi[t])       # (N,) или (N,3)
+
+        # j = np.random.randint(idx.shape[1], size=idx.shape[0])
+        # idx = idx[np.arange(idx.shape[0]), j]
+        # return idx                      
 
 
 class Augment:
@@ -161,41 +172,42 @@ class Augment:
                     tdd[field] = tdd[field][indices]
             else:
                 tdd[field] = tdd[field][indices]
+            
         return tdd
 
-    def apply(self, subject_data_dict):
+    def apply(self, subject_data_dict, hemi):
         """TODO"""
         # create a transformed data dict
         tdd = subject_data_dict.copy()
         # randomly augment lesion using distances and noise
         # NOTE lesion augmentation needs to happen before spinning, as medial wall is re-masked after new distances were calculated
-        
-        # TRY LATER
-        # if (tdd["labels"] == 1).any():
-        #     if np.random.rand() < self.get_p_param("augment_lesion"):
-        #         tdd = self.augment_lesion(tdd)
-        #         self.recompute_distance_and_smoothed(tdd)
+        if (tdd["labels"] == 1).any():
+            if np.random.rand() < self.get_p_param("augment_lesion"):
+                tdd = self.augment_lesion(tdd)
+                self.recompute_distance_and_smoothed(tdd)
 
-        # mesh_transform = False
-        # indices = np.arange(tdd["features"].shape[0], dtype=int)
+        mesh_transform = False
+        indices = np.arange(tdd["features"].shape[0], dtype=int)
+        
         # mesh augmentations
         # stack the transformations into a single indexing step
         # if np.random.rand() < self.get_p_param("spinning"):
-        #     mesh_transform = True
-        #     indices = indices[self.spinning.get_indices()]
+        # mesh_transform = True
+        # indices = indices[self.spinning.get_indices()]
 
+        # ADD LATER
         # if np.random.rand() < self.get_p_param("warping"):
         #     mesh_transform = True
-        #     indices = indices[self.warping.get_indices()]
+        #     indices = indices[self.warping.get_indices(hemi)]
 
         # if np.random.rand() < self.get_p_param("flipping"):
         #     mesh_transform = True
-        #     indices = indices[self.flipping.get_indices()]
+        #     indices = indices[self.flipping.get_indices(hemi)]
 
-        # apply just once
+        # # apply just once
         # if mesh_transform:
         #     tdd = self.apply_indices(indices, tdd)
-    
+
         # Gaussian noise
         if np.random.rand() < self.get_p_param("noise"):
             tdd["features"] = self.add_gaussian_noise(tdd["features"])
@@ -214,8 +226,8 @@ class Augment:
             tdd["features"] = self.add_low_res(tdd["features"])
 
         # gamma intensity
-        # if np.random.rand() < self.get_p_param("gamma") / 2:
-        #     tdd["features"] = self.add_gamma_scale(tdd["features"])
+        if np.random.rand() < self.get_p_param("gamma") / 2:
+            tdd["features"] = self.add_gamma_scale(tdd["features"])
         # inverted gamma intensity
         if np.random.rand() < self.get_p_param("gamma") / 2:
             tdd["features"] = -self.add_gamma_scale(-tdd["features"])

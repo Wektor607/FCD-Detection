@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 from torch_geometric.nn import GraphNorm
 from performer_pytorch import SelfAttention
+from torch_geometric.nn import knn_interpolate
 
 class PositionalEncoding(nn.Module):
 
@@ -30,7 +31,7 @@ class PositionalEncoding(nn.Module):
 
 class GuideDecoderLayer(nn.Module):
 
-    def __init__(self, in_channels:int, output_text_len:int, input_text_len:int=256, embed_dim:int=768, chunk_size:int=4096):
+    def __init__(self, in_channels:int, output_text_len:int, input_text_len:int=128, embed_dim:int=768, chunk_size:int=4096):
 
         super(GuideDecoderLayer, self).__init__()
 
@@ -39,22 +40,8 @@ class GuideDecoderLayer(nn.Module):
         self.self_attn_norm   = nn.LayerNorm(in_channels)
         self.cross_attn_norm  = nn.LayerNorm(in_channels)
 
-        # self.self_attn_lin = SelfAttention(
-        #     dim=in_channels,      
-        #     heads=1,              
-        #     causal=False          
-        # )
         self.self_attn  = nn.MultiheadAttention(embed_dim=in_channels,num_heads=1,batch_first=True)
         self.cross_attn = nn.MultiheadAttention(embed_dim=in_channels,num_heads=4,batch_first=True)
-
-        # self.text_project = nn.Sequential(
-        #     nn.Linear(embed_dim, 2 * in_channels),
-        #     nn.LayerNorm(2 * in_channels),
-        #     nn.GELU(),
-        #     nn.Linear(2 * in_channels, in_channels),
-        #     nn.LayerNorm(in_channels),
-        #     nn.GELU(),
-        # )
 
         self.text_project = nn.Sequential(
             nn.Conv1d(input_text_len,output_text_len,kernel_size=1,stride=1),
@@ -82,7 +69,7 @@ class GuideDecoderLayer(nn.Module):
         return torch.cat(out_chunks, dim=1)
 
     def _adaptive_chunked_attn(self, q, k, v, attn_module,
-                               chunk=16384, min_chunk=512):
+                               chunk=8192, min_chunk=512):
         """
         Пробуем разбивать по init_chunk, и если всё ещё OOM, 
         каждый раз делим на 2, пока не упадём ниже min_chunk.
@@ -153,88 +140,47 @@ class GuideDecoder(nn.Module):
         super().__init__()
         
         self.guide_layer = GuideDecoderLayer(in_channels, text_len, input_text_len)   # for skip
-        
-        total_dim = in_channels + out_channels
-        hidden = total_dim // 2
-        self.hidden = hidden
 
-        # MLP
-        # self.ln_tot = nn.Linear(total_dim, out_channels)
-        
-        self.lin1    = nn.Linear(total_dim, hidden)
-        self.gn1     = GraphNorm(hidden)
-        self.lnorm1  = nn.LayerNorm(hidden)
-        self.lin2    = nn.Linear(hidden, out_channels)
-        self.gn2     = GraphNorm(out_channels)
-        self.lnorm2  = nn.LayerNorm(out_channels)
-        self.act     = nn.ReLU()
-        self.dropout = nn.Dropout(0.1)
+        self.activation_function = nn.LeakyReLU()
 
-        self.mlp = nn.Sequential(
-            nn.Linear(total_dim, hidden),
-            nn.BatchNorm1d(hidden), 
-            nn.ReLU(), # Worse with GELU
-            nn.Dropout(0.1),
-            nn.Linear(hidden, out_channels),
-            nn.BatchNorm1d(out_channels),
-            nn.ReLU(), # Worse with GELU
-            # nn.Dropout(0.1)            
-        )
-
-        self.res_proj = nn.Linear(total_dim, out_channels)
-        # self.mlp = nn.Sequential(
-        #     nn.Linear(total_dim, hidden),
-        #     nn.GELU(),
-        #     nn.Linear(hidden, out_channels),
-        # )
-
-    def forward(self, vis, skip_vis, txt, assign, chunk):
-        B, N_in, C_in = vis.shape
-        B2, N_skip, C_skip = skip_vis.shape
-        assert B == B2, "Batch size mismatch между vis и skip_vis"
+    def forward(self, vis, skip_vis, txt, unpool, spiral_conv, chunk):
+        B, _, C = vis.shape
+        H = 2
 
         vis_coarse = self.guide_layer(vis, txt, chunk)
+        # vis_coarse = vis.clone()
 
-        # 2) Graph Unpooling: «разворачиваем» coarse→fine через assign
-        # assign: [N_fine], в диапазоне [0..N_coarse−1]
-        # сделаем gather: из vis_coarse2 по dim=1
-        #  a) расширяем assign на батч
-        assign_expand = assign.unsqueeze(0).expand(B, -1)            # [B, N_fine]
-        assign_expand = assign_expand.unsqueeze(-1).expand(-1, -1, C_in)  # [B, N_fine, C_in]
+        # 1) split hemispheres
+        vis_coarse = vis_coarse.reshape(B, H, vis_coarse.shape[1] // H, C)
+        # 2) unpool
+        vis_upsampled = unpool(vis_coarse, device=vis.device)      # [B, N_fine, C]
 
-        #  b) берём каждый fine-индекс i: parent_idx = assign[i],
-        #     и доставляем vis_coarse2[b, parent_idx, :] в vis_upsampled[b, i, :].
-        vis_upsampled = torch.gather(vis_coarse, dim=1, index=assign_expand)
-        # → [B, N_fine, C_in]
+        # 3) concat по каналам
+        cat_feat = torch.cat([vis_upsampled, skip_vis], dim=-1)
 
-        cat         = torch.cat([vis_upsampled, skip_vis], dim=-1)
-        B, N, Ctot  = cat.shape
-        cat_flat    = cat.view(B * N, Ctot)
-        # out_flat    = self.mlp(cat_flat) # <- bad results
-
-        batch = torch.arange(B, device=cat.device).repeat_interleave(N)
-
-        x           = self.lin1(cat_flat)                # [B·N, hidden]
-        x           = self.lnorm1(self.gn1(x, batch))                 # GraphNorm по каждому графу
-        x           = self.act(x)
-        x           = self.dropout(x)
-        x           = self.lin2(x)                       # [B·N, out_dim]
-        x           = self.lnorm2(self.gn2(x, batch))
-        out_flat    = self.act(x)
-
-        # MLP-1
-        # x           = self.ln_tot(cat_flat)                # [B·N, hidden]
-        # x           = self.lnorm2(self.gn2(x, batch))                 # GraphNorm по каждому графу
-        # x           = self.act(x)
-        # x           = self.dropout(x)
-        # out_flat    = x.view(B, N, -1)                      # [B, N_max]
-
-        # MLP-2 + Residual 
-        out         = (self.res_proj(cat_flat) + out_flat).view(B, N, -1)                      # [B, N_max]
-        # out         = out_flat.view(B, N, -1)
+        # 4) flatten для SpiralConv
+        B, HN, C_f = cat_feat.shape
+        N = HN // H
+        x = cat_feat.view(B, H, N, C_f)
+        outs = []
+        for h in range(H):
+            # берем полушарие h: [B, N, C_f]
+            x_h = x[:, h, :, :]
+    
+            # flatten для SpiralConv → [B*N, C_f]
+            x_h = x_h.reshape(B * N, C_f)
+            # 5) применяем все conv'ы
+            for conv in spiral_conv:
+                x_h     = conv(x_h, device=vis.device)# conv ожидает [N, C]
+            x_h = x_h.view(B, N, -1)
+            outs.append(x_h)
         
-        # With out MLP
-        # out = self.res_proj(cat_flat).view(B, N, -1)                      # [B, N_max]
-
-        return out
+        # 3) склеиваем обратно полушария → [B, H, N, outC]
+        x_out = torch.stack(outs, dim=1).to(vis.device)
+        
+        B, H, N, C_out = x_out.shape
+        conv_features = x_out.view(B, H*N, C_out)
+        features      = self.activation_function(conv_features)
+        
+        return features
     

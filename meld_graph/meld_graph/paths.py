@@ -65,8 +65,8 @@ SMOOTH_CALIB_FILE = os.path.join("fsaverage_sym", "surf", "lh.pial")
 
 # default values
 # filename of hdf5 files
-# DEFAULT_HDF5_FILE_ROOT = "{site_code}_{group}_featurematrix_combat.hdf5"
-DEFAULT_HDF5_FILE_ROOT = "{site_code}_featurematrix_combat.hdf5"
+DEFAULT_HDF5_FILE_ROOT = "{site_code}_{group}_featurematrix_combat.hdf5"
+# DEFAULT_HDF5_FILE_ROOT = "{site_code}_featurematrix_combat.hdf5"
 #dataset
 MELD_DATASET = "MELD_dataset_V6.csv"
 NEWSUBJECTS_DATASET = "MELD_dataset_newSubjects.csv"

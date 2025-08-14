@@ -277,7 +277,7 @@ if __name__ == '__main__':
 
     val_ids, test_ids = train_test_split(test_all, test_size=0.3, random_state=42, shuffle=True)
     
-    ckpt_path = './save_model/medseg-v1.ckpt'
+    ckpt_path = './save_model/medseg-v3.ckpt'
 
     # --- Запуск тестового прогона ---    
     print('start testing')

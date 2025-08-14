@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from scripts.new_patient_pipeline.run_script_segmentation import run_script_segmentation
 from scripts.new_patient_pipeline.run_script_preprocessing import run_script_preprocessing
-from scripts.new_patient_pipeline.run_script_prediction import run_script_prediction
+from meld_graph.scripts.new_patient_pipeline.run_script_prediction_bonn_data import run_script_prediction
 from meld_graph.paths import MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE
 from meld_graph.tools_pipeline import get_m, create_demographic_file
 

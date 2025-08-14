@@ -43,12 +43,17 @@ losses=[
     "max_epochs_lr_decay": 1000,
     "max_patience": 1000,
     "loss_dictionary": {
-            # "cross_entropy": {"weight": 1}, <- doesn't work
+            # "cross_entropy": {"weight": 1}, #<- doesn't work
             # 'focal_loss':{'weight':0.1, 'alpha':0.4, 'gamma':4},
-            'focal_loss': {'weight': 1, 'alpha': 0.75, 'gamma': 2},
+            # 'focal_loss': {'weight': 1, 'alpha': 0.75, 'gamma': 2}, # Works for me know!
             # 'dice'      : {'class_weights': [0.01, 0.99], 'weight': 0.9},
             # "dice": {"class_weights": [0.0, 1.0], "weight": 0.1},
             # "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1},
+            # "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
+            # "object_detection":{"apply_to_bottleneck": True, "weight": 1},
+            "cross_entropy": {"weight": 1},
+            "dice": {"class_weights": [0.0, 1.0], "weight": 1},
+            "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1},
             # "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
             # "object_detection":{"apply_to_bottleneck": True, "weight": 1},
         },

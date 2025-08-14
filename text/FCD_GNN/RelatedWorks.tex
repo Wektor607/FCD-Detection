@@ -1,0 +1,53 @@
+\documentclass[FCD_GNN.tex]{subfiles}
+
+\begin{document}
+\chapter{Related Works}
+
+This section reviews existing approaches to focal cortical dysplasia (\acs{fcd}) detection and text-guided medical image segmentation for tumor detection 
+tasks, focusing on their architecture, fusion strategies, and limitations.
+
+Early work on FCD detection focused exclusively on vision-based methods [references]. It is noteworthy that one of the newest models, the MELD Graph 
+[link], represents the surface of the cerebral cortex as a graph with multiple resolutions and applies a GNN-UNet to segment lesions. It provides high 
+sensitivity and specificity by identifying characteristic peaks (more than 20\% in saliency) and determining calibration reliability using the expected 
+calibration error. However, it has not been tested on patients with multiple FCDs, it lacks cross-attentional mechanisms for more complete integration of 
+features, and it does not integrate textual clinical information or evaluate zero-shot generalization across FCD subtypes.
+
+A second line of research explores language-guided segmentation by embedding text semantics into the segmentation pipeline. Early methods 
+(Tomar et al., Li et al.) simply tokenized text and merged embeddings with image features via attention, but struggled to capture high-level semantics. 
+More recent approaches (Lee et al., Zhong et al.) employ deep pretrained text encoders (e.g., CXR-BERT) fused with ConvNeXt-Tiny image features. The 
+Target-sensitive Semantic Distance Module (TSDM) computes contrastive distances between segmentation masks to focus on disease-related regions, while the
+ Language-guided Target Enhancement Module (LTEM) uses cross-attention to reinforce critical image areas. Bi-directional contrastive loss (averaged 
+ cross-entropy in both image→text and text→image directions) yields more fine-grained guidance and enables models trained on 25\% of data to outperform 
+ single-modal baselines trained on full datasets.
+
+To address unpaired multi-modal data, MulModSeg [link] conditions text embeddings on imaging modality using frozen CLIP/BioBERT/Med-CLIP encoders 
+combined with medical prompts, and alternates training between vision and text branches (3D-UNet or SwinUNETR). This scheme improves generalization 
+without requiring paired CT/MR scans. Experiments show that varying the CT:MR ratio in training data shifts performance, underscoring the importance 
+of balanced modality representation. However, effectiveness depends critically on prompt template design and alternating-training convergence.
+
+Organ-aware multi-scale segmentation models (OMT-SAM) extend text prompting to specify organs or tissues, overcoming MedSAM’s reliance on geometric 
+prompts. Pretrained CLIP encoders produce paired image/text features at multiple ViT layers; a cross-attention fusion yields rich prompt embeddings. 
+Since small targets are underrepresented by BCE loss alone, combining Dice loss and BCE loss better captures fine structures. OMT-SAM reports 
+improvements in DSC, NSD, and HD95 for organ segmentation, but requires sophisticated text prompt engineering and still depends on ViT performance on 
+small lesions.
+
+Finally, weakly-supervised methods such as SimTxtSeg leverage simple text cues—e.g., “lesion in left hemisphere”—to guide segmentation without 
+pixel-level labels. Using cross-entropy, DSC, IoU, PPV, NSD, and HD95 metrics, these pipelines demonstrate that even coarse textual hints can 
+significantly improve mask quality over vision-only baselines. Yet, they often assume the availability of consistent, high-quality text labels and 
+have not been validated on rare pathologies like FCD.
+
+Building on these insights, we draw inspiration from Ariadne’s Thread [link], which uses simple text prompts and a lightweight GuideDecoder to segment 
+infected regions in chest X-rays. Remarkably, this approach achieves over a 6\% Dice improvement compared to unimodal baselines while using 
+only 10\% of the training set, highlighting the power of multimodal prompting in low-data regimes. For our FCD task, we adopt the MELD Graph model [link] 
+as a pretrained backbone, since it was trained on the largest dataset among the methods surveyed, providing a robust basis for feature extraction and 
+downstream adaptation.
+
+Importantly, to the best of our knowledge, no prior study has applied text‐guided segmentation methods to the focal cortical dysplasia detection task, 
+underscoring the novelty of our approach. In summary, while graph‐based GNNs excel at modeling cortical geometry and text‐guided methods enrich 
+segmentation with semantic context, no existing approach jointly addresses surface‐space lesion detection, fine‐grained clinical narratives, domain 
+shifts across scanners, and zero‐shot generalization to new FCD subtypes. Our work aims to fill this gap by integrating rich textual descriptions 
+derived from clinical reports into a multi‐resolution GNN framework, with cross‐attention fusion and contrastive alignment to improve robustness and 
+detection accuracy across heterogeneous datasets.
+
+\end{document}
+

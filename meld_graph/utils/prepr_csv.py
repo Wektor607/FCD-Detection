@@ -15,15 +15,17 @@ def project_path(relative_path):
     return os.path.join(PROJECT_ROOT, relative_path)
 
 # --- Configuration ---
-INPUT_CSV   = project_path(os.path.join("data", "preprocessed", "Res_full.csv"))   # исходный файл
-MODE        = "no_percentage"      # варианты: "full", "hemisphere", "hemisphere_lobe", "full+hemisphere", "dominant", "no_percentage"
-OUTPUT_CSV  = project_path(os.path.join("data", "preprocessed", f"Res_{MODE}.csv"))
+file_name = 'MELD_BONN_dataset_full'#input()
+mode = 'hemisphere_lobe'#input()
+INPUT_CSV   = project_path(os.path.join("data", "preprocessed", f"{file_name}.csv"))   # исходный файл
+MODE        = mode      # варианты: "full", "hemisphere", "hemisphere_lobe", "full+hemisphere", "dominant", "no_percentage"
+OUTPUT_CSV  = project_path(os.path.join("data", "preprocessed", f"MELD_{MODE}_.csv"))
 INVERSE     = False
 
 # --- Helper Functions ---
 def extract_hemisphere(text: str) -> str:
-    print(text)
     m = re.search(r"\b(Left|Right)\b", text)
+    print(m)
     return f"{m.group(1)} Hemisphere" if m else text
 
 _LOBE_MAP = {
@@ -40,6 +42,9 @@ _LOBE_MAP = {
 }
 
 def extract_hemisphere_lobes(text: str) -> str:
+    hemi_name = extract_hemisphere(text)
+    
+    text = re.sub(r"\b\d+(?:[.,]\d+)?\s*%\s*", "", text)
     entries = []
     for part in re.split(r"\s*;\s*", text):
         hemi_m = re.search(r"\b(Left|Right)\b", part)
@@ -57,7 +62,13 @@ def extract_hemisphere_lobes(text: str) -> str:
         if e not in seen:
             seen.add(e)
             out.append(e)
-    return "; ".join(out) if out else text
+    
+    # добавляем hemi_name, если он не дублируется с lobes
+    final = "; ".join(out)
+    if hemi_name not in final:
+        final = final + "; " + hemi_name
+    return final if out else text
+    # return "; ".join(out) if out else text
 
 
 def extract_dominant(text: str) -> str:
