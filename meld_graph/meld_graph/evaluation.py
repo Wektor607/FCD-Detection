@@ -77,6 +77,7 @@ class Evaluator:
             "inference",
         ), "mode needs to be either test or val or train or inference"
         self.mode = mode
+        self.aug_mode = aug_mode
         self.make_images = make_images
         self.thresh_and_clust = thresh_and_clust
         self.saliency = saliency
@@ -118,20 +119,20 @@ class Evaluator:
         else:
             self.subject_ids = subject_ids
 
-        self.augment = None
-        if aug_mode == "train":
-            self.config = load_config('../meld_graph/scripts/config_files/example_experiment_config.py')
+        # self.augment = None
+        # if aug_mode == "train":
+        #     self.config = load_config('../meld_graph/scripts/config_files/example_experiment_config.py')
 
-            self.icospheres = IcoSpheres()
-            self.gt = GraphTools(
-                self.icospheres,
-                cohort=None,
-                distance_mask_medial_wall=True,
-            )
+        #     self.icospheres = IcoSpheres()
+        #     self.gt = GraphTools(
+        #         self.icospheres,
+        #         cohort=None,
+        #         distance_mask_medial_wall=True,
+        #     )
 
-            if self.config.data_parameters["augment_data"] != None:
+        #     if self.config.data_parameters["augment_data"] != None:
 
-                self.augment = Augment(self.config.data_parameters["augment_data"], self.gt) 
+        #         self.augment = Augment(self.config.data_parameters["augment_data"], self.gt) 
 
         if dataset != None:
             print('using dataset')
@@ -266,7 +267,11 @@ class Evaluator:
         # predict on data
         # TODO: enable batch_size > 1
         if self.dataset==None:
-            self.dataset = GraphDataset(self.subject_ids, self.cohort, self.experiment.data_parameters, mode=self.mode)
+            self.dataset = GraphDataset(self.subject_ids, 
+                                        self.cohort, 
+                                        self.experiment.data_parameters, 
+                                        mode=self.mode,
+                                        aug_mode=self.aug_mode) # We have to do augmentation here!
         data_loader = torch_geometric.loader.DataLoader(
             self.dataset,
             shuffle=False,
@@ -283,6 +288,7 @@ class Evaluator:
                 prediction_array = []
                 distance_map_array = []
                 labels_array = []
+                labels_full_array = []
                 features_array = []
                 geodesic_array = []
                 saliency_array = []
@@ -290,19 +296,6 @@ class Evaluator:
                 estimatess = {}
 
             subj_id = self.subject_ids[i // 2]
-            
-            if self.augment is not None:
-                print("Augmentation applied\n")
-                subj_dict = {
-                    "features": data.x.cpu().numpy(),
-                    "labels": data.y.cpu().numpy(),
-                    "distances": data.distance_map.cpu().numpy(),
-                }
-                augmented = self.augment.apply(subject_data_dict=subj_dict, hemi= 0 if hemi == "lh" else 1)
-
-                data.x = torch.from_numpy(augmented["features"]).float()
-                data.y = torch.from_numpy(augmented["labels"])
-                data.num_nodes = len(augmented["features"])
 
             data = data.to(device)
             labels = data.y.squeeze()
@@ -340,6 +333,7 @@ class Evaluator:
             prediction_array.append(prediction.numpy()[self.cohort.cortex_mask])
             feature_maps_array.append(feature_maps)
             labels_array.append(labels.cpu().numpy()[self.cohort.cortex_mask])
+            labels_full_array.append(labels.cpu().numpy())
             features_array.append(data.x.cpu().numpy()[self.cohort.cortex_mask])
             distance_map_array.append(distance_map.numpy()[self.cohort.cortex_mask])
             geodesic_array.append(geo_distance.cpu().numpy()[self.cohort.cortex_mask])
@@ -378,6 +372,7 @@ class Evaluator:
 
                 subject_dictionary = {
                     "input_labels": np.concatenate(labels_array),
+                    "full_labels": np.concatenate(labels_full_array),
                     "result": np.concatenate(prediction_array),
                     "distance_map": np.concatenate(distance_map_array),
                     "borderzone": np.concatenate(geodesic_array) < 20,

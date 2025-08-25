@@ -1,178 +1,49 @@
 from utils.model import LanGuideMedSeg
 from engine.losses import SegmentationLoss
 from monai.losses import DiceLoss
-from torchvision.ops import sigmoid_focal_loss
 from torchmetrics import Accuracy, Dice
-from subprocess import Popen, PIPE
-from meld_graph.paths import (MELD_DATA_PATH, DEFAULT_HDF5_FILE_ROOT)
+from meld_graph.paths import MELD_DATA_PATH
 
 import os
-import h5py
 from meld_graph.meld_cohort import MeldCohort
-from scripts.manage_results.register_back_to_xhemi import register_subject_to_xhemi
+from meld_graph.icospheres import IcoSpheres
 from torchmetrics.classification import BinaryJaccardIndex, Precision, Specificity
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from copy import deepcopy
-import torch.nn.functional as F
 import pandas as pd
 import sys
 import numpy as np
 import datetime
 import nibabel as nb
-from engine.loss import calculate_loss
+from engine.converter_mgh_to_nifti import (
+    convert_prediction_mgh_to_nii,
+    save_gt_as_mgh,
+    convert_gt_to_nii,
+    run_command,
+    h5py,
+)
+from engine.pooling import HexPool
 
-def run_command(command, verbose):
-    proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE, encoding='utf-8')
-    stdout, stderr = proc.communicate()
-    if verbose and stdout:
-        print(stdout)
-    if proc.returncode != 0:
-        print(f"❌ COMMAND FAILED: {command}\nERROR: {stderr}")
-        raise RuntimeError(f"Command failed: {command}")
-
-def save_gt_as_mgh(h5_path, hemi, out_dir, subjects_fs_dir):
-    """
-    Извлекает GT-массив из HDF5 и сохраняет его в MGH-файл <hemi>.gt.mgh
-    """
-    key = f".on_lh.lesion.mgh"
-    thick_key = ".combat.on_lh.thickness.sm3.mgh"
-
-    # читаем данные
-    with h5py.File(h5_path, 'r') as f:
-        grp = f[hemi]
-        if key in grp:
-            print(f"✅ Нашли GT в HDF5: {key!r}")
-            arr1d = grp[key][:]
-        else:
-            print(f"⚠️ GT не найден в {hemi}, генерируем пустой по шаблону {thick_key!r}")
-            if thick_key not in grp:
-                raise KeyError(f"Нет ни GT, ни шаблона толщины {thick_key!r} в группе {hemi}")
-            template = grp[thick_key][:]
-            arr1d = np.zeros_like(template, dtype=np.float32)
-
-    # форма (n_vertices, 1, 1)
-    data = arr1d[:, np.newaxis, np.newaxis].astype(np.float32)
-
-    # делаем MGHImage по тому же аффину, что и T1.mgz
-    t1_mgz = os.path.join(subjects_fs_dir, "fsaverage_sym", "mri", "T1.mgz")
-    affine = nb.load(t1_mgz).affine
-
-    img = nb.MGHImage(data, affine)
-
-    # сохраняем
-    os.makedirs(out_dir, exist_ok=True)
-    out_mgh = os.path.join(out_dir, f"{hemi}.gt.mgh")
-    nb.save(img, out_mgh)
-    print(f"✅ Сохранён GT MGH: {out_mgh}")
-    return out_mgh
-
-def convert_gt_to_nii(subjects_dir, mgh_path, hemi, verbose: bool=True):
-    """
-    Конвертирует <hemi>.gt.mgh → <hemi>.gt.nii.gz через fsaverage_sym шаблон
-    """
-    base = os.path.dirname(mgh_path)
-    mgz_path = mgh_path.replace('.mgh', '.mgz')
-    nii_path = os.path.join(base, f"{hemi}.gt.nii.gz")
-
-    fsavg = os.path.join(subjects_dir, 'fsaverage_sym', 'mri')
-    T1    = os.path.join(fsavg, 'T1.mgz')
-    orig  = os.path.join(fsavg, 'orig.mgz')
-    
-    # 1) surface → volume
-    cmd1 = (
-        f"SUBJECTS_DIR={subjects_dir} "
-        f"mri_surf2vol --identity fsaverage_sym "
-        f"--template {T1} --o {mgz_path} "
-        f"--hemi {hemi} --surfval {mgh_path} --fillribbon"
-    )
-    run_command(cmd1, verbose)
-
-    # 2) опционально перепроекция через orig
-    if os.path.isfile(orig):
-        cmd2 = (
-            f"SUBJECTS_DIR={subjects_dir} "
-            f"mri_vol2vol --mov {mgz_path} --targ {orig} "
-            f"--regheader --o {mgz_path} --nearest"
-        )
-        run_command(cmd2, verbose)
-
-    # 3) MGZ → NIfTI
-    cmd3 = f"SUBJECTS_DIR={subjects_dir} mri_convert {mgz_path} {nii_path} -rt nearest"
-    run_command(cmd3, verbose)
-    print(f"✅ Сохранён GT NIfTI: {nii_path}")
-    return nii_path
-
-def convert_prediction_mgh_to_nii(subjects_dir: str,
-                                out_mgh: str,
-                                hemi: str,
-                                predictions_dir: str,
-                                verbose: bool=True):
-    """
-    subjects_dir   — корень SUBJECTS_DIR (там должна быть fsaverage_sym/)
-    out_mgh        — полный путь к только что сохранённому prediction.mgh
-    hemi           — 'lh' или 'rh'
-    predictions_dir— куда в итоге класть prediction_{sid}.nii.gz
-    """
-    # 1) Surface→Volume
-    vol_mgz = out_mgh.replace('.mgh', '.mgz')
-    T1_path = os.path.join(subjects_dir, "fsaverage_sym", "mri", "T1.mgz")
-    cmd1 = (
-        f"SUBJECTS_DIR={subjects_dir} "
-        f"mri_surf2vol --identity fsaverage_sym "
-        f"--template {T1_path} "
-        f"--o {vol_mgz} "
-        f"--hemi {hemi} "
-        f"--surfval {out_mgh} "
-        f"--fillribbon"
-    )
-    run_command(cmd1, verbose)
-
-    # 2) (опционально) перепроекция на orig — можно пропустить, если нет orig
-    orig_path = os.path.join(subjects_dir, "fsaverage_sym", "mri", "orig.mgz")
-    if os.path.isfile(orig_path):
-        cmd2 = (
-            f"SUBJECTS_DIR={subjects_dir} "
-            f"mri_vol2vol --mov {vol_mgz} "
-            f"--targ {orig_path} "
-            f"--regheader "
-            f"--o {vol_mgz} "
-            f"--nearest"
-        )
-        run_command(cmd2, verbose)
-
-    # 3) MGZ→NIfTI
-    vol_nii = os.path.join(predictions_dir,
-                        os.path.basename(out_mgh).replace('.mgh', '.nii.gz'))
-    cmd3 = (
-        f"SUBJECTS_DIR={subjects_dir} "
-        f"mri_convert {vol_mgz} {vol_nii} -rt nearest"
-    )
-    run_command(cmd3, verbose)
-
-    if not os.path.isfile(vol_nii):
-        raise FileNotFoundError(f"Conversion failed, no file: {vol_nii}")
-    print(f"✅ NIfTI saved at: {vol_nii}")
-    return vol_nii
 
 def load_config(config_file):
-    '''load config.py file and return config object'''
-    import importlib.machinery, importlib.util
+    """load config.py file and return config object"""
+    import importlib.machinery
+    import importlib.util
 
-    loader = importlib.machinery.SourceFileLoader('config', config_file)
+    loader = importlib.machinery.SourceFileLoader("config", config_file)
     spec = importlib.util.spec_from_loader(loader.name, loader)
     config = importlib.util.module_from_spec(spec)
     loader.exec_module(config)
     return config
 
+
 class LanGuideMedSegWrapper(pl.LightningModule):
-    def __init__(self, args, tokenizer, max_len, 
-                 alpha=0.85, gamma=2,
-                 coef=(0.7, 0.1, 0.2)):
+    def __init__(self, args, tokenizer, max_len, alpha=0.85, gamma=2):
         super(LanGuideMedSegWrapper, self).__init__()
         self.save_hyperparameters(args)
-        # ---- инициализируем саму модель ----
+
         self.model = LanGuideMedSeg(
             args.bert_type,
             args.meld_script_path,
@@ -181,66 +52,84 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             args.project_dim,
             args.device,
             tokenizer,
-            max_len
-
+            max_len,
         )
-        
+
         self.alpha = alpha
         self.gamma = gamma
-        # self.foc_coef, self.fp_coef, self.dice_coef = coef
 
-        num_ds = len(self.model.decoders)
-        self.loss_fn = SegmentationLoss(num_ds=num_ds, alpha=alpha, gamma=gamma)
+        self.loss_fn = SegmentationLoss(alpha=alpha, gamma=gamma)
 
-        self.train_metrics = nn.ModuleDict({
-            "acc"   : Accuracy(task="binary"),
-            "spec"  : Specificity(task="binary"),
-            "dice"  : Dice(),
-            "ppv"   : Precision(task="binary"),
-            "IoU"   : BinaryJaccardIndex()
-        })
-        self.val_metrics   = deepcopy(self.train_metrics)
-        self.test_metrics  = deepcopy(self.train_metrics)
+        self.train_metrics = nn.ModuleDict(
+            {
+                "acc": Accuracy(task="binary"),
+                "spec": Specificity(task="binary"),
+                "dice": Dice(),
+                "ppv": Precision(task="binary"),
+                "IoU": BinaryJaccardIndex(),
+            }
+        )
+        self.val_metrics = deepcopy(self.train_metrics)
+        self.test_metrics = deepcopy(self.train_metrics)
 
-        self.dice = Dice().to(args.device)                 
-        self.ppv  = Precision(task="binary").to(args.device)
-        self.iou  = BinaryJaccardIndex().to(args.device)
-        self.acc  = Accuracy(task="binary").to(args.device)
+        self.dice = Dice().to(args.device)
+        self.ppv = Precision(task="binary").to(args.device)
+        self.iou = BinaryJaccardIndex().to(args.device)
+        self.acc = Accuracy(task="binary").to(args.device)
 
         self.dice_fn = DiceLoss(include_background=False, sigmoid=True)
-        self.config = load_config('/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py')
+        self.config = load_config(
+            "/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
+        )
 
         self.c = MeldCohort()
 
         self.history = {}
         self.test_dice_scores = []
-        self.test_ppv_scores  = []
-        self.test_iou_scores  = []
-        self.test_acc_scores  = []
+        self.test_ppv_scores = []
+        self.test_iou_scores = []
+        self.test_acc_scores = []
 
         self.base_path = args.feature_path
+
+        # 1) подготовим пулеры на все уровни, как у авторов
+        self.icospheres = IcoSpheres()
+        self.params = next(iter(self.config.losses)) if isinstance(self.config.losses, list) else self.config.losses
+        self.ds_levels = self.params["network_parameters"][
+            "training_parameters"
+        ]["deep_supervision"]["levels"]
+        self.ds_weights = self.params["network_parameters"][
+            "training_parameters"
+        ]["deep_supervision"]["weight"]
+        self.pool_layers = {
+            level: HexPool(self.icospheres.get_downsample(target_level=level))
+            for level in range(min(self.ds_levels), 7)[::-1]
+        }
+
     def configure_optimizers(self):
-        # optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.hparams.lr, weight_decay=1e-2)
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=1e-3) # 1e-2
+        optimizer = torch.optim.AdamW(
+            self.parameters(), lr=self.hparams.lr, weight_decay=1e-3
+        )  # 1e-2
+        # lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        #     optimizer,
+        #     max_lr=self.hparams.lr,# * 10, # <- better than 0.3 and 0.003
+        #     # *10 <- cause a gradient explosion
+        #     total_steps=self.trainer.estimated_stepping_batches, # 600
+        #     pct_start=0.3, # 0.2
+        #     anneal_strategy='cos',
+        # )
+
         lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
-            max_lr=self.hparams.lr,# * 10, # <- better than 0.3 and 0.003
-            # *10 <- cause a gradient explosion
-            total_steps=self.trainer.estimated_stepping_batches, # 600
-            pct_start=0.3, # 0.2
-            anneal_strategy='cos',
+            max_lr=self.hparams.lr,  # 3e-3
+            total_steps=self.trainer.estimated_stepping_batches,
+            pct_start=0.3,  # короче разгон, чаще помогает
+            anneal_strategy="cos",
+            # div_factor=5.0,  # стартовый lr = max_lr / 5  => 6e-4
+            # final_div_factor=50.0,  # финальный lr = max_lr / 50
         )
-        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
-        # TRY THIS
-        # return {"optimizer": optimizer, 
-        #         "lr_scheduler": {
-        #             "scheduler": lr_scheduler,
-        #             "interval": "step",      # важный пункт!
-        #             "frequency": 1,
-        #             "name": "one_cycle_lr"
-        #         }
-        #     }
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
     def forward(self, x):
         return self.model(x)
@@ -256,192 +145,272 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         """
         x, y = batch
         subject_ids, text = x
+
+        # Pooling layers of targets
+        labels_pooled = {7: y.long()}  # y: [B,H,V7]
+        for level in range(min(self.ds_levels), 7)[::-1]:  # 6,5,4,3,2
+            labels_pooled[level] = self.pool_layers[level](
+                labels_pooled[level + 1]
+            )  # [B,H,V_level]
+
         y = y.float()
 
-        logits, ds_logits = self(x)
-        # print(logits['log_softmax'].shape)
-        # print(logits['non_lesion_logits'].shape)
+        logits, outputs = self(x)
+
+        # Loss configuration
+        # B, H, V7 = y.shape
+        # cortex = self.c.cortex_mask  # [V7] bool
+        # loss_cfg = self.params['network_parameters']['training_parameters']['loss_dictionary']
+
+        # ---------- Loss on final layer (S7) ----------
         # estimates = {}
-        # for key, logit in logits.items():
-        #     if key == 'log_softmax':
-        #         num_classes = 2
-        #     elif key == 'non_lesion_logits':
-        #         num_classes = 1
-        #     logit = logit.view(*y.shape, num_classes)
-        #     logit = logit[:, :, self.c.cortex_mask, :].permute(0, 2, 1, 3)
-        #     estimates[key] = logit.reshape(logit.size(0), num_classes, -1)
-        #     print(estimates[key].shape)
-        # sys.exit(0)
-        
-        logits = logits.view_as(y)
+        # estimates["log_softmax"] = outputs["log_softmax"].reshape(B, outputs["log_softmax"].shape[1], -1) #main_logp_masked
 
-        logits  = logits[:, :, self.c.cortex_mask]
-        y       = y[:, :, self.c.cortex_mask]
-        
-        # loss = self.loss_fn.static_loss(logits, y)
-        loss = self.loss_fn.dynamic_loss(logits, y)
-        # loss = self.loss_fn.deep_supervision_loss(logits, y, ds_logits)
+        # # distance head
+        # if "non_lesion_logits" in outputs:
+        #     estimates["non_lesion_logits"] = outputs["non_lesion_logits"].reshape(B, -1)
 
-        # estimates = {
-        #     'log_softmax': logits2, #nn.LogSoftmax(dim=1)(logits2)#logits_hemi,
-        #     'non_lesion_logits': preds_prob_hemi,
-        #     # 'hemi_log_softmax': estimates['hemi_log_softmax'] # Lates
-        # }
-        
-        # target = y.view(y.shape[0], y.shape[1] * y.shape[2]).long()
-        
-        # losses = calculate_loss(
-        #     self.config.losses[0]['network_parameters']['training_parameters']['loss_dictionary'], 
-        #     estimates, 
+        # target = y.view(y.shape[0], -1).long()
+        # losses = {}
+
+        # losses_main = calculate_loss(
+        #     loss_cfg,
+        #     estimates,
         #     labels=target,
-        #     distance_map=estimates['non_lesion_logits'],# Check correctness from authors
+        #     distance_map=estimates.get('non_lesion_logits', None),# Check correctness from authors
         #     #xyzr=xyzr,
-        #     deep_supervision_level=None, 
-        #     device=self.device, 
+        #     deep_supervision_level=None,
+        #     device=self.device,
         #     n_vertices=y.shape[2]
         # )
-        # print(losses)
-        # sys.exit(0)
+        # total_loss = sum(losses_main.values())
+        # losses.update({f"main/{k}": v for k, v in losses_main.items()})
+
+        # # ---------- Losses on DS-levels ----------
+
+        #
+        # for w, l in zip(self.ds_weights, self.ds_levels):
+        #     key = f"ds{l}_log_softmax"
+        #     if key not in outputs:
+        #         continue
+
+        #     V_l = labels_pooled[l].size(-1)
+        #     y_l = labels_pooled[l]
+        #     y_l = y_l.reshape(y_l.shape[0], -1)   # [B*H*V_l]
+
+        #     n_vert_ds = V_l
+
+        #     estimates_ds = {}
+        #     estimates_ds['log_softmax'] = outputs[f'ds{l}_log_softmax'].view(B, outputs[f'ds{l}_log_softmax'].shape[1], -1)
+        #     estimates_ds['non_lesion_logits'] = outputs[f'ds{l}_non_lesion_logits'].view(B, -1)
+
+        #     ds_losses = calculate_loss(
+        #         loss_cfg, estimates_ds, labels=y_l,
+        #         distance_map=estimates_ds['non_lesion_logits'],
+        #         deep_supervision_level=l, device=self.device, n_vertices=n_vert_ds
+        #     )
+        #     # print(ds_losses)
+        #     for k, v in ds_losses.items():
+        #         total_loss = total_loss + w * v
+        #     losses.update({f"ds{l}/{k}": w * v for k, v in ds_losses.items()})
+
+        # ---------- logging ----------
+        # self.log(f"{stage}/loss_total", total_loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+        # for name, val in losses.items():
+        #     self.log(f"{stage}/{name}", val, on_step=True, on_epoch=True, sync_dist=True)
+
+        # loss = sum(losses.values())
+
         # Remain only cortex vertices
-        probs   = torch.sigmoid(logits)
-        
-        probs_flat = probs.view(-1)
-        y          = y.long()
-        y_flat     = y.view(-1)
+        logits = logits.view_as(y)
+        logits = logits[:, :, self.c.cortex_mask]
+        y = y[:, :, self.c.cortex_mask]
+
+        # Static loss
+        # loss = self.loss_fn.static_loss(logits, y)
+        # Dynamic loss
+        loss = self.loss_fn.dynamic_loss(logits, y)
+
+        probs = torch.sigmoid(logits)
+        y = y.long()
+        y_flat = y.view(-1)
 
         probs_bin = probs.clone()
-        for i in range(probs.shape[0]):         # по батчу
-            for h in range(2):                  # lh, rh
+        for i in range(probs.shape[0]):
+            for h in range(2):  # lh, rh
                 th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
                 probs_bin[i, h] = (probs[i, h] >= th).float()
-        
+
         if stage == "test":
             for name, m in self.test_metrics.items():
-                # m.update(probs_flat, y_flat)
                 m.update(probs_bin.view(-1), y_flat)
         else:
-            metrics = self.train_metrics if stage=="train" else self.val_metrics
-            
+            metrics = self.train_metrics if stage == "train" else self.val_metrics
+
             for name, m in metrics.items():
-                # m.update(probs_flat, y_flat)
                 m.update(probs_bin.view(-1), y_flat)
                 val = m.compute()
-                if name == "spec": 
+                if name == "spec":
                     val = 1 - val
-                self.log(name, val, prog_bar=True, on_step=True, on_epoch=False, sync_dist=True)
-                
-        if stage == 'test':
+                self.log(
+                    name,
+                    val,
+                    prog_bar=True,
+                    on_step=True,
+                    on_epoch=False,
+                    sync_dist=True,
+                )
+
+        if stage == "test":
             for sid, pred, tgt in zip(subject_ids, probs, y):
                 dice_i = self.dice(pred, tgt).item()
-                ppv_i  = self.ppv (pred, tgt).item()
-                iou_i  = self.iou (pred, tgt).item()
-                acc_i  = self.acc (pred, tgt).item()
+                ppv_i = self.ppv(pred, tgt).item()
+                iou_i = self.iou(pred, tgt).item()
+                acc_i = self.acc(pred, tgt).item()
 
-                # накапливаем для общего сводного отчёта
                 self.test_dice_scores.append(dice_i)
-                self.test_ppv_scores .append(ppv_i)
-                self.test_iou_scores .append(iou_i)
-                self.test_acc_scores .append(acc_i)
-                
-                print(f"[TEST sample {sid!r}] Dice={dice_i:.3f}, PPV={ppv_i:.3f}, "
-                f"IoU={iou_i:.3f}, Acc={acc_i:.3f}")
+                self.test_ppv_scores.append(ppv_i)
+                self.test_iou_scores.append(iou_i)
+                self.test_acc_scores.append(acc_i)
 
-            # subjects_fs_dir = "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
-            # predictions_output_root = os.path.join(MELD_DATA_PATH, 'output', 'predictions_reports')
+                print(
+                    f"[TEST sample {sid!r}] Dice={dice_i:.3f}, PPV={ppv_i:.3f}, "
+                    f"IoU={iou_i:.3f}, Acc={acc_i:.3f}"
+                )
 
-            # for sid, p, in zip(subject_ids, logits):
-            #     predictions = torch.sigmoid(p).detach().cpu().numpy()
+            # ---------- Save predictions as MGH and NIfTI ----------
 
-            #     classifier_dir  = os.path.join(subjects_fs_dir, sid, "xhemi", "classifier")
-            #     predictions_dir = os.path.join(predictions_output_root, sid, "predictions")
-            #     os.makedirs(classifier_dir, exist_ok=True)
-            #     os.makedirs(predictions_dir, exist_ok=True)
+            subjects_fs_dir = (
+                "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
+            )
+            predictions_output_root = os.path.join(
+                MELD_DATA_PATH, "output", "predictions_reports"
+            )
 
-            #     h5_path         = os.path.join(
-            #         subjects_fs_dir, "meld_combats", f"{sid}_patient_featurematrix_combat.hdf5"
-            #     )
-            #     for idx, hemi in enumerate(["lh", "rh"]):
-            #         # Prediction overlay
-            #         overlay = np.zeros_like(self.c.cortex_mask, dtype=np.float32)
-            #         overlay[self.c.cortex_mask] = predictions[idx]
+            for (
+                sid,
+                p,
+            ) in zip(subject_ids, logits):
+                predictions = torch.sigmoid(p).detach().cpu().numpy()
 
-            #         # Read template thickness to get shape/affine
-            #         combat_file = self.get_combat_feature_path(os.path.join(subjects_fs_dir, 'meld_combats'), sid)
-            #         with h5py.File(combat_file, 'r') as f:
-            #             key = f'.combat.on_lh.thickness.sm3.mgh'
-            #             if key not in f[hemi]:
-            #                 raise KeyError(f"No dataset {key!r} in group {hemi}")
-            #             base_arr = f[hemi][key][:]
+                classifier_dir = os.path.join(
+                    subjects_fs_dir, sid, "xhemi", "classifier"
+                )
+                predictions_dir = os.path.join(
+                    predictions_output_root, sid, "predictions"
+                )
+                os.makedirs(classifier_dir, exist_ok=True)
+                os.makedirs(predictions_dir, exist_ok=True)
 
-            #         mgh_img = nb.MGHImage(base_arr[np.newaxis, :, np.newaxis],
-            #                             affine=nb.load(os.path.join(subjects_fs_dir, "fsaverage_sym", "mri", "T1.mgz")).affine)
+                h5_path = os.path.join(
+                    subjects_fs_dir,
+                    "meld_combats",
+                    f"{sid}_patient_featurematrix_combat.hdf5",
+                )
+                for idx, hemi in enumerate(["lh", "rh"]):
+                    # Prediction overlay
+                    overlay = np.zeros_like(self.c.cortex_mask, dtype=np.float32)
+                    overlay[self.c.cortex_mask] = predictions[idx]
 
-            #         # Save prediction MGH → NIfTI
-            #         out_mgh_pred = os.path.join(classifier_dir, f"{hemi}.prediction.mgh")
-            #         self.save_mgh(out_mgh_pred, overlay, mgh_img)
-            #         print(f"Saved PRED MGH: {out_mgh_pred}")
-            #         convert_prediction_mgh_to_nii(subjects_fs_dir, out_mgh_pred, hemi, predictions_dir, verbose=True)
+                    # Read template thickness to get shape/affine
+                    combat_file = self.get_combat_feature_path(
+                        os.path.join(subjects_fs_dir, "meld_combats"), sid
+                    )
+                    with h5py.File(combat_file, "r") as f:
+                        key = ".combat.on_lh.thickness.sm3.mgh"
+                        if key not in f[hemi]:
+                            raise KeyError(f"No dataset {key!r} in group {hemi}")
+                        base_arr = f[hemi][key][:]
 
-            #         mgh_gt = save_gt_as_mgh(h5_path, hemi, predictions_dir, subjects_fs_dir)
-            #         if mgh_gt:
-            #             convert_gt_to_nii(subjects_fs_dir, mgh_gt, hemi, verbose=True)
-                
-            #     # Combine both hemispheres for prediction
-            #     lh_nii = os.path.join(predictions_dir, "lh.prediction.nii.gz")
-            #     rh_nii = os.path.join(predictions_dir, "rh.prediction.nii.gz")
-            #     final_nii = os.path.join(predictions_dir, f"prediction_{sid}.nii.gz")
-            #     cmd = f"mri_concat --i {lh_nii} --i {rh_nii} --o {final_nii} --combine"
-            #     run_command(cmd, verbose=True)
-            #     print(f"🎉 Final combined PRED NIfTI: {final_nii}")
+                    mgh_img = nb.MGHImage(
+                        base_arr[np.newaxis, :, np.newaxis],
+                        affine=nb.load(
+                            os.path.join(
+                                subjects_fs_dir, "fsaverage_sym", "mri", "T1.mgz"
+                            )
+                        ).affine,
+                    )
 
-            #     # Combine both hemispheres for ground‐truth
-            #     gt_lh_nii = os.path.join(predictions_dir, "lh.gt.nii.gz")
-            #     gt_rh_nii = os.path.join(predictions_dir, "rh.gt.nii.gz")
-            #     gt_final  = os.path.join(predictions_dir, f"ground_truth_{sid}.nii.gz")
-            #     cmd_gt = f"mri_concat --i {gt_lh_nii} --i {gt_rh_nii} --o {gt_final} --combine"
-            #     run_command(cmd_gt, verbose=False)
-            #     print(f"🎉 Final combined GT   NIfTI: {gt_final}")
+                    # Save prediction MGH → NIfTI
+                    out_mgh_pred = os.path.join(
+                        classifier_dir, f"{hemi}.prediction.mgh"
+                    )
+                    self.save_mgh(out_mgh_pred, overlay, mgh_img)
+                    print(f"Saved PRED MGH: {out_mgh_pred}")
+                    convert_prediction_mgh_to_nii(
+                        subjects_fs_dir,
+                        out_mgh_pred,
+                        hemi,
+                        predictions_dir,
+                        verbose=True,
+                    )
+
+                    mgh_gt = save_gt_as_mgh(
+                        h5_path, hemi, predictions_dir, subjects_fs_dir
+                    )
+                    if mgh_gt:
+                        convert_gt_to_nii(subjects_fs_dir, mgh_gt, hemi, verbose=True)
+
+                # Combine both hemispheres for prediction
+                lh_nii = os.path.join(predictions_dir, "lh.prediction.nii.gz")
+                rh_nii = os.path.join(predictions_dir, "rh.prediction.nii.gz")
+                final_nii = os.path.join(predictions_dir, f"prediction_{sid}.nii.gz")
+                cmd = f"mri_concat --i {lh_nii} --i {rh_nii} --o {final_nii} --combine"
+                run_command(cmd, verbose=True)
+                print(f"🎉 Final combined PRED NIfTI: {final_nii}")
+
+                # Combine both hemispheres for ground‐truth
+                gt_lh_nii = os.path.join(predictions_dir, "lh.gt.nii.gz")
+                gt_rh_nii = os.path.join(predictions_dir, "rh.gt.nii.gz")
+                gt_final = os.path.join(predictions_dir, f"ground_truth_{sid}.nii.gz")
+                cmd_gt = f"mri_concat --i {gt_lh_nii} --i {gt_rh_nii} --o {gt_final} --combine"
+                run_command(cmd_gt, verbose=False)
+                print(f"🎉 Final combined GT   NIfTI: {gt_final}")
 
         return loss
-
-        # if batch_idx == 0 and stage == "train":
-        #     print(
-        #         f"\n[{stage.upper()} step {self.global_step}] "
-        #         f"patch-loss(avg) = {loss.item():.4f} "
-        #     )
-            
-        #     # 1) Average probability over all pixels:
-        #     mean_prob = preds_prob.mean().item()
-
-        #     # 2) Share of predicted "pluses" at threshold 0.5:
-        #     pred_pos_frac = (preds_prob > 0.5).float().mean().item()
-
-        #     # 3) Compare with share of real "pluses":
-        #     true_pos_frac = (y > 0.5).float().mean().item()
-
-        #     print(f"mean_prob={mean_prob:.4f}, pred_pos_frac={pred_pos_frac:.4f}, true_pos_frac={true_pos_frac:.4f}")
 
     def training_step(self, batch, batch_idx):
         loss = self.shared_step(batch, batch_idx, stage="train")
-        self.log("train_loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+        self.log(
+            "train_loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=False,
+            sync_dist=True,
+        )
         return loss
-    
+
     def validation_step(self, batch, batch_idx):
         loss = self.shared_step(batch, batch_idx, stage="val")
-        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+        self.log(
+            "val_loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=False,
+            sync_dist=True,
+        )
         return loss
-    
+
     def test_step(self, batch, batch_idx):
         loss = self.shared_step(batch, batch_idx, stage="test")
-        self.log("test_loss", loss, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
+        self.log(
+            "test_loss",
+            loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=False,
+            sync_dist=True,
+        )
         return loss
-    
+
     def shared_epoch_end(self, outputs, stage="train"):
         """
-            outputs: list from the results of the corresponding step:
-            - for train: list[{"loss": tensor, ...}] (Lightning will pack the dictionary)
-            - for val/test: list[tensor]
-            Our task is to correctly extract the loss tensor from each element.
+        outputs: list from the results of the corresponding step:
+        - for train: list[{"loss": tensor, ...}] (Lightning will pack the dictionary)
+        - for val/test: list[tensor]
+        Our task is to correctly extract the loss tensor from each element.
         """
         losses = []
         for o in outputs:
@@ -452,27 +421,26 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             elif isinstance(o, torch.Tensor):
                 losses.append(o.detach())
             else:
-                raise TypeError(f"[ERROR] Unexpected output type in epoch_end: {type(o)}")
-        
+                raise TypeError(
+                    f"[ERROR] Unexpected output type in epoch_end: {type(o)}"
+                )
+
         losses = torch.stack(losses)  # [num_batches]
         avg_loss = losses.mean().item()
 
-        stats = {
-            "epoch": self.current_epoch,
-            f"{stage}_loss": avg_loss
-        }
+        stats = {"epoch": self.current_epoch, f"{stage}_loss": avg_loss}
 
-        if stage == 'train':
+        if stage == "train":
             metrics = self.train_metrics
-        elif stage == 'val':
+        elif stage == "val":
             metrics = self.val_metrics
-        elif stage == 'test':
+        elif stage == "test":
             metrics = self.test_metrics
 
         for name, metric in metrics.items():
             val = metric.compute().item()
             metric.reset()
-            if name == 'spec':
+            if name == "spec":
                 val = 1 - val
 
             stats[f"{stage}_{name}"] = val
@@ -480,14 +448,14 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         if self.test_dice_scores != []:
             # Summarize test metrics
             stats[f"{stage}_Dice_med"] = np.median(self.test_dice_scores)
-            stats[f"{stage}_PPV_med"]  = np.median(self.test_ppv_scores)
-            stats[f"{stage}_IoU_med"]  = np.median(self.test_iou_scores)
-            stats[f"{stage}_ACC_med"]  = np.median(self.test_acc_scores)
+            stats[f"{stage}_PPV_med"] = np.median(self.test_ppv_scores)
+            stats[f"{stage}_IoU_med"] = np.median(self.test_iou_scores)
+            stats[f"{stage}_ACC_med"] = np.median(self.test_acc_scores)
 
-            stats[f"{stage}_dice"]  = np.mean(self.test_dice_scores)
-            stats[f"{stage}_ppv"]   = np.mean(self.test_ppv_scores)
-            stats[f"{stage}_IoU"]   = np.mean(self.test_iou_scores)
-            stats[f"{stage}_acc"]   = np.mean(self.test_acc_scores)
+            stats[f"{stage}_dice"] = np.mean(self.test_dice_scores)
+            stats[f"{stage}_ppv"] = np.mean(self.test_ppv_scores)
+            stats[f"{stage}_IoU"] = np.mean(self.test_iou_scores)
+            stats[f"{stage}_acc"] = np.mean(self.test_acc_scores)
 
         if stage != "test":
             self.history[self.current_epoch] = stats.copy()
@@ -505,13 +473,17 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             f"dice={stats['train_dice']:.4f}, "
             f"IoU={stats['train_IoU']:.4f}"
         )
-        
-        self.log_dict({k: v for k, v in stats.items() if k != "epoch"},
-                      prog_bar=False, logger=True, sync_dist=True)
+
+        self.log_dict(
+            {k: v for k, v in stats.items() if k != "epoch"},
+            prog_bar=False,
+            logger=True,
+            sync_dist=True,
+        )
 
     def validation_epoch_end(self, outputs):
         stats = self.shared_epoch_end(outputs, stage="val")
-        nowtime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        nowtime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print("\n" + "=" * 80 + f" {nowtime}")
         print(
             f"[VAL   epoch {stats['epoch']}] "
@@ -522,13 +494,17 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             f"dice={stats['val_dice']:.4f}, "
             f"IoU={stats['val_IoU']:.4f}"
         )
-        self.log_dict({k: v for k, v in stats.items() if k != "epoch"},
-                      prog_bar=False, logger=True, sync_dist=True)
-        
+        self.log_dict(
+            {k: v for k, v in stats.items() if k != "epoch"},
+            prog_bar=False,
+            logger=True,
+            sync_dist=True,
+        )
+
         ckpt_cb = self.trainer.checkpoint_callback
         if ckpt_cb is not None:
             monitor = ckpt_cb.monitor
-            mode    = ckpt_cb.mode  # "min" или "max"
+            mode = ckpt_cb.mode  # "min" или "max"
             arr_scores = pd.DataFrame(self.history).T[monitor].values
             if mode == "max":
                 best_idx = np.argmax(arr_scores)
@@ -537,7 +513,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             if best_idx == len(arr_scores) - 1:
                 print(
                     f"<<<<<< reach best {monitor} : {arr_scores[best_idx]:.4f} >>>>>>",
-                    file=sys.stderr
+                    file=sys.stderr,
                 )
 
     def test_epoch_end(self, outputs):
@@ -549,10 +525,14 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             f"fp={stats['test_spec']:.4f}, ",
             f"ppv={stats['test_ppv']:.4f}, "
             f"dice={stats['test_dice']:.4f}, "
-            f"IoU={stats['test_IoU']:.4f}"
+            f"IoU={stats['test_IoU']:.4f}",
         )
-        self.log_dict({k: v for k, v in stats.items() if k != "epoch"},
-                      prog_bar=False, logger=True, sync_dist=True)
+        self.log_dict(
+            {k: v for k, v in stats.items() if k != "epoch"},
+            prog_bar=False,
+            logger=True,
+            sync_dist=True,
+        )
 
         # def summarize(scores):
         #     med = np.median(scores)
@@ -572,11 +552,13 @@ class LanGuideMedSegWrapper(pl.LightningModule):
                 return np.nan, np.nan, np.nan
             if N == 1:
                 return float(x[0]), float(x[0]), float(x[0])
-            
+
             rng = np.random.default_rng(seed)
-            idx = rng.integers(0, N, size=(B, N))           # 10k ресемплов с возвращением
-            boot_meds = np.median(x[idx], axis=1)           # медиана в каждом ресемпле
-            lo, hi = np.percentile(boot_meds, [2.5, 97.5])  # 95% CI (percentile bootstrap)
+            idx = rng.integers(0, N, size=(B, N))  # 10k resamples
+            boot_meds = np.median(x[idx], axis=1)  # median in each resample
+            lo, hi = np.percentile(
+                boot_meds, [2.5, 97.5]
+            )  # 95% CI (percentile bootstrap)
             return float(np.median(x)), float(lo), float(hi)
 
         d_med, d_lo, d_hi = summarize_ci(self.test_dice_scores)
@@ -585,10 +567,10 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         a_med, a_lo, a_hi = summarize_ci(self.test_acc_scores)
 
         metrics = {
-            "Dice_med": d_med, #"dice_lo": d_lo, "dice_hi": d_hi,
-            "PPV_med": p_med,  #"ppv_lo": p_lo,  "ppv_hi": p_hi,
-            "IoU_med": i_med,  #"iou_lo": i_lo,  "iou_hi": i_hi,
-            "ACC_med": a_med,  #"acc_lo": a_lo,  "acc_hi": a_hi,
+            "Dice_med": d_med,  # "dice_lo": d_lo, "dice_hi": d_hi,
+            "PPV_med": p_med,  # "ppv_lo": p_lo,  "ppv_hi": p_hi,
+            "IoU_med": i_med,  # "iou_lo": i_lo,  "iou_hi": i_hi,
+            "ACC_med": a_med,  # "acc_lo": a_lo,  "acc_hi": a_hi,
         }
 
         print("\n=== OVERALL TEST METRICS ===")
@@ -606,32 +588,10 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         self.test_acc_scores.clear()
         for m in self.test_metrics.values():
             m.reset()
-            
+
     def get_history(self):
         return pd.DataFrame(self.history.values())
-    
-    @staticmethod    
-    def save_mgh(filename, vertex_values, demo_img):
-        """save mgh file using nibabel and imported demo mgh file"""
-        shape = demo_img.header.get_data_shape()
-        data = np.zeros(shape, dtype=np.float32)
-        data.flat[:] = vertex_values
-        # Save result
-        new_img = nb.MGHImage(data, demo_img.affine, demo_img.header)
-        nb.save(new_img, filename)
 
-    @staticmethod
-    def get_combat_feature_path(combat_hdf5_path, sid):
-        patient_path = os.path.join(combat_hdf5_path, f"{sid}_patient_featurematrix_combat.hdf5")
-        if os.path.exists(patient_path):
-            return patient_path
-
-        control_path = os.path.join(combat_hdf5_path, f"{sid}_control_featurematrix_combat.hdf5")
-        if os.path.exists(control_path):
-            return control_path
-
-        raise FileNotFoundError(f"Файл не найден: ни {patient_path}, ни {control_path}")
-    
     @staticmethod
     def compute_adaptive_threshold(prediction: np.ndarray) -> float:
         mp = prediction.max()

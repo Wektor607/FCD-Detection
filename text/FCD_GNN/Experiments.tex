@@ -1,0 +1,31 @@
+\documentclass[FCD_GNN.tex]{subfiles}
+
+\begin{document}
+\chapter{Experiments}
+\label{chapter:Experiments}
+
+We investigate three factors: (i) how many \ac{meld} feature \emph{stages} are fed into the GNN block; (ii) how many hidden layers from the text encoder are injected into the GuideDecoder; and (iii) the effect of including textual descriptions. 
+
+We freeze the \ac{meld} backbone. In all variants, we \emph{train} the same geometry-based upsampling path
+(HexUnpool + SpiralConv) and the segmentation head. The variants differ only in whether and how
+the GuideDecoder is used before upsampling:
+
+\begin{enumerate}
+  \item \textbf{Unpool+Spiral (no text).} No GuideDecoder is used; features are fed directly into the
+        upsampling path (HexUnpool + SpiralConv) and the segmentation head; no textual input.
+  \item \textbf{GuideDecoder (self-attention only).} A GuideDecoder layer is inserted before upsampling,
+        but the text branch is disabled, so only self-attention operates; the same Unpool+Spiral path and
+        segmentation head are trained.
+  \item \textbf{GuideDecoder + Text (full).} The full GuideDecoder is used (self-attention plus
+        cross-attention to the text encoder); textual descriptions are provided, while the same
+        Unpool+Spiral path and segmentation head are trained.
+\end{enumerate}
+
+\section{Connecting \ac{meld} Feature Stages into the GNN Block}
+TODO
+\section{Text--Decoder Connections (Layer Injection)}
+TODO
+\section{Effect of Textual Descriptions}
+TODO
+
+\end{document}

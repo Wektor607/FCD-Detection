@@ -13,6 +13,7 @@ class CfgNode(dict):
     CfgNode represents an internal node in the configuration tree. It's a simple
     dict-like container that allows for attribute-based access to keys.
     """
+
     def __init__(self, init_dict=None, key_list=None, new_allowed=False):
         # Recursively convert nested dictionaries in init_dict into CfgNodes
         init_dict = {} if init_dict is None else init_dict
@@ -54,16 +55,16 @@ class CfgNode(dict):
         return r
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__,
-                               super(CfgNode, self).__repr__())
+        return "{}({})".format(self.__class__.__name__, super(CfgNode, self).__repr__())
 
 
 def load_cfg_from_cfg_file(file):
     cfg = {}
-    assert os.path.isfile(file) and file.endswith('.yaml'), \
-        '{} is not a yaml file'.format(file)
+    assert os.path.isfile(file) and file.endswith(".yaml"), (
+        "{} is not a yaml file".format(file)
+    )
 
-    with open(file, 'r') as f:
+    with open(file, "r") as f:
         cfg_from_file = yaml.safe_load(f)
 
     for key in cfg_from_file:
@@ -78,11 +79,10 @@ def merge_cfg_from_list(cfg, cfg_list):
     new_cfg = copy.deepcopy(cfg)
     assert len(cfg_list) % 2 == 0
     for full_key, v in zip(cfg_list[0::2], cfg_list[1::2]):
-        subkey = full_key.split('.')[-1]
-        assert subkey in cfg, 'Non-existent key: {}'.format(full_key)
+        subkey = full_key.split(".")[-1]
+        assert subkey in cfg, "Non-existent key: {}".format(full_key)
         value = _decode_cfg_value(v)
-        value = _check_and_coerce_cfg_value_type(value, cfg[subkey], subkey,
-                                                 full_key)
+        value = _check_and_coerce_cfg_value_type(value, cfg[subkey], subkey, full_key)
         setattr(new_cfg, subkey, value)
 
     return new_cfg
@@ -146,12 +146,13 @@ def _check_and_coerce_cfg_value_type(replacement, original, key, full_key):
     except Exception:
         pass
 
-    for (from_type, to_type) in casts:
+    for from_type, to_type in casts:
         converted, converted_value = conditional_cast(from_type, to_type)
         if converted:
             return converted_value
 
     raise ValueError(
-        "Type mismatch ({} vs. {}) with values ({} vs. {}) for config "
-        "key: {}".format(original_type, replacement_type, original,
-                         replacement, full_key))
+        "Type mismatch ({} vs. {}) with values ({} vs. {}) for config key: {}".format(
+            original_type, replacement_type, original, replacement, full_key
+        )
+    )

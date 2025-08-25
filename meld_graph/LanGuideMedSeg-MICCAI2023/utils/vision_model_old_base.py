@@ -1,6 +1,5 @@
 from typing import List, Dict, Tuple
 import os
-import sys
 import torch.nn as nn
 from torch_geometric.nn import SAGEConv
 import numpy as np
@@ -8,29 +7,30 @@ import torch
 import subprocess
 from nibabel.freesurfer import read_geometry
 from torch_geometric.data import Data, Batch
-from torch_geometric.nn import TransformerConv, GraphNorm
-import grafog.transforms as T
+from torch_geometric.nn import GraphNorm
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, dim, dropout=0.1):
         super().__init__()
         # in_channels=dim, out_channels=dim — сохраняем размерность
-        self.conv = SAGEConv(dim, dim, aggr='mean')
-        self.norm1 = GraphNorm(dim) # BatchNorm doesn't work here
+        self.conv = SAGEConv(dim, dim, aggr="mean")
+        self.norm1 = GraphNorm(dim)  # BatchNorm doesn't work here
         self.norm2 = GraphNorm(dim)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, edge_index):
-        h = self.norm1(x) # <- give higher perfomance
+        h = self.norm1(x)  # <- give higher perfomance
         h = self.conv(h, edge_index)
         # residual connection
         h = x + h
         h = self.relu(h)
         # h = self.dropout(h)
-        h = self.norm2(h) # <- necessary second normalization
+        h = self.norm2(h)  # <- necessary second normalization
         return h
-    
+
+
 class VisionModel(nn.Module):
     def __init__(
         self,
@@ -38,25 +38,27 @@ class VisionModel(nn.Module):
         meld_script_path: str,
         feature_path: str,
         output_dir: str,
-        device: str
+        device: str,
     ):
         super().__init__()
 
         self.feature_dim = feature_dim
         self.meld_script_path = meld_script_path
-        
+
         # self.template_root = os.path.join(output_dir, "fs_outputs")
         self.template_root = os.path.join(output_dir, "data4sharing")
         self.feature_path = feature_path
         self.output_dir = output_dir
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
 
-        # GNN layers for each of the first five stages  
-        
-        self.gnn_layers = nn.ModuleList([
-            ResidualBlock(feat_dim, dropout=0.1) # MAKE HYPERPARAMETERS
-            for feat_dim in feature_dim
-        ])
+        # GNN layers for each of the first five stages
+
+        self.gnn_layers = nn.ModuleList(
+            [
+                ResidualBlock(feat_dim, dropout=0.1)  # MAKE HYPERPARAMETERS
+                for feat_dim in feature_dim
+            ]
+        )
 
         # Precompute edge_index for stage1..stage7
         self.edge_index_per_stage = self._collect_edge_indices()
@@ -64,17 +66,20 @@ class VisionModel(nn.Module):
     def run_meld_prediction(self, subject_id: str):
         command = [
             self.meld_script_path,
-            'run_script_prediction.py',
-            '-id', subject_id,
-            '-harmo_code', 'fcd',
-            '-demos', 'participants_with_scanner.tsv'
+            "run_script_prediction.py",
+            "-id",
+            subject_id,
+            "-harmo_code",
+            "fcd",
+            "-demos",
+            "participants_with_scanner.tsv",
         ]
         try:
             subprocess.run(command, check=True)
         except subprocess.CalledProcessError as e:
-            print(f'Error running MELD prediction for {subject_id}: {e}')
+            print(f"Error running MELD prediction for {subject_id}: {e}")
             raise
-        
+
     def _collect_edge_indices(self) -> Dict[str, Tuple[int, torch.Tensor]]:
         """
         1) Scan TEMPLATE_ROOT for fsaverage templates (fsaverage_sym, fsaverage6, fsaverage5, fsaverage4, fsaverage3)
@@ -85,14 +90,19 @@ class VisionModel(nn.Module):
         # Step A: find all candidate templates in TEMPLATE_ROOT
         candidate_templates: Dict[int, str] = {}
         for name in os.listdir(self.template_root):
-            if 'sub' in name or name == 'fsaverage':
-                continue 
+            if "sub" in name or name == "fsaverage":
+                continue
 
             tmpl_dir = os.path.join(self.template_root, name)
             surf_dir = os.path.join(tmpl_dir, "surf")
             lh_pial = os.path.join(surf_dir, "lh.pial")
             rh_pial = os.path.join(surf_dir, "rh.pial")
-            if os.path.isdir(tmpl_dir) and os.path.isdir(surf_dir) and os.path.isfile(lh_pial) and os.path.isfile(rh_pial):
+            if (
+                os.path.isdir(tmpl_dir)
+                and os.path.isdir(surf_dir)
+                and os.path.isfile(lh_pial)
+                and os.path.isfile(rh_pial)
+            ):
                 coords_lh, _ = read_geometry(lh_pial)
                 V_lh = coords_lh.shape[0]
                 coords_rh, _ = read_geometry(rh_pial)
@@ -100,9 +110,11 @@ class VisionModel(nn.Module):
                 if V_lh != V_rh:
                     continue
                 candidate_templates[V_lh] = tmpl_dir
-        
+
         # Step B: locate any subject folder under feature_path/input
-        input_root = os.path.join(self.feature_path, "preprocessed")#"input", "ds004199")
+        input_root = os.path.join(
+            self.feature_path, "preprocessed"
+        )  # "input", "ds004199")
         if not os.path.isdir(input_root):
             raise FileNotFoundError(f"Feature input directory not found: {input_root}")
 
@@ -110,9 +122,10 @@ class VisionModel(nn.Module):
         #     d for d in os.listdir(input_root)
         #     if d.startswith("sub-") and os.path.isdir(os.path.join(input_root, d))
         # ]
-        
+
         subject_dirs = [
-            d for d in os.listdir(input_root)
+            d
+            for d in os.listdir(input_root)
             if d.startswith("MELD_") and os.path.isdir(os.path.join(input_root, d))
         ]
 
@@ -122,14 +135,18 @@ class VisionModel(nn.Module):
         # Use the first subject as example
         example_subj = subject_dirs[0]
         # example_npz = os.path.join(input_root, example_subj, "anat", "features", "feature_maps.npz")
-        example_npz = os.path.join(input_root, example_subj, "features", "feature_maps.npz")
+        example_npz = os.path.join(
+            input_root, example_subj, "features", "feature_maps.npz"
+        )
 
         # If features NPZ does not exist, run MELD for that subject to generate it
         if not os.path.isfile(example_npz):
-        # not os.path.isfile(os.path.join(self.output_dir, "predictions_reports", f"{example_subj}", "predictions/prediction.nii.gz")) or \
+            # not os.path.isfile(os.path.join(self.output_dir, "predictions_reports", f"{example_subj}", "predictions/prediction.nii.gz")) or \
             self.run_meld_prediction(example_subj)
             if not os.path.isfile(example_npz):
-                raise FileNotFoundError(f"Failed to generate NPZ for subject {example_subj}: {example_npz}")
+                raise FileNotFoundError(
+                    f"Failed to generate NPZ for subject {example_subj}: {example_npz}"
+                )
 
         # Step C: read the NPZ to get stage keys and vertex counts
         npz = np.load(example_npz)
@@ -138,7 +155,9 @@ class VisionModel(nn.Module):
         edge_index_per_stage: Dict[str, Tuple[int, torch.Tensor]] = {}
         for st in all_stage_keys:
             _, H, N_i, _ = npz[st].shape
-            V_total = N_i * H   # общее число вершин: N_i вершин на полушарие × H=2 полушарий
+            V_total = (
+                N_i * H
+            )  # общее число вершин: N_i вершин на полушарие × H=2 полушарий
 
             if N_i < 642:
                 # Для малых стадий просто создаём random graph
@@ -152,7 +171,9 @@ class VisionModel(nn.Module):
 
             # Существующая логика для stage1..stage5:
             if N_i not in candidate_templates:
-                raise ValueError(f"Template for {st} with N_i={N_i} not found in {self.template_root}")
+                raise ValueError(
+                    f"Template for {st} with N_i={N_i} not found in {self.template_root}"
+                )
             tmpl_dir = candidate_templates[N_i]
             lh_pial = os.path.join(tmpl_dir, "surf", "lh.pial")
             rh_pial = os.path.join(tmpl_dir, "surf", "rh.pial")
@@ -186,8 +207,7 @@ class VisionModel(nn.Module):
     def forward(self, subject_ids: List[str]):
         # Only use stage1..stage7 keys
         stage_keys = sorted(
-            self.edge_index_per_stage.keys(),
-            key=lambda k: int(k.replace("stage", ""))
+            self.edge_index_per_stage.keys(), key=lambda k: int(k.replace("stage", ""))
         )
         num_used_stages = len(stage_keys)  # expected = 7
 
@@ -197,7 +217,9 @@ class VisionModel(nn.Module):
         for subject_id in subject_ids:
             # Step 1: ensure MELD features exist for this subject
             # features_dir = os.path.join(self.feature_path, "input", "ds004199", subject_id, "anat", "features")
-            features_dir = os.path.join(self.feature_path, "preprocessed", subject_id, "features")
+            features_dir = os.path.join(
+                self.feature_path, "preprocessed", subject_id, "features"
+            )
             npz_path = os.path.join(features_dir, "feature_maps.npz")
             if os.path.isfile(npz_path):
                 features = np.load(npz_path)
@@ -205,8 +227,10 @@ class VisionModel(nn.Module):
                 raise FileNotFoundError(f"Failed to generate NPZ for {subject_id}")
 
             # Step 2: load subject’s NPZ
-            
-            sorted_keys = sorted(features.files, key=lambda k: int(k.replace("stage", "")))
+
+            sorted_keys = sorted(
+                features.files, key=lambda k: int(k.replace("stage", ""))
+            )
             # Only keep stage1..stage7
             sorted_keys = [st for st in sorted_keys if st in self.edge_index_per_stage]
 
@@ -219,14 +243,12 @@ class VisionModel(nn.Module):
 
                 # Retrieve precomputed edge_index
                 _, edge_index = self.edge_index_per_stage[stage]
-                data = Data(x=feat_tensor, 
-                            edge_index=edge_index, 
-                            num_nodes=H * N)
+                data = Data(x=feat_tensor, edge_index=edge_index, num_nodes=H * N)
 
                 if N < 642:
-                    data['gnn_x'] = data.x
+                    data["gnn_x"] = data.x
                 else:
-                    data['gnn_x'] = self.gnn_layers[i](data.x, data.edge_index)
+                    data["gnn_x"] = self.gnn_layers[i](data.x, data.edge_index)
 
                 graph_list_per_stage[i].append(data)
 

@@ -22,23 +22,12 @@ class Transform:
         self.indices = np.load(os.path.join(SCRIPTS_DIR, params_transform["file"]))
         self.indices = self.indices.astype("int")
 
-    def get_indices(self, hemi):
+    def get_indices(self):
         # """Randomly choose a precalculated transformation"""
-        indices_hemi = self.indices[hemi]
-        transf = np.random.randint(0, len(indices_hemi))
+        transf = np.random.randint(0, len(self.indices))
         # initiate lambdas and indices to speed up
-        indices = copy.deepcopy(indices_hemi[transf])
+        indices = copy.deepcopy(self.indices[transf])
         return indices
-
-        # # Random choice
-        # idx_hemi = self.indices[hemi]          # (T, N) или (T, N, 3)
-        # t = np.random.randint(0, len(idx_hemi))
-        # idx = copy.deepcopy(idx_hemi[t])       # (N,) или (N,3)
-
-        # j = np.random.randint(idx.shape[1], size=idx.shape[0])
-        # idx = idx[np.arange(idx.shape[0]), j]
-        # return idx                      
-
 
 class Augment:
     """Class to augment data"""
@@ -60,6 +49,7 @@ class Augment:
         self.log = logging.getLogger(__name__)
         self.params = params
         self.transform_types = set(self.params)
+        
         if "spinning" in self.transform_types:
             self.spinning = Transform(self.params["spinning"])
         else:
@@ -139,6 +129,7 @@ class Augment:
         # normalise by minimum values
         new_dist = tdd["distances"]
         new_dist_norm = new_dist / np.abs(new_dist.min())
+        
         # create low frequencies noise on low res icosphere 2
         n_vert_low = len(self.gt.icospheres.icospheres[2]["coords"])
         noise = np.random.normal(0, noise_std, n_vert_low)
@@ -151,7 +142,7 @@ class Augment:
             noise = noise_upsampled.copy()
         # add noise to distance normalised
         new_mask = (new_dist_norm + noise_upsampled) <= 0
-        # print(f'no lesion before: {sum(tdd["labels"])}, no lesion after {sum(new_mask)}')
+        print(f'no lesion before: {sum(tdd["labels"])}, no lesion after {sum(new_mask)}')
         tdd["labels"] = new_mask
         return tdd
 
@@ -175,16 +166,17 @@ class Augment:
             
         return tdd
 
-    def apply(self, subject_data_dict, hemi):
+    def apply(self, subject_data_dict):
         """TODO"""
         # create a transformed data dict
         tdd = subject_data_dict.copy()
         # randomly augment lesion using distances and noise
         # NOTE lesion augmentation needs to happen before spinning, as medial wall is re-masked after new distances were calculated
-        if (tdd["labels"] == 1).any():
-            if np.random.rand() < self.get_p_param("augment_lesion"):
-                tdd = self.augment_lesion(tdd)
-                self.recompute_distance_and_smoothed(tdd)
+        # if (tdd["labels"] == 1).any():
+        #     if np.random.rand() < self.get_p_param("augment_lesion"):
+        #         tdd = self.augment_lesion(tdd)
+        #         self.recompute_distance_and_smoothed(tdd)
+        #         print("augment_lesion")
 
         mesh_transform = False
         indices = np.arange(tdd["features"].shape[0], dtype=int)
@@ -192,21 +184,23 @@ class Augment:
         # mesh augmentations
         # stack the transformations into a single indexing step
         # if np.random.rand() < self.get_p_param("spinning"):
-        # mesh_transform = True
-        # indices = indices[self.spinning.get_indices()]
-
-        # ADD LATER
+        #     mesh_transform = True
+        #     indices = indices[self.spinning.get_indices()]
+        #     print("spinning")
+        
         # if np.random.rand() < self.get_p_param("warping"):
         #     mesh_transform = True
-        #     indices = indices[self.warping.get_indices(hemi)]
-
+        #     indices = indices[self.warping.get_indices()]
+        #     print("warping")
+        
         # if np.random.rand() < self.get_p_param("flipping"):
         #     mesh_transform = True
-        #     indices = indices[self.flipping.get_indices(hemi)]
-
-        # # apply just once
-        # if mesh_transform:
-        #     tdd = self.apply_indices(indices, tdd)
+        #     indices = indices[self.flipping.get_indices()]
+        #     print("flipping")
+        
+        # apply just once
+        if mesh_transform:
+            tdd = self.apply_indices(indices, tdd)
 
         # Gaussian noise
         if np.random.rand() < self.get_p_param("noise"):

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exp3-lobe+hemi
+#SBATCH --job-name=exp1
 #SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1

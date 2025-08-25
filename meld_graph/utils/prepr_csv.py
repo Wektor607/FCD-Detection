@@ -15,11 +15,11 @@ def project_path(relative_path):
     return os.path.join(PROJECT_ROOT, relative_path)
 
 # --- Configuration ---
-file_name = 'MELD_BONN_dataset_full'#input()
-mode = 'hemisphere_lobe'#input()
+file_name = 'MELD_BONN_dataset_augmented_full'#input()
+mode = 'full'#input()
 INPUT_CSV   = project_path(os.path.join("data", "preprocessed", f"{file_name}.csv"))   # исходный файл
 MODE        = mode      # варианты: "full", "hemisphere", "hemisphere_lobe", "full+hemisphere", "dominant", "no_percentage"
-OUTPUT_CSV  = project_path(os.path.join("data", "preprocessed", f"MELD_{MODE}_.csv"))
+OUTPUT_CSV  = project_path(os.path.join("data", "preprocessed", f"MELD_BONN_dataset_augmented_{MODE}.csv"))
 INVERSE     = False
 
 # --- Helper Functions ---
@@ -98,6 +98,8 @@ def transform_region(text: str, mode: str, inverse: bool) -> str:
         text = re.sub(r'\b\d+(?:\.\d+)?%\s*', '', text)
     if mode == "dominant":
         return extract_dominant(text)
+    if mode == "replace_underscores":
+        return text.replace("_", " ") if isinstance(text, str) else text
     return text
 
 

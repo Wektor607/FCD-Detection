@@ -2,5 +2,26 @@
 
 \begin{document}
 \chapter{Introduction}
+Automatic detection of tumors using medical imaging is widely studied in many internal organs. 
+Recent advances in deep learning and transformer-based approaches have led to impressive results in the diagnosis of lung cancer~\cite{Durgam2025LungCancer}, brain tumor~\cite{Abdusalomov2023BrainTumor}, kidney \ac{ct}~\cite{Sharma2025KidneyCT}, and breast cancer~\cite{Mehmood2025BreastCancer}. 
+These studies demonstrate the potential of modern computer vision techniques to achieve clinically significant results in various diagnostic tasks.  
+
+On the contrary, the detection of epileptogenic lesions, in particular \ac{fcd}, remains a much more difficult task. 
+Unlike tumors, such lesions usually do not change in size over time, and their inconspicuous appearance makes it difficult even for experienced neuroradiologists to identify them. 
+In addition, the lack of large publicly available annotated datasets is hindering progress in this area. 
+To address this problem, within the framework of the \ac{meld} project a large-scale collaborative dataset has recently been created and graph neural network–based approaches have been developed for epileptogenic lesion detection~\cite{Ripart2025MELD}. 
+Although this is the most advanced solution to date, performance remains limited, underscoring the continued complexity of this task.
+
+At the same time, \textit{text-guided} and \textit{multimodal approaches} have gained momentum in medical image analysis. 
+Integrating textual prompts or language-guided embeddings with visual features has been shown to substantially enhance segmentation accuracy in chest X-ray infection detection~\cite{Zhong2023Ariadne}, 
+language-guided multi-level alignments~\cite{Li2024LGMSeg}, organ-aware segmentation~\cite{Zhang2025OrganAware}, multimodal tumor analysis~\cite{Li2025Mulmodseg}, 
+and pneumothorax segmentation~\cite{Huemann2024ConTEXTualNet}. 
+These advances demonstrate that textual annotations, ranging from atlas-based region names to descriptive clinical reports, provide valuable complementary information. 
+By projecting textual and visual features into a shared latent space, such information can be effectively aligned and leveraged to enhance model performance.
+
+We systematically evaluate the impact of different types of textual information, as well as alternative strategies 
+for combining visual features, including the integration of an additional \ac{gnn} blocks on top of \ac{meld}-based representations. 
+We analyze how these design choices influence segmentation performance, demonstrating that the joint integration 
+of language and visual features can enhance both the accuracy and the sensitivity of epileptogenic lesion detection.
 
 \end{document}

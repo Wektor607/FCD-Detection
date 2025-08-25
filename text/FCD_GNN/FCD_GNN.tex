@@ -4,6 +4,7 @@ a4paper, %paper type
 twoside, % two sided printing
 twoside=semi,
 %openright, % start new chapter on right side only ( inserts blank pages )
+openany, % start new chapter on the next page
 DIV=11,      % This parameter organizes the borders (detailed explanation at http://texdoc.net/texmf-dist/doc/latex/koma-script/scrguide.pdf
 BCOR=8mm]{scrbook} % BCOR sets the space, used by the type of  book. (e.g. glued, hard cover..)
 %scrreprt is used for larger texts with chapters (Master or Bachelor Thesis)
@@ -24,23 +25,23 @@ BCOR=8mm]{scrbook} % BCOR sets the space, used by the type of  book. (e.g. glued
         % \listofalgorithms
         
         %\addcontentsline{toc}{chapter}{Acronyms}		
-		\printacronyms[name = {List of Acronyms}]
 		
-        \newpage
+        % \newpage
         
         
 
 \mainmatter
         \subfile{Introduction}
         \subfile{RelatedWorks}
-        \subfile{Methods}
-        \subfile{Results}
+        \subfile{Method}
+        \subfile{Dataset}
+        \subfile{Experiments}
         \subfile{Discussion}
         \subfile{Conclusion}
 
 \backmatter
         \subfile{Appendix}
-        
+        \printacronyms[name = {List of Acronyms}]
         \FloatBarrier
         
         \begin{singlespacing}

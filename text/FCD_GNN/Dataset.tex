@@ -1,0 +1,146 @@
+\documentclass[FCD_GNN.tex]{subfiles}
+
+\begin{document}
+\chapter{Dataset}
+
+We gratefully acknowledge the \textbf{\ac{meld} Project} for providing access to the dataset used in this work. 
+Without this resource, it would not have been possible to conduct a systematic evaluation of our model.
+
+\section{Bonn Dataset}
+
+The Bonn scientific group has published a publicly available presurgical MRI dataset on \textbf{OpenNeuro}, entitled 
+“\textit{An open presurgery MRI dataset of people with epilepsy and focal cortical dysplasia type II}”~\cite{Rueber2023_BonnFCDDataset}.  
+This dataset comprises \textbf{170 participants}, including \textbf{85 individuals with FCD type II} and \textbf{85 healthy controls}. 
+For each participant, the following data are available:
+
+\begin{itemize}
+    \item High-resolution \textbf{3D T1-weighted} MRI scans (isotropic voxels, 1\,mm$^{3}$ or 0.8\,mm$^{3}$ resolution, depending on the subject);
+    \item Corresponding \textbf{isotropic 3D FLAIR} imaging, available for most participants;
+    \item \textbf{Manually delineated regions of interest (ROIs)} identifying FCD lesions, provided for patients only;
+    \item A set of \textbf{clinical and demographic variables} (including age, sex, lesion laterality and location, histopathological subtype IIa/IIb, MRI-negative status, and postoperative outcome according to Engel classification).
+\end{itemize}
+
+\subsection*{Dataset Organization}
+The dataset follows the BIDS standard. Each subject folder contains an \texttt{anat} subfolder with NIfTI files and corresponding JSON metadata. 
+For participants with FCD, lesion ROI masks are also provided. Sequence acquisition parameters are documented in the JSON sidecar files.  
+
+\section{MELD Dataset}
+The \textbf{\ac{meld} Project} provides a large-scale neuroimaging dataset comprising \ac{mri} scans and clinical data of patients with FCD, as well as healthy controls. 
+In total, the dataset includes \textbf{1185 participants} from \textbf{23 international epilepsy surgery centers}. 
+Due to missing or corrupted files in the obtained release, we used a subset of \textbf{960 participants} in our experiments. 
+The dataset is not publicly available; access must be requested directly from the study authors~\cite{Ripart2025MELD}.
+
+For each participant, the dataset includes:
+\begin{itemize}
+    \item Structural \ac{mri}: \textbf{3D T1-weighted} (all participants) and, when available, \textbf{3D FLAIR};
+    \item Lesion annotations: \textbf{manually delineated \acp{roi}} identifying FCD lesions (patients only). For MRI-negative cases, \textbf{postsurgical resection cavities} were used to guide ROI definition;
+    \item Demographic and clinical metadata;
+    \item Predefined splits for training, validation, and test cohorts.
+\end{itemize}
+
+\section{FreeSurfer Processing}
+Each image was processed with the FreeSurfer framework~\cite{Fischl2012FreeSurfer}, from which \textbf{11 core surface-based features} were extracted:
+\begin{itemize}
+    \item \textbf{Morphometric features:} cortical thickness, sulcal depth, curvature, and intrinsic curvature;
+    \item \textbf{Intensity features:} gray–white matter intensity contrast, and FLAIR intensity sampled at 6 intracortical and subcortical depths.
+\end{itemize}
+
+In addition to the raw measurements, features were further processed into 
+\textbf{raw values}, \textbf{control-normalized features}, and \textbf{asymmetry features} 
+(left vs.~right hemisphere). Cortical thickness was additionally adjusted by regressing out curvature. 
+Altogether, this yielded \textbf{34 input features per participant}, computed at \textbf{163{,}842 vertices} 
+on a bilaterally symmetrical cortical surface template~\cite{Ripart2025MELD}.
+
+Since \ac{mri} features vary across scanners and sites, potentially impairing generalization, 
+an \textbf{intersite harmonization} procedure was applied using the distributed \textbf{ComBat} algorithm, 
+a well-established statistical method for removing scanner/site effects~\cite{Ripart2025MELD}.
+
+For conversion from volume space to FreeSurfer surface space, detailed instructions are available in the MELD documentation~\cite{MELDdocs}.
+In practice, however, it is often more practical to request preprocessed files directly from the authors, 
+since converting a single image to surface space is computationally expensive: approximately 6–7 hours per scan 
+(even with FastSurfer~\cite{Henschel2020FastSurfer} on an NVIDIA A100 GPU, the process required 3–4 hours).
+
+\section{Data Augmentation}
+In the original study MELD authors applied augmentations in three stages: 
+\begin{itemize}
+    \item \textbf{Lesion augmentation} — modifying the lesion mask to create new training samples;
+    \item \textbf{Mesh--space transforms} — applying geometric transformations to the cortical surface mesh;
+    \item \textbf{Intensity transforms} — modifying the intensity features at each vertex.
+\end{itemize}
+Each transform is applied independently with probability $p$ defined in the experiment configuration. 
+The order is fixed: lesion augmentation $\rightarrow$ mesh transforms $\rightarrow$ intensity transforms.
+
+\paragraph{Lesion--mask augmentation.}
+Given a geodesic distance map $D$ on the cortical surface (negative inside the lesion),
+we first normalise it by $|\min D|$ and add low–frequency noise, which is generated on a low–resolution icosphere (level~2) and then upsampled to the target resolution using the predefined unpool operators:
+\[
+\tilde{D} \;=\; \texttt{Unpool}\!\left(\tfrac{D}{|\min D|} \;+\; \mathcal{N}(0,\sigma^2)\right), 
+\qquad
+L' \;=\; \mathbbm{1}\{\tilde{D}\le 0\}.
+\]
+In our implementation, we use $\sigma = 0.5$ by default. And as \texttt{Unpool} we use the \texttt{HexUnpool} operator (see Appendix~\nameref{sec:hexunpool}).
+After modifying the binary lesion mask $L$, the geodesic distances and smoothed labels are 
+\textbf{recomputed}:
+\[
+D'=\texttt{fast\_geodesics}(L'), 
+\qquad
+\widetilde{L}=\texttt{smoothing}(L',\,\text{iteration}=10).
+\]
+This procedure is applied only if the lesion mask is non–empty.  
+In our configurations, however, the recomputed distances and smoothed labels were not used further.
+
+\paragraph{Mesh--space transforms (icosphere re–indexing).}
+We use precomputed index maps (provided by the MELD authors in their \href{https://github.com/MELDProject/meld_graph/tree/main/data}{GitHub repository}) and apply them once per sample to all vertex–wise tensors (features, labels, distances, etc.). 
+The MELD framework defines three types of such maps:
+\begin{itemize}
+  \item \textbf{Spinning} — index remapping that corresponds to a rigid rotation of the icosphere.
+  \item \textbf{Warping} — smooth non-rigid remapping that locally compresses or stretches the mesh.
+  \item \textbf{Flipping} — mirror reflection of the mesh, e.g.\ exchanging left and right hemispheres. \emph{Note:} because SpiralConv is order–sensitive, flipping requires reversing the spiral neighbour order; in our final experiments we set $p(\text{flip}){=}0$ to avoid this mismatch.
+\end{itemize}
+
+\paragraph{Per–vertex intensity transforms.}
+All intensity transforms act channel–wise on \texttt{features}:
+\begin{itemize}
+\item \textbf{Gaussian noise}: add $\epsilon\sim\mathcal{N}(0,\sigma^2)$ with $\sigma^2 \sim \mathcal{U}(0,0.1)$.
+\item \textbf{Brightness scaling}: multiply each channel by $m_c\sim\mathcal{U}(0.75,1.25)$.
+\item \textbf{Contrast adjustment}: for each channel $c$, sample $f\sim\mathcal{U}(0.65,1.5)$ and apply
+\[
+x_c \;\leftarrow\; (x_c - \mu_c)\,f + \mu_c,
+\]
+\[min_c = \min(x_c), \quad
+max_c = \max(x_c),
+\]
+\[
+x_c[x_c < min_c] \;=\; min_c, \quad
+x_c[x_c > max_c] \;=\; max_c.
+\]
+\item \textbf{Gamma}: for $\gamma\sim\mathcal{U}(0.7,1.5)$,
+\[
+x' \leftarrow \Big(\frac{x-\min(x)}{\max(x)-\min(x)+\varepsilon}\Big)^{\gamma}\,(\max(x)-\min(x)+\varepsilon)+\min(x);
+\]
+\[
+x'' \;\leftarrow\; \frac{x' - \mu}{\sigma + \varepsilon},
+\quad \text{where } \varepsilon = 10^{-7},\;
+\mu = \mathrm{mean}(x),\;
+\sigma = \mathrm{std}(x).
+\]
+
+We also use an \emph{inverted} variant by applying the same operation to $-x$ and negating back.
+\end{itemize}
+
+\paragraph{Disabled/placeholder transforms.}
+The current implementation contains placeholders for \texttt{Gaussian blur} and \texttt{low–resolution downsampling}.
+These operations are not implemented in the original authors’ code and were not used in our reported results.
+
+\section{Types of Atlas Descriptions}
+
+We generated textual descriptions using \texttt{AtlasReader} ~\cite{notter2019atlasreader}, which registers the 
+input (statistical) MRI map to a template and, for user-specified atlases, produces region names and coordinate tables. 
+In this work we used the Harvard--Oxford (cortical and subcortical) probabilistic atlas ~\cite{harvardoxford_rrid} and the AAL atlas ~\cite{tzourio2002aal}. 
+
+However, even strong validation results with full descriptions do not guarantee robustness in real-world settings: 
+in practice, exact overlap percentages and full region names are rarely available. Therefore, in 
+chapter \ref{chapter:Experiments} we additionally evaluate reduced-text settings: (i) hemisphere only (Left/Right), 
+(ii) gross lobar labels only (e.g., \emph{Frontal Lobe}, \emph{Temporal Lobe}, \emph{Parietal lobe} \dots), and (iii) their combination.
+
+\end{document}

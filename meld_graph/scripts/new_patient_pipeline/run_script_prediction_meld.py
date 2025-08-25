@@ -14,6 +14,7 @@ import sys
 import subprocess
 import json
 import numpy as np
+import nibabel as nb
 import pandas as pd
 import argparse
 import tempfile
@@ -36,6 +37,12 @@ from meld_graph.tools_pipeline import get_m, create_demographic_file, create_dat
 import warnings
 warnings.filterwarnings("ignore")
 
+def save_surface_mgh(arr_1d, out_path: str):
+    arr = np.asarray(arr_1d).ravel().astype(np.float32, copy=False)
+    data3d = arr[:, None, None]          # (N, 1, 1) — НЕ (N,1,1,1)!
+    img = nb.freesurfer.mghformat.MGHImage(data3d, np.eye(4))
+    nb.save(img, out_path)               # .mgh или .mgz — без разницы
+
 def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=False,
     experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT, aug_mode='test'):       
     ''' function to predict on new subject using trained MELD classifier'''
@@ -47,12 +54,13 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
 
     # load models
     exp = Experiment.from_folder(experiment_path)
-
+    
     #update experiment 
     exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, dataset=tmp.name, data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats')
     exp.data_parameters["hdf5_file_root"] = hdf5_file_root
     exp.data_parameters["dataset"] = tmp.name
-    exp.data_parameters["augment_data"] = {}
+    if aug_mode == 'test':
+        exp.data_parameters["augment_data"] = {}
     exp.experiment_path = experiment_path
     
     # launch evaluation
@@ -68,7 +76,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         subject_ids=subject_ids,
         save_dir=output_dir,
         aug_mode=aug_mode,
-        mode="test",
+        mode=aug_mode,#"test", Mode should be the same as aug_mode
         model_name="best_model",
         threshold='slope_threshold',
         thresh_and_clust=True,
@@ -84,11 +92,21 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     
     for subject_id in subject_ids:  
         features        = eva.data_dictionary[subject_id]["feature_maps"]
-        result          = eva.data_dictionary[subject_id]["result"]
+        # result          = eva.data_dictionary[subject_id]["result"]
+        labels          = eva.data_dictionary[subject_id]["full_labels"]
+        
+        labels_np = np.asarray(labels).reshape(-1)  # (2*N,)
+
+        assert labels_np.size % 2 == 0, f"Unexpected labels length: {labels_np.size}"
+        n_hemi = labels_np.size // 2
+
+
+        lh = labels_np[:n_hemi].astype(np.float32)
+        rh = labels_np[n_hemi:].astype(np.float32)
+        
         # estimates    = eva.data_dictionary[subject_id]["estimates"]
         # используем тот output_dir, который пришёл в функцию
         save_dir = f"./data/preprocessed/meld_files/{subject_id}/features"
-
         print(save_dir)
         os.makedirs(save_dir, exist_ok=True)
 
@@ -100,22 +118,42 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
 
         print(f"Saved features to {feat_path}")
 
+        # сохраняем labels в .mgh или .mgz (можно .mgz — будет меньше весить)
+        lab_dir  = os.path.join(f"./data/preprocessed/meld_files/{subject_id}", "labels")
+        lh_path = os.path.join(lab_dir, "labels-lh.mgh")  # или "labels-lh.mgz"
+        rh_path = os.path.join(lab_dir, "labels-rh.mgh")  # или "labels-rh.mgz"
+        os.makedirs(lab_dir, exist_ok=True)
+        save_surface_mgh(lh, lh_path)
+        save_surface_mgh(rh, rh_path)
+        print(f"Saved labels to {lh_path} and {rh_path}")
+
+        # по желанию — метаданные, чтобы быстро понимать «пустое» ли полушарие
+        meta = {
+            "n_vertices": int(n_hemi),
+            "lh_sum": float(lh.sum()),
+            "rh_sum": float(rh.sum()),
+            "lh_has_lesion": bool(lh.sum() > 0),
+            "rh_has_lesion": bool(rh.sum() > 0),
+        }
+        print(meta)
+        np.savez(os.path.join(lab_dir, "labels-meta.npz"), **meta)
         # estimates_path = os.path.join(save_dir, "estimates.npz")
         # np.savez_compressed(estimates_path, 
         #                     estimates)
-        res_path = os.path.join(save_dir, "result.npz")
-        if isinstance(result, np.ndarray):
-            np.savez_compressed(res_path, result=result)        
-        elif isinstance(result, dict):
-            np.savez_compressed(
-                res_path,
-                **{f"pred_{hemi}": arr.detach().cpu().numpy()
-                for hemi, arr in result.items()}
-            )
-        else:
-            raise TypeError(f"Неожиданный тип result: {type(result)}")
 
-        print(f"Saved prediction result to {res_path}")
+        # res_path = os.path.join(save_dir, "result.npz")
+        # if isinstance(result, np.ndarray):
+        #     np.savez_compressed(res_path, result=result)        
+        # elif isinstance(result, dict):
+        #     np.savez_compressed(
+        #         res_path,
+        #         **{f"pred_{hemi}": arr.detach().cpu().numpy()
+        #         for hemi, arr in result.items()}
+        #     )
+        # else:
+        #     raise TypeError(f"Неожиданный тип result: {type(result)}")
+
+        # print(f"Saved prediction result to {res_path}")
 
     # #threshold predictions
     # eva.threshold_and_cluster()

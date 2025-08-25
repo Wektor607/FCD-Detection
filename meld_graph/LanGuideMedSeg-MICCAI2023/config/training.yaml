@@ -20,7 +20,7 @@ TRAIN:
   run_name: FCD_finetuning
 
 MODEL:
-  bert_type: StanfordAIMI/RadBERT #microsoft/BiomedVLP-CXR-BERT-specialized
+  bert_type: StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
   # vision_type: facebook/convnext-tiny-224
   project_dim: 768
 
@@ -29,10 +29,10 @@ MODEL:
   output_dir: ../data/input
 
 DATA:
-  train_csv_path: ../data/preprocessed/MELD_BONN_dataset_lobe+hemi.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv # ./data/QaTa-COV19-v2/prompt/train.csv
+  train_csv_path: ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv # ./data/QaTa-COV19-v2/prompt/train.csv
   train_root_path: ../data/preprocessed/meld_files # ./data/QaTa-COV19-v2/Train
 
-  test_csv_path: ../data/preprocessed/MELD_BONN_dataset_lobe+hemi.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv #./data/QaTa-COV19-v2/prompt/test.csv
+  test_csv_path: ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv #./data/QaTa-COV19-v2/prompt/test.csv
   test_root_path: ../data/preprocessed/meld_files #./data/QaTa-COV19-v2/Test
 
   split_path: ../data/preprocessed/MELD_BONN_splits.csv

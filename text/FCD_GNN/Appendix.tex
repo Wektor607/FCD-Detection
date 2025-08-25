@@ -1,6 +1,25 @@
 \documentclass[FCD_GNN.tex]{subfiles}
 
 \begin{document}
+
 \chapter{Appendix}
+
+\paragraph{HexUnpool} \label{sec:hexunpool}
+We implement surface upsampling with a custom \texttt{HexUnpool} operator.
+Given features $X \in \mathbb{R}^{B \times H \times N_{\text{from}} \times C}$ on a coarse icosphere
+with $N_{\text{from}}$ vertices, \texttt{HexUnpool} produces
+$X' \in \mathbb{R}^{B \times H \times N_{\text{to}} \times C}$ on a denser icosphere ($N_{\text{to}} > N_{\text{from}}$).
+The operation works in two steps:
+\begin{enumerate}
+  \item Existing vertices are copied to the corresponding positions in $X'$.
+  \item Each new vertex is assigned the mean of its parent vertices from the coarse level,
+  according to predefined upsampling indices $\mathcal{I}$.
+\end{enumerate}
+Formally, for each new vertex $v$, we compute
+\[
+X'_v \;=\; \frac{1}{|\mathcal{I}(v)|} \sum_{u \in \mathcal{I}(v)} X_u.
+\]
+% This corresponds to mean unpooling on the icosphere mesh, similar in spirit
+% to unpooling in CNNs, but adapted to the hexagonal topology of spherical meshes.
 
 \end{document}

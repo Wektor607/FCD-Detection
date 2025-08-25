@@ -81,6 +81,7 @@ class GraphDataset(torch_geometric.data.Dataset):
         cohort,
         params,
         mode="train",
+        aug_mode="train",
         transform=None,
         pre_transform=None,
         pre_filter=None,
@@ -94,6 +95,7 @@ class GraphDataset(torch_geometric.data.Dataset):
         self.subject_ids = subject_ids
         self.cohort = cohort
         self.mode = mode
+        self.aug_mode = aug_mode
         self.output_levels = sorted(output_levels)
         self.icospheres = IcoSpheres()
         self.gt = GraphTools(
@@ -102,9 +104,11 @@ class GraphDataset(torch_geometric.data.Dataset):
             distance_mask_medial_wall=distance_mask_medial_wall,
         )
         self.augment = None
-        if (self.mode == "train") & (self.params["augment_data"] != None):
+        
+        if (self.mode == "train") & ((self.params["augment_data"] != None) or self.aug_mode == "train"):
+            print('Augment')
             self.augment = Augment(self.params["augment_data"], self.gt)
-
+            
         if len(self.output_levels) != 0:
             self.pool_layers = {
                 level: HexPool(self.icospheres.get_downsample(target_level=level))
@@ -273,6 +277,7 @@ class GraphDataset(torch_geometric.data.Dataset):
 
         # apply data augmentation
         if self.augment != None:
+            print('Apply Augment')
             subject_data_dict = self.augment.apply(subject_data_dict)
 
         

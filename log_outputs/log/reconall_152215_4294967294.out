@@ -1,279 +1,0 @@
-/home/s17gmikh/miniconda3/envs/MELD-env/bin/python
-Setting MELD_DATA_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data
-Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats
-Setting EXPERIMENT_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/models
-Setting FS_SUBJECTS_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/output/fs_outputs
-Setting BASE_PATH to /home/s17gmikh/FCD-Detection/meld_graph/data/meld_params
-Fold 1/5
-Train IDs: 519
-Validation IDs: 130
-[INFO] Loading model from checkpoint: ./save_model/medseg_fold1.ckpt
-384
-256
-192
-128
-96
-64
-start testing
-Testing: 0it [00:00, ?it/s]huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-Testing:   0%|          | 0/72 [00:00<?, ?it/s]Testing DataLoader 0:   0%|          | 0/72 [00:00<?, ?it/s]huggingface/tokenizers: The current process just got forked, after parallelism has already been used. Disabling parallelism to avoid deadlocks...
-To disable this warning, you can either:
-	- Avoid using `tokenizers` before the fork if possible
-	- Explicitly set the environment variable TOKENIZERS_PARALLELISM=(true | false)
-w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H101_3T_FCD_00043'] Dice=0.848, PPV=0.899, IoU=0.735, Acc=0.999
-[TEST sample 'MELD_H101_3T_FCD_00066'] Dice=0.458, PPV=0.377, IoU=0.297, Acc=0.992
-[TEST sample 'MELD_H101_3T_FCD_00048'] Dice=0.497, PPV=0.345, IoU=0.331, Acc=0.997
-[TEST sample 'MELD_H101_3T_FCD_00064'] Dice=0.512, PPV=0.980, IoU=0.344, Acc=0.982
-Testing DataLoader 0:   1%|▏         | 1/72 [00:14<17:32, 14.82s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H101_3T_FCD_00061'] Dice=0.521, PPV=0.382, IoU=0.352, Acc=0.989
-[TEST sample 'MELD_H101_3T_FCD_00092'] Dice=0.716, PPV=0.769, IoU=0.557, Acc=0.996
-[TEST sample 'MELD_H101_3T_FCD_00099'] Dice=0.351, PPV=0.218, IoU=0.213, Acc=0.992
-[TEST sample 'MELD_H101_3T_FCD_00032'] Dice=0.495, PPV=0.776, IoU=0.329, Acc=0.994
-Testing DataLoader 0:   3%|▎         | 2/72 [00:27<16:11, 13.89s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H101_3T_FCD_00121'] Dice=0.240, PPV=0.184, IoU=0.136, Acc=0.994
-[TEST sample 'MELD_H101_3T_FCD_00136'] Dice=0.255, PPV=0.150, IoU=0.146, Acc=0.989
-[TEST sample 'MELD_H101_3T_FCD_00125'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
-[TEST sample 'MELD_H101_3T_FCD_00134'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
-Testing DataLoader 0:   4%|▍         | 3/72 [00:40<15:24, 13.40s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H101_3T_FCD_00006'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
-[TEST sample 'MELD_H101_3T_FCD_00144'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
-[TEST sample 'MELD_H101_3T_FCD_00020'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.988
-[TEST sample 'MELD_H101_3T_FCD_00142'] Dice=0.574, PPV=0.436, IoU=0.403, Acc=0.994
-Testing DataLoader 0:   6%|▌         | 4/72 [00:52<14:51, 13.10s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H101_3T_FCD_00107'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
-[TEST sample 'MELD_H101_3T_FCD_00074'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
-[TEST sample 'MELD_H101_3T_FCD_00128'] Dice=0.554, PPV=0.774, IoU=0.383, Acc=0.993
-[TEST sample 'MELD_H101_3T_FCD_00108'] Dice=0.568, PPV=0.481, IoU=0.397, Acc=0.997
-Testing DataLoader 0:   7%|▋         | 5/72 [01:04<14:25, 12.91s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H101_3T_FCD_00009'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.995
-[TEST sample 'MELD_H101_3T_FCD_00004'] Dice=0.813, PPV=0.930, IoU=0.685, Acc=0.999
-[TEST sample 'MELD_H101_3T_FCD_00095'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
-[TEST sample 'MELD_H101_3T_FCD_00034'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.996
-Testing DataLoader 0:   8%|▊         | 6/72 [01:16<14:04, 12.79s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H101_3T_FCD_00103'] Dice=0.315, PPV=0.238, IoU=0.187, Acc=0.988
-[TEST sample 'MELD_H101_3T_FCD_00145'] Dice=0.540, PPV=0.458, IoU=0.369, Acc=0.995
-[TEST sample 'MELD_H101_3T_FCD_00100'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.991
-[TEST sample 'MELD2_H7_3T_FCD_001'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
-Testing DataLoader 0:  10%|▉         | 7/72 [01:28<13:45, 12.70s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD2_H7_3T_FCD_004'] Dice=0.519, PPV=0.663, IoU=0.351, Acc=0.987
-[TEST sample 'MELD2_H7_3T_FCD_005'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.984
-[TEST sample 'MELD2_H7_3T_FCD_009'] Dice=0.441, PPV=0.859, IoU=0.283, Acc=0.962
-[TEST sample 'MELD_H10_3T_FCD_0002'] Dice=0.475, PPV=0.325, IoU=0.312, Acc=0.971
-Testing DataLoader 0:  11%|█         | 8/72 [01:41<13:28, 12.64s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H10_3T_FCD_0009'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.985
-[TEST sample 'MELD_H10_3T_FCD_0013'] Dice=0.232, PPV=1.000, IoU=0.131, Acc=0.989
-[TEST sample 'MELD_H10_3T_FCD_0014'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.979
-[TEST sample 'MELD_H10_3T_FCD_0016'] Dice=0.670, PPV=0.568, IoU=0.504, Acc=0.978
-Testing DataLoader 0:  12%|█▎        | 9/72 [01:53<13:13, 12.59s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H11_3T_FCD_0002'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
-[TEST sample 'MELD_H11_3T_FCD_0006'] Dice=0.688, PPV=0.675, IoU=0.524, Acc=0.998
-[TEST sample 'MELD_H11_3T_FCD_0007'] Dice=0.421, PPV=0.269, IoU=0.266, Acc=0.992
-[TEST sample 'MELD_H11_3T_FCD_0009'] Dice=0.501, PPV=0.335, IoU=0.334, Acc=0.997
-Testing DataLoader 0:  14%|█▍        | 10/72 [02:05<12:59, 12.57s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H11_3T_FCD_0010'] Dice=0.660, PPV=0.829, IoU=0.493, Acc=0.988
-[TEST sample 'MELD_H11_3T_FCD_0011'] Dice=0.337, PPV=0.278, IoU=0.203, Acc=0.997
-[TEST sample 'MELD_H11_3T_FCD_0015'] Dice=0.002, PPV=0.429, IoU=0.001, Acc=0.991
-[TEST sample 'MELD_H11_3T_FCD_0019'] Dice=0.761, PPV=0.725, IoU=0.615, Acc=0.997
-Testing DataLoader 0:  15%|█▌        | 11/72 [02:18<12:48, 12.60s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H11_3T_FCD_0020'] Dice=0.534, PPV=0.374, IoU=0.364, Acc=0.993
-[TEST sample 'MELD_H11_3T_FCD_0025'] Dice=0.637, PPV=0.488, IoU=0.468, Acc=0.996
-[TEST sample 'MELD_H11_3T_FCD_0027'] Dice=0.556, PPV=0.458, IoU=0.385, Acc=0.987
-[TEST sample 'MELD_H11_3T_FCD_0028'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.992
-Testing DataLoader 0:  17%|█▋        | 12/72 [02:30<12:34, 12.57s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H11_3T_FCD_0030'] Dice=0.704, PPV=0.559, IoU=0.543, Acc=0.995
-[TEST sample 'MELD_H11_3T_FCD_0031'] Dice=0.390, PPV=0.242, IoU=0.242, Acc=0.993
-[TEST sample 'MELD_H11_3T_FCD_0040'] Dice=0.730, PPV=0.668, IoU=0.574, Acc=0.997
-[TEST sample 'MELD_H11_3T_FCD_0041'] Dice=0.769, PPV=0.746, IoU=0.625, Acc=0.997
-Testing DataLoader 0:  18%|█▊        | 13/72 [02:43<12:20, 12.56s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H11_3T_FCD_0042'] Dice=0.566, PPV=0.407, IoU=0.394, Acc=0.997
-[TEST sample 'MELD_H11_3T_FCD_0044'] Dice=0.207, PPV=0.116, IoU=0.115, Acc=0.990
-[TEST sample 'MELD_H11_3T_FCD_0045'] Dice=0.459, PPV=0.298, IoU=0.298, Acc=0.991
-[TEST sample 'MELD_H12_3T_FCD_0003'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.987
-Testing DataLoader 0:  19%|█▉        | 14/72 [02:55<12:06, 12.52s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H12_3T_FCD_0006'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.982
-[TEST sample 'MELD_H12_3T_FCD_0007'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.959
-[TEST sample 'MELD_H12_3T_FCD_0009'] Dice=0.847, PPV=0.827, IoU=0.734, Acc=0.995
-[TEST sample 'MELD_H12_3T_FCD_0011'] Dice=0.694, PPV=0.734, IoU=0.531, Acc=0.993
-Testing DataLoader 0:  21%|██        | 15/72 [03:07<11:54, 12.53s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H12_3T_FCD_0014'] Dice=0.756, PPV=0.820, IoU=0.608, Acc=0.996
-[TEST sample 'MELD_H12_3T_FCD_0016'] Dice=0.795, PPV=0.713, IoU=0.659, Acc=0.995
-[TEST sample 'MELD_H12_3T_FCD_0018'] Dice=0.463, PPV=0.305, IoU=0.301, Acc=0.993
-[TEST sample 'MELD_H12_3T_FCD_0030'] Dice=0.490, PPV=0.848, IoU=0.324, Acc=0.990
-Testing DataLoader 0:  22%|██▏       | 16/72 [03:20<11:41, 12.53s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H14_3T_FCD_0009'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.991
-[TEST sample 'MELD_H14_3T_FCD_0011'] Dice=0.242, PPV=0.137, IoU=0.137, Acc=0.976
-[TEST sample 'MELD_H14_3T_FCD_0013'] Dice=0.566, PPV=0.470, IoU=0.395, Acc=0.953
-[TEST sample 'MELD_H14_3T_FCD_0016'] Dice=0.425, PPV=0.364, IoU=0.270, Acc=0.998
-Testing DataLoader 0:  24%|██▎       | 17/72 [03:32<11:28, 12.52s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H14_3T_FCD_0017'] Dice=0.240, PPV=0.136, IoU=0.136, Acc=0.964
-[TEST sample 'MELD_H14_3T_FCD_0021'] Dice=0.617, PPV=0.926, IoU=0.446, Acc=0.977
-[TEST sample 'MELD_H14_3T_FCD_0022'] Dice=0.495, PPV=0.510, IoU=0.329, Acc=0.991
-[TEST sample 'MELD_H14_3T_FCD_0023'] Dice=0.628, PPV=0.531, IoU=0.457, Acc=0.987
-Testing DataLoader 0:  25%|██▌       | 18/72 [03:44<11:14, 12.50s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H14_3T_FCD_0024'] Dice=0.471, PPV=0.684, IoU=0.308, Acc=0.988
-[TEST sample 'MELD_H14_3T_FCD_0025'] Dice=0.642, PPV=0.766, IoU=0.473, Acc=0.983
-[TEST sample 'MELD_H14_3T_FCD_0026'] Dice=0.124, PPV=0.077, IoU=0.066, Acc=0.988
-[TEST sample 'MELD_H14_3T_FCD_0029'] Dice=0.013, PPV=0.154, IoU=0.007, Acc=0.975
-Testing DataLoader 0:  26%|██▋       | 19/72 [03:57<11:01, 12.48s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H14_3T_FCD_0030'] Dice=0.758, PPV=0.816, IoU=0.610, Acc=0.997
-[TEST sample 'MELD_H14_3T_FCD_0031'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.985
-[TEST sample 'MELD_H14_3T_FCD_0034'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.995
-[TEST sample 'MELD_H14_3T_FCD_0035'] Dice=0.321, PPV=0.191, IoU=0.191, Acc=0.993
-Testing DataLoader 0:  28%|██▊       | 20/72 [04:09<10:49, 12.49s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H14_3T_FCD_0037'] Dice=0.207, PPV=0.127, IoU=0.116, Acc=0.992
-[TEST sample 'MELD_H14_3T_FCD_0039'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.987
-[TEST sample 'MELD_H14_3T_FCD_0040'] Dice=0.009, PPV=1.000, IoU=0.004, Acc=0.997
-[TEST sample 'MELD_H14_3T_FCD_0042'] Dice=0.665, PPV=0.579, IoU=0.498, Acc=0.987
-Testing DataLoader 0:  29%|██▉       | 21/72 [04:22<10:38, 12.52s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H15_3T_FCD_0003'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.996
-[TEST sample 'MELD_H15_3T_FCD_0004'] Dice=0.749, PPV=0.650, IoU=0.599, Acc=0.968
-[TEST sample 'MELD_H15_3T_FCD_0007'] Dice=0.639, PPV=0.501, IoU=0.470, Acc=0.992
-[TEST sample 'MELD_H15_3T_FCD_0008'] Dice=0.712, PPV=0.605, IoU=0.552, Acc=0.997
-Testing DataLoader 0:  31%|███       | 22/72 [04:35<10:25, 12.52s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H15_3T_FCD_0010'] Dice=0.493, PPV=0.599, IoU=0.327, Acc=0.997
-[TEST sample 'MELD_H16_3T_FCD_001'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
-[TEST sample 'MELD_H16_3T_FCD_003'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.996
-[TEST sample 'MELD_H16_3T_FCD_004'] Dice=0.683, PPV=0.643, IoU=0.519, Acc=0.995
-Testing DataLoader 0:  32%|███▏      | 23/72 [04:47<10:13, 12.52s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H16_3T_FCD_005'] Dice=0.480, PPV=0.383, IoU=0.316, Acc=0.995
-[TEST sample 'MELD_H16_3T_FCD_008'] Dice=0.766, PPV=0.708, IoU=0.621, Acc=0.991
-[TEST sample 'MELD_H16_3T_FCD_010'] Dice=0.538, PPV=0.721, IoU=0.368, Acc=0.998
-[TEST sample 'MELD_H16_3T_FCD_013'] Dice=0.662, PPV=0.631, IoU=0.495, Acc=0.997
-Testing DataLoader 0:  33%|███▎      | 24/72 [05:00<10:00, 12.52s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H16_3T_FCD_015'] Dice=0.705, PPV=0.568, IoU=0.544, Acc=0.995
-[TEST sample 'MELD_H16_3T_FCD_016'] Dice=0.610, PPV=0.486, IoU=0.439, Acc=0.988
-[TEST sample 'MELD_H16_3T_FCD_017'] Dice=0.491, PPV=0.367, IoU=0.325, Acc=0.992
-[TEST sample 'MELD_H16_3T_FCD_022'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.982
-Testing DataLoader 0:  35%|███▍      | 25/72 [05:14<09:51, 12.58s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H16_3T_FCD_023'] Dice=0.642, PPV=0.497, IoU=0.473, Acc=0.990
-[TEST sample 'MELD_H16_3T_FCD_026'] Dice=0.707, PPV=0.648, IoU=0.547, Acc=0.992
-[TEST sample 'MELD_H16_3T_FCD_045'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.999
-[TEST sample 'MELD_H16_3T_FCD_048'] Dice=0.071, PPV=0.037, IoU=0.037, Acc=0.993
-Testing DataLoader 0:  36%|███▌      | 26/72 [05:34<09:52, 12.88s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_15T_FCD_0011'] Dice=0.368, PPV=0.331, IoU=0.225, Acc=0.992
-[TEST sample 'MELD_H17_15T_FCD_0017'] Dice=0.728, PPV=0.672, IoU=0.572, Acc=0.998
-[TEST sample 'MELD_H17_15T_FCD_0102'] Dice=0.460, PPV=0.940, IoU=0.298, Acc=0.966
-[TEST sample 'MELD_H17_15T_FCD_0104'] Dice=0.176, PPV=0.152, IoU=0.097, Acc=0.991
-Testing DataLoader 0:  38%|███▊      | 27/72 [05:56<09:54, 13.21s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_15T_FCD_0139'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.997
-[TEST sample 'MELD_H17_3T_FCD_0001'] Dice=0.567, PPV=0.414, IoU=0.395, Acc=0.997
-[TEST sample 'MELD_H17_3T_FCD_0014'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.992
-[TEST sample 'MELD_H17_3T_FCD_0018'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.997
-Testing DataLoader 0:  39%|███▉      | 28/72 [06:17<09:52, 13.48s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_3T_FCD_0022'] Dice=0.177, PPV=0.102, IoU=0.097, Acc=0.992
-[TEST sample 'MELD_H17_3T_FCD_0039'] Dice=0.435, PPV=0.657, IoU=0.278, Acc=0.995
-[TEST sample 'MELD_H17_3T_FCD_0043'] Dice=0.534, PPV=0.366, IoU=0.365, Acc=0.986
-[TEST sample 'MELD_H17_3T_FCD_0044'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.998
-Testing DataLoader 0:  40%|████      | 29/72 [06:38<09:50, 13.73s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_3T_FCD_0053'] Dice=0.573, PPV=0.415, IoU=0.402, Acc=0.994
-[TEST sample 'MELD_H17_3T_FCD_0054'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.979
-[TEST sample 'MELD_H17_3T_FCD_0057'] Dice=0.495, PPV=0.340, IoU=0.329, Acc=0.966
-[TEST sample 'MELD_H17_3T_FCD_0061'] Dice=0.684, PPV=0.593, IoU=0.520, Acc=0.997
-Testing DataLoader 0:  42%|████▏     | 30/72 [06:57<09:43, 13.90s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_3T_FCD_0067'] Dice=0.462, PPV=0.317, IoU=0.300, Acc=0.992
-[TEST sample 'MELD_H17_3T_FCD_0070'] Dice=0.574, PPV=0.417, IoU=0.402, Acc=0.997
-[TEST sample 'MELD_H17_3T_FCD_0076'] Dice=0.560, PPV=0.547, IoU=0.389, Acc=0.996
-[TEST sample 'MELD_H17_3T_FCD_0079'] Dice=0.649, PPV=0.546, IoU=0.481, Acc=0.956
-Testing DataLoader 0:  43%|████▎     | 31/72 [07:13<09:33, 13.99s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_3T_FCD_0084'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.975
-[TEST sample 'MELD_H17_3T_FCD_0086'] Dice=0.782, PPV=0.738, IoU=0.642, Acc=0.998
-[TEST sample 'MELD_H17_3T_FCD_0090'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.999
-[TEST sample 'MELD_H17_3T_FCD_0091'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.988
-Testing DataLoader 0:  44%|████▍     | 32/72 [07:26<09:18, 13.95s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_3T_FCD_0094'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
-[TEST sample 'MELD_H17_3T_FCD_0098'] Dice=0.554, PPV=0.836, IoU=0.383, Acc=0.999
-[TEST sample 'MELD_H17_3T_FCD_0112'] Dice=0.191, PPV=0.158, IoU=0.105, Acc=0.993
-[TEST sample 'MELD_H17_3T_FCD_0116'] Dice=0.844, PPV=0.946, IoU=0.731, Acc=0.985
-Testing DataLoader 0:  46%|████▌     | 33/72 [07:43<09:07, 14.05s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H17_3T_FCD_0120'] Dice=0.663, PPV=0.506, IoU=0.495, Acc=0.983
-[TEST sample 'MELD_H17_3T_FCD_0127'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.977
-[TEST sample 'MELD_H17_3T_FCD_0135'] Dice=0.649, PPV=0.965, IoU=0.481, Acc=0.994
-[TEST sample 'MELD_H17_3T_FCD_0143'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.998
-Testing DataLoader 0:  47%|████▋     | 34/72 [08:04<09:01, 14.25s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H18_3T_FCD_0001'] Dice=0.635, PPV=0.703, IoU=0.465, Acc=0.996
-[TEST sample 'MELD_H18_3T_FCD_0006'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.986
-[TEST sample 'MELD_H18_3T_FCD_0008'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.995
-[TEST sample 'MELD_H18_3T_FCD_0009'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
-Testing DataLoader 0:  49%|████▊     | 35/72 [08:20<08:49, 14.30s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H18_3T_FCD_0101'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
-[TEST sample 'MELD_H18_3T_FCD_0109'] Dice=0.644, PPV=0.525, IoU=0.475, Acc=0.988
-[TEST sample 'MELD_H18_3T_FCD_0115'] Dice=0.731, PPV=0.615, IoU=0.576, Acc=0.995
-[TEST sample 'MELD_H18_3T_FCD_0124'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.997
-Testing DataLoader 0:  50%|█████     | 36/72 [08:37<08:37, 14.37s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H21_15T_FCD_0036'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.973
-[TEST sample 'MELD_H21_15T_FCD_0038'] Dice=0.325, PPV=0.881, IoU=0.194, Acc=0.856
-[TEST sample 'MELD_H21_15T_FCD_0040'] Dice=0.018, PPV=1.000, IoU=0.009, Acc=0.966
-[TEST sample 'MELD_H21_15T_FCD_0043'] Dice=0.058, PPV=0.030, IoU=0.030, Acc=0.936
-Testing DataLoader 0:  51%|█████▏    | 37/72 [08:56<08:27, 14.50s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H21_15T_FCD_0047'] Dice=0.049, PPV=0.026, IoU=0.025, Acc=0.952
-[TEST sample 'MELD_H21_15T_FCD_0049'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.998
-[TEST sample 'MELD_H21_15T_FCD_0050'] Dice=0.491, PPV=0.707, IoU=0.325, Acc=0.985
-[TEST sample 'MELD_H21_15T_FCD_0051'] Dice=0.056, PPV=0.998, IoU=0.029, Acc=0.630
-Testing DataLoader 0:  53%|█████▎    | 38/72 [09:16<08:17, 14.64s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H21_15T_FCD_0052'] Dice=0.423, PPV=0.906, IoU=0.268, Acc=0.983
-[TEST sample 'MELD_H21_3T_FCD_0007'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.984
-[TEST sample 'MELD_H21_3T_FCD_0008'] Dice=0.686, PPV=0.634, IoU=0.522, Acc=0.983
-[TEST sample 'MELD_H21_3T_FCD_0009'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
-Testing DataLoader 0:  54%|█████▍    | 39/72 [09:36<08:08, 14.79s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H21_3T_FCD_0013'] Dice=0.707, PPV=0.927, IoU=0.547, Acc=0.981
-[TEST sample 'MELD_H21_3T_FCD_0016'] Dice=0.068, PPV=0.043, IoU=0.035, Acc=0.970
-[TEST sample 'MELD_H21_3T_FCD_0017'] Dice=0.024, PPV=0.023, IoU=0.012, Acc=0.989
-[TEST sample 'MELD_H21_3T_FCD_0018'] Dice=0.576, PPV=0.422, IoU=0.405, Acc=0.997
-Testing DataLoader 0:  56%|█████▌    | 40/72 [09:57<07:58, 14.94s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H21_3T_FCD_0030'] Dice=0.690, PPV=0.872, IoU=0.527, Acc=0.987
-[TEST sample 'MELD_H21_3T_FCD_0033'] Dice=0.250, PPV=0.187, IoU=0.143, Acc=0.991
-[TEST sample 'MELD_H21_3T_FCD_0034'] Dice=0.200, PPV=0.111, IoU=0.111, Acc=0.983
-[TEST sample 'MELD_H21_3T_FCD_0035'] Dice=0.151, PPV=0.238, IoU=0.082, Acc=0.966
-Testing DataLoader 0:  57%|█████▋    | 41/72 [10:18<07:47, 15.09s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H21_3T_FCD_0046'] Dice=0.272, PPV=0.167, IoU=0.158, Acc=0.978
-[TEST sample 'MELD_H21_3T_FCD_0048'] Dice=0.728, PPV=0.909, IoU=0.573, Acc=0.991
-[TEST sample 'MELD_H23_15T_FCD_0003'] Dice=0.211, PPV=0.149, IoU=0.118, Acc=0.970
-[TEST sample 'MELD_H23_15T_FCD_0004'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.995
-Testing DataLoader 0:  58%|█████▊    | 42/72 [10:39<07:37, 15.24s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H23_15T_FCD_0005'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
-[TEST sample 'MELD_H23_15T_FCD_0011'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.987
-[TEST sample 'MELD_H23_15T_FCD_0013'] Dice=0.607, PPV=0.607, IoU=0.435, Acc=0.977
-[TEST sample 'MELD_H23_15T_FCD_0015'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.985
-Testing DataLoader 0:  60%|█████▉    | 43/72 [10:59<07:25, 15.35s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H23_15T_FCD_0020'] Dice=0.028, PPV=0.133, IoU=0.014, Acc=0.979
-[TEST sample 'MELD_H23_15T_FCD_0021'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.991
-[TEST sample 'MELD_H23_15T_FCD_0022'] Dice=0.328, PPV=0.219, IoU=0.196, Acc=0.902
-[TEST sample 'MELD_H23_15T_FCD_0023'] Dice=0.648, PPV=0.934, IoU=0.479, Acc=0.979
-Testing DataLoader 0:  61%|██████    | 44/72 [11:19<07:12, 15.45s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H23_15T_FCD_0025'] Dice=0.510, PPV=0.678, IoU=0.342, Acc=0.986
-[TEST sample 'MELD_H23_15T_FCD_0027'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.967
-[TEST sample 'MELD_H23_15T_FCD_0030'] Dice=0.052, PPV=0.026, IoU=0.026, Acc=0.919
-[TEST sample 'MELD_H23_15T_FCD_0031'] Dice=0.280, PPV=0.231, IoU=0.163, Acc=0.986
-Testing DataLoader 0:  62%|██████▎   | 45/72 [11:39<06:59, 15.54s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H23_15T_FCD_0032'] Dice=0.002, PPV=0.003, IoU=0.001, Acc=0.983
-[TEST sample 'MELD_H24_3T_FCD_0003'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.985
-[TEST sample 'MELD_H24_3T_FCD_0005'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.993
-[TEST sample 'MELD_H24_3T_FCD_0006'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.989
-Testing DataLoader 0:  64%|██████▍   | 46/72 [11:58<06:46, 15.63s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H24_3T_FCD_0007'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
-[TEST sample 'MELD_H24_3T_FCD_0011'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
-[TEST sample 'MELD_H24_3T_FCD_0012'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.997
-[TEST sample 'MELD_H24_3T_FCD_0013'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.979
-Testing DataLoader 0:  65%|██████▌   | 47/72 [12:18<06:32, 15.72s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H24_3T_FCD_0015'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.992
-[TEST sample 'MELD_H24_3T_FCD_0025'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.994
-[TEST sample 'MELD_H24_3T_FCD_0026'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.990
-[TEST sample 'MELD_H24_3T_FCD_0029'] Dice=0.197, PPV=0.115, IoU=0.109, Acc=0.996
-Testing DataLoader 0:  67%|██████▋   | 48/72 [12:39<06:19, 15.82s/it]w_focal=0.411, w_fp=0.282, w_dice=0.307
-[TEST sample 'MELD_H24_3T_FCD_0030'] Dice=0.050, PPV=0.026, IoU=0.026, Acc=0.946
-[TEST sample 'MELD_H24_3T_FCD_0036'] Dice=0.077, PPV=0.078, IoU=0.040, Acc=0.998
-[TEST sample 'MELD_H24_3T_FCD_0037'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.974
-[TEST sample 'MELD_H24_3T_FCD_0040'] Dice=0.000, PPV=0.000, IoU=0.000, Acc=0.979
-Testing DataLoader 0:  68%|██████▊   | 49/72 [12:59<06:06, 15.91s/it]
