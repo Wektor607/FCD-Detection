@@ -25,7 +25,7 @@ from engine.converter_mgh_to_nifti import (
     h5py,
 )
 from engine.pooling import HexPool
-
+from engine.loss_meld import calculate_loss
 
 def load_config(config_file):
     """load config.py file and return config object"""
@@ -123,7 +123,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             optimizer,
             max_lr=self.hparams.lr,  # 3e-3
             total_steps=self.trainer.estimated_stepping_batches,
-            pct_start=0.3,  # короче разгон, чаще помогает
+            pct_start=0.4,  # короче разгон, чаще помогает
             anneal_strategy="cos",
             # div_factor=5.0,  # стартовый lr = max_lr / 5  => 6e-4
             # final_div_factor=50.0,  # финальный lr = max_lr / 50
@@ -147,119 +147,170 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         subject_ids, text = x
 
         # Pooling layers of targets
-        labels_pooled = {7: y.long()}  # y: [B,H,V7]
-        for level in range(min(self.ds_levels), 7)[::-1]:  # 6,5,4,3,2
-            labels_pooled[level] = self.pool_layers[level](
-                labels_pooled[level + 1]
-            )  # [B,H,V_level]
+        B, H, V7 = y.shape
+        labels_pooled = {7: y.long()}                                  # [B,H,V7]
+        self.cortex_mask = torch.from_numpy(self.c.cortex_mask)
+        cortex_pooled = {7: self.cortex_mask.to(y.device).bool()}    # [V7] bool
 
+        for level in range(min(self.ds_levels), 7)[::-1]:  # 6,5,4,3,2
+            # 1) pooled labels -> обратно бинарные 0/1 (иначе "размоются")
+            labels_pooled[level] = ( 
+                self.pool_layers[level](labels_pooled[level + 1].float())
+            ).long()  # [B,H,V_level]
+            
+            # 2) pooled cortex mask: подаём как [1,1,V] float, назад -> bool [V]
+            cx = cortex_pooled[level + 1].float().unsqueeze(0).unsqueeze(0)   # [1,1,V_{l+1}]
+            cx = self.pool_layers[level](cx)                                   # [1,1,V_level] float
+            cortex_pooled[level] = cx.squeeze(0).squeeze(0).bool()
+        
         y = y.float()
 
         logits, outputs = self(x)
 
         # Loss configuration
-        # B, H, V7 = y.shape
-        # cortex = self.c.cortex_mask  # [V7] bool
-        # loss_cfg = self.params['network_parameters']['training_parameters']['loss_dictionary']
+        B, H, V7 = y.shape
+        loss_cfg = self.params['network_parameters']['training_parameters']['loss_dictionary']
 
         # ---------- Loss on final layer (S7) ----------
-        # estimates = {}
-        # estimates["log_softmax"] = outputs["log_softmax"].reshape(B, outputs["log_softmax"].shape[1], -1) #main_logp_masked
+        estimates = {}
 
-        # # distance head
-        # if "non_lesion_logits" in outputs:
-        #     estimates["non_lesion_logits"] = outputs["non_lesion_logits"].reshape(B, -1)
+        # [B*H*V, 2] -> [B, H, V, 2] -> [B, 2, H, V]
+        logp = outputs["log_softmax"].view(B, H, V7, 2).permute(0, 3, 1, 2)  # [B,2,H,V]
+        logp = logp[:, :, :, self.cortex_mask]                                # [B,2,H,V_cortex]
+        logp = logp.reshape(B, 2, -1)                                         # [B,2,H*V_cortex]
+        
+        y_mask = y[:, :, self.cortex_mask]                   # [B,H,V_cortex]
+        target = y_mask.view(B, -1).long()
+        
+        estimates = {"log_softmax": logp}
+        # distance head
+        if "non_lesion_logits" in outputs:
+            estimates["non_lesion_logits"] = outputs["non_lesion_logits"].reshape(B, -1)
 
-        # target = y.view(y.shape[0], -1).long()
-        # losses = {}
+        losses = {}
 
-        # losses_main = calculate_loss(
-        #     loss_cfg,
-        #     estimates,
-        #     labels=target,
-        #     distance_map=estimates.get('non_lesion_logits', None),# Check correctness from authors
-        #     #xyzr=xyzr,
-        #     deep_supervision_level=None,
-        #     device=self.device,
-        #     n_vertices=y.shape[2]
-        # )
-        # total_loss = sum(losses_main.values())
-        # losses.update({f"main/{k}": v for k, v in losses_main.items()})
+        losses_main = calculate_loss(
+            loss_cfg,
+            estimates,
+            labels=target,
+            distance_map=None,#estimates.get('non_lesion_logits', None),# Check correctness from authors
+            #xyzr=xyzr,
+            deep_supervision_level=None,
+            device=self.device,
+            n_vertices=y.shape[2]
+        )
+        total_loss = sum(losses_main.values())
+        losses.update({f"main/{k}": v for k, v in losses_main.items()})
 
-        # # ---------- Losses on DS-levels ----------
+        # ---------- Losses on DS-levels ----------
+        
+        for weight, level in zip(self.ds_weights, self.ds_levels):
+            key = f"ds{level}_log_softmax"
+            if key not in outputs:
+                continue
 
-        #
-        # for w, l in zip(self.ds_weights, self.ds_levels):
-        #     key = f"ds{l}_log_softmax"
-        #     if key not in outputs:
-        #         continue
+            V_l = labels_pooled[level].size(-1)
 
-        #     V_l = labels_pooled[l].size(-1)
-        #     y_l = labels_pooled[l]
-        #     y_l = y_l.reshape(y_l.shape[0], -1)   # [B*H*V_l]
+            cortex_mask = cortex_pooled[level]   # [V_l] bool
+            y_l = labels_pooled[level][:, :, cortex_mask]  # [B,H,V_l] -> [B,H,V_l_cortex]
+            y_l = y_l.reshape(y_l.shape[0], -1)   # [B*H*V_l]
 
-        #     n_vert_ds = V_l
+            n_vert_ds = V_l
 
-        #     estimates_ds = {}
-        #     estimates_ds['log_softmax'] = outputs[f'ds{l}_log_softmax'].view(B, outputs[f'ds{l}_log_softmax'].shape[1], -1)
-        #     estimates_ds['non_lesion_logits'] = outputs[f'ds{l}_non_lesion_logits'].view(B, -1)
+            estimates_ds = {}
+            logp_ds = outputs[f"ds{level}_log_softmax"].view(B, H, V_l, 2).permute(0, 3, 1, 2)  # [B,2,H,V_l]
+            logp_ds = logp_ds[:, :, :, cortex_pooled[level]]                                   # [B,2,H,V_cortex_l]
+            logp_ds = logp_ds.reshape(B, 2, -1)                                                # [B,2,H*V_cortex_l]
 
-        #     ds_losses = calculate_loss(
-        #         loss_cfg, estimates_ds, labels=y_l,
-        #         distance_map=estimates_ds['non_lesion_logits'],
-        #         deep_supervision_level=l, device=self.device, n_vertices=n_vert_ds
-        #     )
-        #     # print(ds_losses)
-        #     for k, v in ds_losses.items():
-        #         total_loss = total_loss + w * v
-        #     losses.update({f"ds{l}/{k}": w * v for k, v in ds_losses.items()})
+            estimates_ds["log_softmax"] = logp_ds
+            estimates_ds['non_lesion_logits'] = outputs[f'ds{level}_non_lesion_logits'].view(B, -1)
+
+            ds_losses = calculate_loss(
+                loss_cfg, estimates_ds, labels=y_l,
+                distance_map=None,#estimates_ds['non_lesion_logits'],
+                deep_supervision_level=level, device=self.device, n_vertices=n_vert_ds
+            )
+            # print(ds_losses)
+            for k, v in ds_losses.items():
+                total_loss = total_loss + weight * v
+            losses.update({f"ds{level}/{k}": weight * v for k, v in ds_losses.items()})
 
         # ---------- logging ----------
-        # self.log(f"{stage}/loss_total", total_loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
-        # for name, val in losses.items():
-        #     self.log(f"{stage}/{name}", val, on_step=True, on_epoch=True, sync_dist=True)
+        self.log(f"{stage}/loss_total", total_loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+        for name, val in losses.items():
+            self.log(f"{stage}/{name}", val, on_step=True, on_epoch=True, sync_dist=True)
 
-        # loss = sum(losses.values())
+        loss = sum(losses.values())
 
+        # Calculate metrics on cortex only
+        p1 = logp[:, 1, :].exp()
+        p1 = p1.view(B, H, -1)
+        target = target.view(B, H, -1)
+
+        probs_bin = p1.clone()
+        for i in range(p1.shape[0]):
+            for h in range(2):  # lh, rh
+                th = self.compute_adaptive_threshold(p1[i, h].detach().cpu().numpy())
+                probs_bin[i, h] = (p1[i, h] >= th).float()
+
+        y_flat = target.view(-1)            # [B*N_cortex]
+        p_flat = probs_bin.view(-1)
+
+        # Обновляем метрики тем же образом, как делал раньше
+        if stage == "test":
+            for m in self.test_metrics.values():
+                m.update(p_flat, y_flat)
+        else:
+            metrics = self.train_metrics if stage == "train" else self.val_metrics
+            for name, m in metrics.items():
+                m.update(p_flat, y_flat)
+                val = m.compute()
+                # У тебя "spec" логируется как FPR (1 - specificity)
+                if name == "spec":
+                    val = 1 - val
+                self.log(name, val, prog_bar=True, on_step=True, on_epoch=False, sync_dist=True)
+
+        # ---------- Code for my losses ----------
         # Remain only cortex vertices
-        logits = logits.view_as(y)
-        logits = logits[:, :, self.c.cortex_mask]
-        y = y[:, :, self.c.cortex_mask]
+        # logits = logits.view_as(y)
+        # logits = logits[:, :, self.c.cortex_mask]
+        # y = y[:, :, self.c.cortex_mask]
 
         # Static loss
         # loss = self.loss_fn.static_loss(logits, y)
         # Dynamic loss
-        loss = self.loss_fn.dynamic_loss(logits, y)
+        # loss = self.loss_fn.dynamic_loss(logits, y)
 
-        probs = torch.sigmoid(logits)
-        y = y.long()
-        y_flat = y.view(-1)
+        # probs = torch.sigmoid(logits)
+        # y = y.long()
+        # y_flat = y.view(-1)
 
-        probs_bin = probs.clone()
-        for i in range(probs.shape[0]):
-            for h in range(2):  # lh, rh
-                th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
-                probs_bin[i, h] = (probs[i, h] >= th).float()
+        # probs_bin = probs.clone()
+        # for i in range(probs.shape[0]):
+        #     for h in range(2):  # lh, rh
+        #         th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
+        #         probs_bin[i, h] = (probs[i, h] >= th).float()
 
-        if stage == "test":
-            for name, m in self.test_metrics.items():
-                m.update(probs_bin.view(-1), y_flat)
-        else:
-            metrics = self.train_metrics if stage == "train" else self.val_metrics
+        # if stage == "test":
+        #     for name, m in self.test_metrics.items():
+        #         m.update(probs_bin.view(-1), y_flat)
+        # else:
+        #     metrics = self.train_metrics if stage == "train" else self.val_metrics
 
-            for name, m in metrics.items():
-                m.update(probs_bin.view(-1), y_flat)
-                val = m.compute()
-                if name == "spec":
-                    val = 1 - val
-                self.log(
-                    name,
-                    val,
-                    prog_bar=True,
-                    on_step=True,
-                    on_epoch=False,
-                    sync_dist=True,
-                )
+        #     for name, m in metrics.items():
+        #         m.update(probs_bin.view(-1), y_flat)
+        #         val = m.compute()
+        #         if name == "spec":
+        #             val = 1 - val
+        #         self.log(
+        #             name,
+        #             val,
+        #             prog_bar=True,
+        #             on_step=True,
+        #             on_epoch=False,
+        #             sync_dist=True,
+        #         )
+        # ---------- End of my losses code ----------
 
         if stage == "test":
             for sid, pred, tgt in zip(subject_ids, probs, y):
