@@ -53,6 +53,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     create_dataset_file(subject_ids, tmp.name)
 
     # load models
+    print(experiment_path)
     exp = Experiment.from_folder(experiment_path)
     
     #update experiment 
@@ -92,8 +93,9 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     
     for subject_id in subject_ids:  
         features        = eva.data_dictionary[subject_id]["feature_maps"]
-        # result          = eva.data_dictionary[subject_id]["result"]
         labels          = eva.data_dictionary[subject_id]["full_labels"]
+        dist_map_gt     = eva.data_dictionary[subject_id]["geodesic_distance"]
+        # xyzr_gt         = eva.data_dictionary[subject_id]["xyzr"]
         
         labels_np = np.asarray(labels).reshape(-1)  # (2*N,)
 
@@ -115,8 +117,15 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
             feat_path,
             **{stage: tensor.detach().cpu().numpy() for stage, tensor in features.items()}
         )
-
         print(f"Saved features to {feat_path}")
+
+        dist_maps_path = os.path.join(save_dir, "distance_maps_gt.npz")
+        np.savez(dist_maps_path, dist_map_gt)
+        print(f"Saved distance maps GT to {dist_maps_path}")
+
+        # xyzr_path = os.path.join(save_dir, "xyzr_gt.npz")
+        # np.savez(xyzr_path, xyzr_gt)
+        # print(f"Saved xyzr GT to {xyzr_path}")
 
         # сохраняем labels в .mgh или .mgz (можно .mgz — будет меньше весить)
         lab_dir  = os.path.join(f"./data/preprocessed/meld_files/{subject_id}", "labels")
@@ -199,11 +208,11 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     prediction_file = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
     
     subject_ids_failed=[]
-    
+
     #predict on new subjects
     if not skip_prediction:
         print(get_m(f'Run predictions', subject_ids, 'STEP 1'))
-        for subject_id in subject_ids:
+        for subject_id in subject_ids[::-1]:
             if subject_id in [
                 # Missing controls (no HDF5 file found)
                 "MELD_H3_3T_C_0007",
@@ -271,7 +280,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
             ]:
                 continue
             
-            # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
+            # # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
             preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
             if os.path.isdir(preproc_root):
                 print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")

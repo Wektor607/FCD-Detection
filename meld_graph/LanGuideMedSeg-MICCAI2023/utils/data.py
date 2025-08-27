@@ -4,6 +4,7 @@ import csv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import torch
+import numpy as np
 import pandas as pd
 import subprocess
 from meld_graph.meld_cohort import MeldCohort
@@ -97,35 +98,54 @@ class EpilepDataset(Dataset):
     def __len__(self):
         return len(self.roi_list)
 
-    def run_meld_prediction(self, subject_id: str, mode: str, aug_flag: bool):
-        # command = [
-        #     self.meld_path,
-        #     'run_script_prediction.py',
-        #     '-id', subject_id,
-        #     '-harmo_code', 'fcd',
-        #     '-demos', 'participants_with_scanner.tsv',
-        #     *(['--aug_mode', 'train'] if aug_flag else []),
-        # ]
-        # TEST IT
-        command = [
-            self.meld_path,
-            "run_script_prediction_meld.py",
-            "-id",
-            subject_id,
-            "-harmo_code",
-            "fcd",
-            "-demos",
-            "input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv",
-            *(["--aug_mode", "train"] if aug_flag else []),
-        ]
-        # Run: ./meldgraph.sh run_script_prediction_meld.py --list_ids /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --demographic_file /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv
-        try:
-            subprocess.run(command, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Error running MELD prediction for {subject_id}: {e}")
-            raise
+    # def run_meld_prediction(self, subject_id: str, mode: str, aug_flag: bool):
+    #     # command = [
+    #     #     self.meld_path,
+    #     #     'run_script_prediction.py',
+    #     #     '-id', subject_id,
+    #     #     '-harmo_code', 'fcd',
+    #     #     '-demos', 'participants_with_scanner.tsv',
+    #     #     *(['--aug_mode', 'train'] if aug_flag else []),
+    #     # ]
+    #     # TEST IT
+    #     command = [
+    #         self.meld_path,
+    #         "run_script_prediction_meld.py",
+    #         "-id",
+    #         subject_id,
+    #         "-harmo_code",
+    #         "fcd",
+    #         "-demos",
+    #         "input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv",
+    #         *(["--aug_mode", "train"] if aug_flag else []),
+    #     ]
+    #     # Run: ./meldgraph.sh run_script_prediction_meld.py --list_ids /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --demographic_file /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv
+    #     try:
+    #         subprocess.run(command, check=True)
+    #     except subprocess.CalledProcessError as e:
+    #         print(f"Error running MELD prediction for {subject_id}: {e}")
+    #         raise
 
     def __getitem__(self, idx):
+        # Сheck existing features npz
+        features_dir = os.path.join(
+            self.feature_path,
+            "preprocessed",
+            "meld_files",
+            self.subject_ids[idx],
+            "features"
+        )
+
+        # npz_path = os.path.join(features_dir, "feature_maps.npz")
+        # if not os.path.isfile(npz_path):
+        #     self.run_meld_prediction(
+        #         self.subject_ids[idx], self.mode, aug_flag=self.aug_flag
+        #     )
+        #     if not os.path.isfile(npz_path):
+        #         raise FileNotFoundError(
+        #             f"Failed to generate NPZ for {self.subject_ids[idx]}"
+        #         )
+
         caption = self.caption_list[idx]
         subject_data_list = self.prep.get_data_preprocessed(
             subject=self.subject_ids[idx],
@@ -138,25 +158,7 @@ class EpilepDataset(Dataset):
             only_features=self.roi_list[idx] is None,
             combine_hemis=self.prep.params["combine_hemis"],
         )
-
-        # Generating features
-        features_dir = os.path.join(
-            self.feature_path,
-            "preprocessed",
-            "meld_files",
-            self.subject_ids[idx],
-            "features",
-        )
-        npz_path = os.path.join(features_dir, "feature_maps.npz")
-        if not os.path.isfile(npz_path):
-            self.run_meld_prediction(
-                self.subject_ids[idx], self.mode, aug_flag=self.aug_flag
-            )
-            if not os.path.isfile(npz_path):
-                raise FileNotFoundError(
-                    f"Failed to generate NPZ for {self.subject_ids[idx]}"
-                )
-
+        
         labels_tensors = []
         for d in subject_data_list:
             if d.get("labels") is None:
@@ -164,8 +166,19 @@ class EpilepDataset(Dataset):
                 labels_tensors.append(torch.zeros(n_verts, dtype=torch.long))
             else:
                 labels_tensors.append(torch.from_numpy(d["labels"]).long())
+        
         roi = torch.stack(labels_tensors, dim=0)
 
+        dist_npz_path = os.path.join(features_dir, "distance_maps_gt.npz")
+        if os.path.isfile(dist_npz_path):
+            dist_maps = torch.from_numpy(
+                np.load(dist_npz_path)['arr_0']
+            ).float()
+        elif not os.path.isfile(dist_npz_path):
+            raise FileNotFoundError(
+                f"Failed to generate NPZ for {self.subject_ids[idx]}"
+            )
+        
         token_output = self.tokenizer.encode_plus(
             caption,
             padding="max_length",
@@ -180,4 +193,4 @@ class EpilepDataset(Dataset):
             "input_ids": token.squeeze(dim=0),
             "attention_mask": mask.squeeze(dim=0),
         }
-        return ([self.subject_ids[idx], text], roi)
+        return ([self.subject_ids[idx], text], roi, dist_maps)

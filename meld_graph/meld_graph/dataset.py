@@ -312,7 +312,6 @@ class GraphDataset(torch_geometric.data.Dataset):
             self.add_object_detection(subject_data_dict)
             setattr(data, "xyzr", torch.tensor(subject_data_dict['xyzr'], dtype=torch.float32))
         
-
         if len(self.output_levels) != 0:
             dists_pooled = {7: data.distance_map}
             for level in range(min(self.output_levels), 7)[::-1]:

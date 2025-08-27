@@ -201,6 +201,7 @@ class VisionModel(nn.Module):
             sorted_keys = [st for st in sorted_keys if st in self.edge_index_per_stage]
 
             # Step 3: build graphs for each used stage
+
             for i, stage in enumerate(sorted_keys):
                 feat_torch = torch.from_numpy(features[stage]).to(self.device)
                 feat = torch.mean(feat_torch, dim=0)  # shape = (H, N_i, C_i)

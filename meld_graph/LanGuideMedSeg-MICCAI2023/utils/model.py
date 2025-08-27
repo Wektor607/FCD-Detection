@@ -67,7 +67,7 @@ class LanGuideMedSeg(nn.Module):
                 input_text_len=max_len,
             )
             self.decoders.append(decoder)
-
+        
         # TODO: read from config
         layer_sizes = [
             [32, 32, 32],
@@ -75,8 +75,7 @@ class LanGuideMedSeg(nn.Module):
             [64, 64, 64],
             [64, 64, 64],
             [128, 128, 128],
-            # [128,128,128],
-            [256, 256, 128],
+            [128, 128, 128],
         ]
 
         ico_path = os.path.join("data", "icospheres")
@@ -118,7 +117,7 @@ class LanGuideMedSeg(nn.Module):
 
         # The first value represents the proportion of lesion pixels across all scans,
         # and the second value represents the proportion of background pixels
-        pos_bias = np.log(0.006917 / 0.993083)
+        pos_bias = -3.0 # np.log(0.006917 / 0.993083)
 
         self.ds_heads = nn.ModuleDict()
         self.ds_dist_heads = nn.ModuleDict()
@@ -142,6 +141,13 @@ class LanGuideMedSeg(nn.Module):
 
         # ----------------------------
         final_in = feature_dim[0]
+        
+        self.activation_function = nn.LeakyReLU()
+        self.hemi_classification_head = nn.ModuleList([
+            nn.Conv1d(final_in, 1, kernel_size=1),
+            nn.Linear(2 * len(icos.icospheres[7]["coords"]), 2)
+        ])
+
         self.final_lin_one_class = nn.Linear(final_in, 1)
         self.final_lin = nn.Linear(final_in, 2)
         self.dist_lin = nn.Linear(final_in, 1)
@@ -156,34 +162,34 @@ class LanGuideMedSeg(nn.Module):
         subject_ids, text = data
         B = len(subject_ids)
 
-        graph_output = self.encoder(subject_ids)
+        graph_output                = self.encoder(subject_ids)
         graph_features: List[Batch] = graph_output["feature"]
-        text_output = self.text_encoder(text["input_ids"], text["attention_mask"])
-        text_hidden_last = text_output["feature"]  # [B, L_seq, 768]
+        text_output                 = self.text_encoder(text["input_ids"], text["attention_mask"])
+        text_hidden_last            = text_output["feature"]  # [B, L_seq, 768]
 
-        outputs = {"log_softmax": [], "non_lesion_logits": []}
+        outputs = {"log_softmax": [], "non_lesion_logits": [], "log_sumexp": []}
 
         # prepare per-level container
         for lvl in self.ds_levels:
-            outputs[f"ds{lvl}_log_softmax"] = []
-            outputs[f"ds{lvl}_non_lesion_logits"] = []
+            outputs[f"ds{lvl}_log_softmax"]         = []
+            outputs[f"ds{lvl}_non_lesion_logits"]   = []
 
         # Climb from deep to shallow stages (list of B Data objects per stage)
-        current_graphs = graph_features[-1].to_data_list()
+        current_graphs  = graph_features[-1].to_data_list()
 
         # Each decoder maps stage N → N-1, then N-1 → N-2, etc.
         for idx, decoder in enumerate(self.decoders):
-            stage_from = self.num_stages - 1 - idx
-            stage_to = stage_from - 1
+            stage_from  = self.num_stages - 1 - idx
+            stage_to    = stage_from - 1
 
-            unpool = self.unpool_layers[idx]
+            unpool      = self.unpool_layers[idx]
             spiral_conv = self.decoder_conv_layers[idx]
 
             next_graphs = graph_features[stage_to].to_data_list()
 
-            ds_logp_level = []
-            ds_dist_level = []
-            updated_graphs: List[Data] = []
+            ds_logp_level               = []
+            ds_dist_level               = []
+            updated_graphs: List[Data]  = []
             cur_level = self.ds_levels[
                 idx
             ]  # level for Deep Supervision head at this stage
@@ -215,7 +221,7 @@ class LanGuideMedSeg(nn.Module):
                     )
 
                     logits = head(x_lvl)  # [N_to, 2]
-                    logp = F.log_softmax(logits, dim=1)  # [N_to, 2]
+                    logp = nn.LogSoftmax(dim=1)(logits)  # [N_to, 2]
                     ds_logp_level.append(logp)
 
                     dist = self.ds_dist_heads[str(cur_level)](x_lvl)  # [N_to, 1]
@@ -240,26 +246,33 @@ class LanGuideMedSeg(nn.Module):
             current_graphs = updated_graphs
 
         # 4) Final level
-        final_logp_list = []
-        final_dist_list = []
+        final_logp_list     = []
+        final_classification   = []
+        final_dist_list     = []
 
         for g in current_graphs:
-            seg_logits = self.final_lin(g.x)  # [N1, 2]
-            final_logp_list.append(F.log_softmax(seg_logits, dim=1))  # [N1, 2]
-
+            seg_logits      = self.final_lin(g.x)  # [N1, 2]
+            log_seg_logits  = nn.LogSoftmax(dim=1)(seg_logits)
+            final_logp_list.append(log_seg_logits)  # [N1, 2]
+            
+            hemi_classification = self.activation_function(self.hemi_classification_head[0](g.x.unsqueeze(2)))
+            hemi_classification = self.hemi_classification_head[1](hemi_classification.view(-1))
+            hemi_classification = nn.LogSoftmax(dim=0)(hemi_classification)
+            final_classification.append(hemi_classification)
             # distance head
             if hasattr(self, "dist_lin"):
                 dist_logits = self.dist_lin(g.x)  # [N1, 1]
                 final_dist_list.append(dist_logits.squeeze(-1))  # [N1]
 
-        outputs["log_softmax"] = torch.cat(final_logp_list, dim=0)  # [B*H*V1, 2]
-        outputs["non_lesion_logits"] = torch.cat(final_dist_list, dim=0)  # [B*H*V1]
+        outputs["log_softmax"]          = torch.cat(final_logp_list, dim=0)  # [B*H*V1, 2]
+        outputs["non_lesion_logits"]    = torch.cat(final_dist_list, dim=0)  # [B*H*V1]
+        outputs["hemi_log_softmax"]     = torch.cat(final_classification,dim=0)
+        return outputs
+        # logits_list: List[torch.Tensor] = []
+        # for g in current_graphs:
+        #     logit = self.final_lin_one_class(g.x)
+        #     logits_list.append(logit)
 
-        logits_list: List[torch.Tensor] = []
-        for g in current_graphs:
-            logit = self.final_lin_one_class(g.x)
-            logits_list.append(logit)
+        # logits = torch.stack(logits_list, dim=0)
 
-        logits = torch.stack(logits_list, dim=0)
-
-        return logits, outputs
+        # return logits, outputs

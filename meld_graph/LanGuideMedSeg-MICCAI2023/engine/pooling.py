@@ -16,33 +16,49 @@ class HexPool(nn.Module):
 
     def forward(self, x: torch.Tensor, center_pool: bool = False) -> torch.Tensor:
         """
-        x: [B,H,N_hi,C] (features) or [B,H,N_hi] (labels/maps)
+        x: [B,H,N_hi,C] (features) 
+        or [B,H,N_hi] (labels/maps) 
+        or [N_hi,C] / [N_hi] (без батча/головы)
         return:
         if input [B,H,N_hi,C] -> [B,H,N_lo,C]
-        if input [B,H,N_hi] -> [B,H,N_lo]
+        if input [B,H,N_hi]   -> [B,H,N_lo]
+        if input [N_hi,C]     -> [N_lo,C]
+        if input [N_hi]       -> [N_lo]
         """
         N_lo = self.neigh_indices.size(0)
+
         if center_pool:
-            # center-pool: just "cut" the first N_lo vertices
+            # center-pool: просто "отрезаем" первые N_lo вершин
             if x.dim() == 4:
                 return x[:, :, :N_lo, :]
-            else:
+            elif x.dim() == 3:
                 return x[:, :, :N_lo]
-
-        # max-pool by child nodes
+            elif x.dim() == 2:
+                return x[:, :N_lo]
+            elif x.dim() == 1:
+                return x[:N_lo]
+            else:
+                raise ValueError(f"Unsupported x.dim()={x.dim()} in center_pool")
+        
         if x.dim() == 4:
-            # [B,H,N_hi,C] -> collect children: [B,H,N_lo,K,C], then max by K
+            
             gathered = x[:, :, self.neigh_indices, :]
-            # gathered.shape == [B, H, N_lo, K, C]
-            x_ds = gathered.max(dim=3).values  # -> [B, H, N_lo, C]
-            return x_ds
+            return gathered.max(dim=3).values
         elif x.dim() == 3:
-            # [B,H,N_hi] -> [B,H,N_lo,K] -> max_K -> [B,H,N_lo]
+            
             gathered = x[:, :, self.neigh_indices]
-            x_ds = gathered.max(dim=3).values
-            return x_ds
+            return gathered.max(dim=3).values
+        elif x.dim() == 2:
+            
+            gathered = x[:, self.neigh_indices]
+            return gathered.max(dim=1).values
+        elif x.dim() == 1:
+            
+            gathered = x[self.neigh_indices]
+            return gathered.max(dim=1).values
         else:
-            raise ValueError(f"Unsupported x.dim()={x.dim()}, expected 3 or 4")
+            raise ValueError(f"Unsupported x.dim()={x.dim()}, expected 1–4")
+
 
 
 class HexUnpool(nn.Module):

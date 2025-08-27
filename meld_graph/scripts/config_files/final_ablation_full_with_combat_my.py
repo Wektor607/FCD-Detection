@@ -43,21 +43,12 @@ losses=[
     "max_epochs_lr_decay": 1000,
     "max_patience": 1000,
     "loss_dictionary": {
-            # "cross_entropy": {"weight": 1}, #<- doesn't work
-            # 'focal_loss':{'weight':0.1, 'alpha':0.4, 'gamma':4},
-            'focal_loss': {'alpha': 0.4, 'gamma': 4, 'weight': 0.7},#1 # Works for me know!
-            # 'dice'      : {'class_weights': [0.01, 0.99], 'weight': 0.9},
-            # "dice": {"class_weights": [0.0, 1.0], "weight": 0.1},
-            # "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1},
-            # "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
-            # "object_detection":{"apply_to_bottleneck": True, "weight": 1},
-
-            # "cross_entropy": {"weight": 1},
-            "dice": {"class_weights": [0.0, 1.0], "weight": 0.3},#1},
-            # "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 0.2},#1},
-            
-            # "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
-            # "object_detection":{"apply_to_bottleneck": True, "weight": 1},
+            "cross_entropy": {"weight": 1.0}, #<- doesn't work# "cross_entropy": {"weight": 0.1}, #<- doesn't work
+            # "focal_loss": {"alpha": 0.25, "gamma": 2, "weight": 1.0}, # 'focal_loss': {'alpha': 0.25, 'gamma': 2, 'weight': 0.7},#1 # Works for me know! # 'focal_loss': {'alpha': 0.2, 'gamma': 2, 'weight': 0.6}
+            "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1},
+            # "object_detection":{"apply_to_bottleneck": True, "weight": 1}, # "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 0.2},#1},
+            "dice": {"class_weights": [0.0, 1.0], "weight": 1.0}, # "dice": {"class_weights": [0.0, 1.0], "weight": 0.2},#1}, # "dice": {"class_weights": [0.0, 1.0], "weight": 0.3}
+            "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
         },
         "stopping_metric":{'name':'loss','sign':1},
         'metric_smoothing':False,

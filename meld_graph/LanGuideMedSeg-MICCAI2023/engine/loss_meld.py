@@ -167,7 +167,7 @@ class DistanceRegressionLoss(torch.nn.Module):
             self.weigh_by_gt = False
             self.loss = "mse"
 
-    def forward(self, inputs, target, distance_map, **kwargs):
+    def forward(self, inputs, target, distance_map, **kwargs):        
         inputs = torch.squeeze(inputs)
         # normalise distance map
         distance_map = torch.div(distance_map, 300)
@@ -354,6 +354,7 @@ def calculate_loss(
                 cur_labels = torch.any(
                     labels.view(labels.shape[0] // n_vertices, -1), dim=1
                 ).long()
+
         elif loss_def == "lesion_classification":
             if loss_dict[loss_def].get("apply_to_bottleneck", False):
                 # if apply lc to bottleneck, do not apply it on deep supervision levels
@@ -364,9 +365,14 @@ def calculate_loss(
                     cur_estimates = estimates_dict["hemi_log_softmax"]
             else:
                 cur_estimates = estimates_dict[f"{prefix}log_sumexp"]
+            
+            # cur_labels = torch.any(
+            #     labels.view(labels.shape[0] // n_vertices, -1), dim=1
+            # ).long()
             cur_labels = torch.any(
-                labels.view(labels.shape[0] // n_vertices, -1), dim=1
+                labels.view(labels.shape[0] * 2, -1), dim=1
             ).long()
+
         else:
             raise NotImplementedError(f"Unknown loss def {loss_def}")
 

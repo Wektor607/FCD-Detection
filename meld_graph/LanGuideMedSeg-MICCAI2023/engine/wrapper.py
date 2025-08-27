@@ -22,6 +22,8 @@ from engine.converter_mgh_to_nifti import (
     save_gt_as_mgh,
     convert_gt_to_nii,
     run_command,
+    get_combat_feature_path,
+    save_mgh,
     h5py,
 )
 from engine.pooling import HexPool
@@ -129,7 +131,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             # final_div_factor=50.0,  # финальный lr = max_lr / 50
         )
 
-        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
+        return {"optimizer": optimizer}#, "lr_scheduler": lr_scheduler}
 
     def forward(self, x):
         return self.model(x)
@@ -143,29 +145,34 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         ignore the rest of the batch elements
         stage: "train" | "val" | "test"
         """
-        x, y = batch
+        x, y, dist_maps = batch
         subject_ids, text = x
-
+        
         # Pooling layers of targets
         B, H, V7 = y.shape
-        labels_pooled = {7: y.long()}                                  # [B,H,V7]
-        self.cortex_mask = torch.from_numpy(self.c.cortex_mask)
-        cortex_pooled = {7: self.cortex_mask.to(y.device).bool()}    # [V7] bool
+        dist_maps = dist_maps.view(B, 2, -1)
+        labels_pooled       = {7: y.long()}                                  # [B,H,V7]
+        dists_pooled        = {7: dist_maps}
+        self.cortex_mask    = torch.from_numpy(self.c.cortex_mask)
+        cortex_pooled       = {7: self.cortex_mask.to(y.device).bool()}    # [V7] bool
 
-        for level in range(min(self.ds_levels), 7)[::-1]:  # 6,5,4,3,2
-            # 1) pooled labels -> обратно бинарные 0/1 (иначе "размоются")
+        # TODO: add later for xyzr auch
+
+        for level in range(min(self.ds_levels), 7)[::-1]:
             labels_pooled[level] = ( 
                 self.pool_layers[level](labels_pooled[level + 1].float())
             ).long()  # [B,H,V_level]
-            
-            # 2) pooled cortex mask: подаём как [1,1,V] float, назад -> bool [V]
+        
+            dists_pooled[level] = self.pool_layers[level](dists_pooled[level + 1], center_pool=True)
+            dists_pooled[level] = torch.clip(dists_pooled[level], 0, 300)
+
             cx = cortex_pooled[level + 1].float().unsqueeze(0).unsqueeze(0)   # [1,1,V_{l+1}]
             cx = self.pool_layers[level](cx)                                   # [1,1,V_level] float
             cortex_pooled[level] = cx.squeeze(0).squeeze(0).bool()
         
         y = y.float()
 
-        logits, outputs = self(x)
+        outputs = self(x)
 
         # Loss configuration
         B, H, V7 = y.shape
@@ -173,7 +180,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         # ---------- Loss on final layer (S7) ----------
         estimates = {}
-
+        
         # [B*H*V, 2] -> [B, H, V, 2] -> [B, 2, H, V]
         logp = outputs["log_softmax"].view(B, H, V7, 2).permute(0, 3, 1, 2)  # [B,2,H,V]
         logp = logp[:, :, :, self.cortex_mask]                                # [B,2,H,V_cortex]
@@ -181,19 +188,24 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         
         y_mask = y[:, :, self.cortex_mask]                   # [B,H,V_cortex]
         target = y_mask.view(B, -1).long()
-        
-        estimates = {"log_softmax": logp}
+
+        dist_maps_cortex = dist_maps[:, :, self.cortex_mask]
+        dist_maps_cortex = dist_maps_cortex.view(B, -1)
+
+        estimates["log_softmax"] =  logp
         # distance head
         if "non_lesion_logits" in outputs:
-            estimates["non_lesion_logits"] = outputs["non_lesion_logits"].reshape(B, -1)
-
+            non_lesion_logits_cortex = outputs["non_lesion_logits"].view(B, 2, -1)[:, :, self.cortex_mask]
+            estimates["non_lesion_logits"] = non_lesion_logits_cortex.reshape(B, -1)
+        estimates["hemi_log_softmax"] = outputs["hemi_log_softmax"]
+        
         losses = {}
 
         losses_main = calculate_loss(
             loss_cfg,
             estimates,
             labels=target,
-            distance_map=None,#estimates.get('non_lesion_logits', None),# Check correctness from authors
+            distance_map=dist_maps_cortex,
             #xyzr=xyzr,
             deep_supervision_level=None,
             device=self.device,
@@ -215,6 +227,10 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             y_l = labels_pooled[level][:, :, cortex_mask]  # [B,H,V_l] -> [B,H,V_l_cortex]
             y_l = y_l.reshape(y_l.shape[0], -1)   # [B*H*V_l]
 
+            dist_map_l = dists_pooled[level]
+            dist_map_l = dist_map_l[:, :, cortex_mask]
+            dist_map_l = dist_map_l.view(B, -1)
+
             n_vert_ds = V_l
 
             estimates_ds = {}
@@ -223,12 +239,16 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             logp_ds = logp_ds.reshape(B, 2, -1)                                                # [B,2,H*V_cortex_l]
 
             estimates_ds["log_softmax"] = logp_ds
-            estimates_ds['non_lesion_logits'] = outputs[f'ds{level}_non_lesion_logits'].view(B, -1)
+            estimates_ds['non_lesion_logits'] = outputs[f'ds{level}_non_lesion_logits'].view(B, 2, -1)[:, :, cortex_mask].view(B, -1)
 
             ds_losses = calculate_loss(
-                loss_cfg, estimates_ds, labels=y_l,
-                distance_map=None,#estimates_ds['non_lesion_logits'],
-                deep_supervision_level=level, device=self.device, n_vertices=n_vert_ds
+                loss_cfg, 
+                estimates_ds, 
+                labels=y_l,
+                distance_map=dist_map_l,
+                deep_supervision_level=level, 
+                device=self.device, 
+                n_vertices=n_vert_ds
             )
             # print(ds_losses)
             for k, v in ds_losses.items():
@@ -240,18 +260,18 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         for name, val in losses.items():
             self.log(f"{stage}/{name}", val, on_step=True, on_epoch=True, sync_dist=True)
 
-        loss = sum(losses.values())
+        loss = total_loss #sum(losses.values())
 
         # Calculate metrics on cortex only
-        p1 = logp[:, 1, :].exp()
-        p1 = p1.view(B, H, -1)
+        probs = logp[:, 1, :].exp()
+        pprobs = probs.view(B, H, -1)
         target = target.view(B, H, -1)
 
-        probs_bin = p1.clone()
-        for i in range(p1.shape[0]):
+        probs_bin = pprobs.clone()
+        for i in range(probs.shape[0]):
             for h in range(2):  # lh, rh
-                th = self.compute_adaptive_threshold(p1[i, h].detach().cpu().numpy())
-                probs_bin[i, h] = (p1[i, h] >= th).float()
+                th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
+                probs_bin[i, h] = (probs[i, h] >= th).float()
 
         y_flat = target.view(-1)            # [B*N_cortex]
         p_flat = probs_bin.view(-1)
@@ -313,7 +333,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # ---------- End of my losses code ----------
 
         if stage == "test":
-            for sid, pred, tgt in zip(subject_ids, probs, y):
+            # for sid, pred, tgt in zip(subject_ids, probs, y):
+            for sid, pred, tgt in zip(subject_ids, probs_bin, target):
                 dice_i = self.dice(pred, tgt).item()
                 ppv_i = self.ppv(pred, tgt).item()
                 iou_i = self.iou(pred, tgt).item()
@@ -331,92 +352,92 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
             # ---------- Save predictions as MGH and NIfTI ----------
 
-            subjects_fs_dir = (
-                "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
-            )
-            predictions_output_root = os.path.join(
-                MELD_DATA_PATH, "output", "predictions_reports"
-            )
+            # subjects_fs_dir = (
+            #     "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
+            # )
+            # predictions_output_root = os.path.join(
+            #     MELD_DATA_PATH, "output", "predictions_reports"
+            # )
 
-            for (
-                sid,
-                p,
-            ) in zip(subject_ids, logits):
-                predictions = torch.sigmoid(p).detach().cpu().numpy()
+            # for (
+            #     sid,
+            #     p,
+            # ) in zip(subject_ids, logits):
+            #     predictions = torch.sigmoid(p).detach().cpu().numpy()
 
-                classifier_dir = os.path.join(
-                    subjects_fs_dir, sid, "xhemi", "classifier"
-                )
-                predictions_dir = os.path.join(
-                    predictions_output_root, sid, "predictions"
-                )
-                os.makedirs(classifier_dir, exist_ok=True)
-                os.makedirs(predictions_dir, exist_ok=True)
+            #     classifier_dir = os.path.join(
+            #         subjects_fs_dir, sid, "xhemi", "classifier"
+            #     )
+            #     predictions_dir = os.path.join(
+            #         predictions_output_root, sid, "predictions"
+            #     )
+            #     os.makedirs(classifier_dir, exist_ok=True)
+            #     os.makedirs(predictions_dir, exist_ok=True)
 
-                h5_path = os.path.join(
-                    subjects_fs_dir,
-                    "meld_combats",
-                    f"{sid}_patient_featurematrix_combat.hdf5",
-                )
-                for idx, hemi in enumerate(["lh", "rh"]):
-                    # Prediction overlay
-                    overlay = np.zeros_like(self.c.cortex_mask, dtype=np.float32)
-                    overlay[self.c.cortex_mask] = predictions[idx]
+            #     h5_path = os.path.join(
+            #         subjects_fs_dir,
+            #         "meld_combats",
+            #         f"{sid}_patient_featurematrix_combat.hdf5",
+            #     )
+            #     for idx, hemi in enumerate(["lh", "rh"]):
+            #         # Prediction overlay
+            #         overlay = np.zeros_like(self.c.cortex_mask, dtype=np.float32)
+            #         overlay[self.c.cortex_mask] = predictions[idx]
 
-                    # Read template thickness to get shape/affine
-                    combat_file = self.get_combat_feature_path(
-                        os.path.join(subjects_fs_dir, "meld_combats"), sid
-                    )
-                    with h5py.File(combat_file, "r") as f:
-                        key = ".combat.on_lh.thickness.sm3.mgh"
-                        if key not in f[hemi]:
-                            raise KeyError(f"No dataset {key!r} in group {hemi}")
-                        base_arr = f[hemi][key][:]
+            #         # Read template thickness to get shape/affine
+            #         combat_file = get_combat_feature_path(
+            #             os.path.join(subjects_fs_dir, "meld_combats"), sid
+            #         )
+            #         with h5py.File(combat_file, "r") as f:
+            #             key = ".combat.on_lh.thickness.sm3.mgh"
+            #             if key not in f[hemi]:
+            #                 raise KeyError(f"No dataset {key!r} in group {hemi}")
+            #             base_arr = f[hemi][key][:]
 
-                    mgh_img = nb.MGHImage(
-                        base_arr[np.newaxis, :, np.newaxis],
-                        affine=nb.load(
-                            os.path.join(
-                                subjects_fs_dir, "fsaverage_sym", "mri", "T1.mgz"
-                            )
-                        ).affine,
-                    )
+            #         mgh_img = nb.MGHImage(
+            #             base_arr[np.newaxis, :, np.newaxis],
+            #             affine=nb.load(
+            #                 os.path.join(
+            #                     subjects_fs_dir, "fsaverage_sym", "mri", "T1.mgz"
+            #                 )
+            #             ).affine,
+            #         )
 
-                    # Save prediction MGH → NIfTI
-                    out_mgh_pred = os.path.join(
-                        classifier_dir, f"{hemi}.prediction.mgh"
-                    )
-                    self.save_mgh(out_mgh_pred, overlay, mgh_img)
-                    print(f"Saved PRED MGH: {out_mgh_pred}")
-                    convert_prediction_mgh_to_nii(
-                        subjects_fs_dir,
-                        out_mgh_pred,
-                        hemi,
-                        predictions_dir,
-                        verbose=True,
-                    )
+            #         # Save prediction MGH → NIfTI
+            #         out_mgh_pred = os.path.join(
+            #             classifier_dir, f"{hemi}.prediction.mgh"
+            #         )
+            #         save_mgh(out_mgh_pred, overlay, mgh_img)
+            #         print(f"Saved PRED MGH: {out_mgh_pred}")
+            #         convert_prediction_mgh_to_nii(
+            #             subjects_fs_dir,
+            #             out_mgh_pred,
+            #             hemi,
+            #             predictions_dir,
+            #             verbose=True,
+            #         )
 
-                    mgh_gt = save_gt_as_mgh(
-                        h5_path, hemi, predictions_dir, subjects_fs_dir
-                    )
-                    if mgh_gt:
-                        convert_gt_to_nii(subjects_fs_dir, mgh_gt, hemi, verbose=True)
+            #         mgh_gt = save_gt_as_mgh(
+            #             h5_path, hemi, predictions_dir, subjects_fs_dir
+            #         )
+            #         if mgh_gt:
+            #             convert_gt_to_nii(subjects_fs_dir, mgh_gt, hemi, verbose=True)
 
-                # Combine both hemispheres for prediction
-                lh_nii = os.path.join(predictions_dir, "lh.prediction.nii.gz")
-                rh_nii = os.path.join(predictions_dir, "rh.prediction.nii.gz")
-                final_nii = os.path.join(predictions_dir, f"prediction_{sid}.nii.gz")
-                cmd = f"mri_concat --i {lh_nii} --i {rh_nii} --o {final_nii} --combine"
-                run_command(cmd, verbose=True)
-                print(f"🎉 Final combined PRED NIfTI: {final_nii}")
+            #     # Combine both hemispheres for prediction
+            #     lh_nii = os.path.join(predictions_dir, "lh.prediction.nii.gz")
+            #     rh_nii = os.path.join(predictions_dir, "rh.prediction.nii.gz")
+            #     final_nii = os.path.join(predictions_dir, f"prediction_{sid}.nii.gz")
+            #     cmd = f"mri_concat --i {lh_nii} --i {rh_nii} --o {final_nii} --combine"
+            #     run_command(cmd, verbose=True)
+            #     print(f"🎉 Final combined PRED NIfTI: {final_nii}")
 
-                # Combine both hemispheres for ground‐truth
-                gt_lh_nii = os.path.join(predictions_dir, "lh.gt.nii.gz")
-                gt_rh_nii = os.path.join(predictions_dir, "rh.gt.nii.gz")
-                gt_final = os.path.join(predictions_dir, f"ground_truth_{sid}.nii.gz")
-                cmd_gt = f"mri_concat --i {gt_lh_nii} --i {gt_rh_nii} --o {gt_final} --combine"
-                run_command(cmd_gt, verbose=False)
-                print(f"🎉 Final combined GT   NIfTI: {gt_final}")
+            #     # Combine both hemispheres for ground‐truth
+            #     gt_lh_nii = os.path.join(predictions_dir, "lh.gt.nii.gz")
+            #     gt_rh_nii = os.path.join(predictions_dir, "rh.gt.nii.gz")
+            #     gt_final = os.path.join(predictions_dir, f"ground_truth_{sid}.nii.gz")
+            #     cmd_gt = f"mri_concat --i {gt_lh_nii} --i {gt_rh_nii} --o {gt_final} --combine"
+            #     run_command(cmd_gt, verbose=False)
+            #     print(f"🎉 Final combined GT   NIfTI: {gt_final}")
 
         return loss
 

@@ -291,6 +291,8 @@ class Evaluator:
                 labels_full_array = []
                 features_array = []
                 geodesic_array = []
+                geodesic_array_full = []
+                # xyzr_array = []
                 saliency_array = []
                 feature_maps_array = []
                 estimatess = {}
@@ -300,6 +302,7 @@ class Evaluator:
             data = data.to(device)
             labels = data.y.squeeze()
             geo_distance = data.distance_map
+            # xyzr_gt = data.xyzr
             distance_regression_flag = "distance_regression" in self.experiment.network_parameters["training_parameters"]["loss_dictionary"].keys()
             if self.dropout:
                 list_prediction = []
@@ -336,7 +339,9 @@ class Evaluator:
             labels_full_array.append(labels.cpu().numpy())
             features_array.append(data.x.cpu().numpy()[self.cohort.cortex_mask])
             distance_map_array.append(distance_map.numpy()[self.cohort.cortex_mask])
+            geodesic_array_full.append(geo_distance.cpu().numpy())
             geodesic_array.append(geo_distance.cpu().numpy()[self.cohort.cortex_mask])
+            # xyzr_array.append(xyzr_gt.cpu().numpy())
 
             # only save after right hemi has been run.
             if hemi == "rh":
@@ -375,6 +380,8 @@ class Evaluator:
                     "full_labels": np.concatenate(labels_full_array),
                     "result": np.concatenate(prediction_array),
                     "distance_map": np.concatenate(distance_map_array),
+                    "geodesic_distance": np.concatenate(geodesic_array_full),
+                    # "xyzr": np.concatenate(xyzr_array),
                     "borderzone": np.concatenate(geodesic_array) < 20,
                     "feature_maps": combined_feature_maps_tensor,
                 }
