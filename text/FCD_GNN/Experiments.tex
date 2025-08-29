@@ -21,7 +21,49 @@ the GuideDecoder is used before upsampling:
         Unpool+Spiral path and segmentation head are trained.
 \end{enumerate}
 
-\section{Connecting \ac{meld} Feature Stages into the GNN Block}
+\section{Loss function}
+Following best practices for medical image segmentation and to ensure a fair comparison with the \ac{meld} model, we employed a composite loss. The loss function is defined as
+\begin{equation}
+L = L_{foc} + L_{dice} + L_{dist} + L_{class} + \sum_{i \in I_{ds}} w^i_{ds} \cdot (L^i_{foc} + L^i_{dice} + L^i_{dist})\,
+\end{equation}
+\par\noindent
+The individual components are detailed below. Compared to the \ac{meld} formulation, we replaced the cross-entropy term with Focal Loss in order to mitigate class imbalance between lesional and non-lesional vertices.
+
+\subsection{Focal Loss}
+The Focal Loss $L_{foc}$ introduces a modulating factor $(1-\hat{y}_i)^\gamma$ to down-weight easy examples and focus training on harder or misclassified samples. Formally, for ground-truth label $y_i \in \{0,1\}$ and predicted probability $\hat{y}_i$, the focal loss is:
+\[
+L_{foc} = - \frac{1}{n} \sum_{i=1}^{n} \alpha \, (1-\hat{y}_i)^\gamma \, y_i \log(\hat{y}_i) + (1-\alpha) \, \hat{y}_i^\gamma \, (1-y_i) \log(1-\hat{y}_i),
+\]
+
+\subsection{Dice Loss}
+The Dice Loss $L_{dice}$ directly optimizes for the overlap between predicted and ground-truth lesion masks. This loss is less sensitive to class imbalance and encourages the network to predict coherent lesion regions. It is defined as
+\[
+L_{dice} = 1 - \frac{2 \sum_{i=1}^n y_i \hat{y}_i}{\sum_{i=1}^n y_i^2 + \sum_{i=1}^n \hat{y}_i^2 + \epsilon}
+\]
+
+\subsection{Distance Loss}
+To provide the network with additional contextual information and reduce false positives, we include a distance regression loss $L_{dist}$. The model is trained to predict the normalized geodesic distance $d_i$ of each vertex to the lesion boundary. We use a mean absolute error weighted by $(d_i+1)^{-1}$, so that errors near the lesion boundary are penalized more strongly than errors in distant non-lesional regions:
+\[
+L_{dist} = \frac{1}{n} \sum_{i=1}^{n} \frac{|d_i - \hat{y}_{i,0}|}{d_i + 1}.
+\]
+
+\subsection{Classification Loss}
+And in the last case, we add a weakly-supervised classification head to mitigate the uncertainty between lesion masks and actual lesions. Each subject is labeled as positive if any vertex belongs to a lesion. The classification head aggregates features across the deepest level (level 1) and predicts a subject-level label $\hat{c}$. The classification loss is then computed as binary cross-entropy:
+\[
+L_{class} = - \sum_{i=1}^{n} c_i \log(\hat{c}_i) + (1-c_i)\log(1-\hat{c}_i).
+\]
+
+\subsection{Deep Supervision}
+To encourage gradient flow and stabilize training, we adopt deep supervision at intermediate decoder levels $I_{ds} = \{6,5,4,3,2,1\}$. At each level $i$, auxiliary predictions are generated and the same combination of focal, dice, and distance losses is applied. These auxiliary losses are weighted by $w^i_{ds}$ and added to the total objective:
+\[
+\sum_{i \in I_{ds}} w^i_{ds}(L^i_{foc} + L^i_{dice} + L^i_{dist}).
+\]
+% This strategy ensures that meaningful supervision is propagated to early layers of the network, improving convergence and overall segmentation accuracy.
+
+\bigskip
+% In summary, our loss function combines focal and dice terms for accurate and robust segmentation, a distance regression loss for boundary-awareness, a weakly-supervised classification loss for subject-level consistency, and deep supervision for effective optimization across the entire U-Net.
+
+\section{Connecting MELD Feature Stages into the GNN Block}
 TODO
 \section{Text--Decoder Connections (Layer Injection)}
 TODO

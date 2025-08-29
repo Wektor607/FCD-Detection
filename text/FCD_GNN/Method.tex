@@ -36,7 +36,7 @@ To aggregate higher-order geometric information, we process the \textbf{five top
 This choice is motivated by empirical findings (see Chapter~\ref{chapter:Experiments}), where including the lowest two layers led to oversmoothing and diluted 
 discriminative information, while the top five layers yielded the best trade-off between expressivity and stability.  
 
-\paragraph{GNN Block.}
+\section{GNN Block}
 
 Formally, let 
 \[
@@ -55,8 +55,9 @@ Each \textit{GNN Block} then applies the following sequence of operations:
     \mathbf{H}_1 &= \operatorname{SAGEConv}\!\left(\mathbf{H}_0, \texttt{edge\_index}_l\right), \\[4pt]
     \mathbf{H}_2 &= \mathbf{H}_1 + \mathbf{H}_0 \quad \text{(residual connection)}, \\[4pt]
     \mathbf{H}_3 &= \operatorname{ReLU}\!\left(\mathbf{H}_2\right), \\[4pt]
-    \mathbf{H}_4 &= \operatorname{Dropout}\!\left(\mathbf{H}_3\right), \\[4pt]
-    \mathbf{Z}^{(l)} &= \operatorname{GraphNorm}\!\left(\mathbf{H}_4, \texttt{batch}\right).
+    % \mathbf{H}_4 &= \operatorname{Dropout}\!\left(\mathbf{H}_3\right), \\[4pt]
+    % \mathbf{Z}^{(l)} &= \operatorname{GraphNorm}\!\left(\mathbf{H}_4, \texttt{batch}\right).
+    \mathbf{Z}^{(l)} &= \operatorname{GraphNorm}\!\left(\mathbf{H}_3, \texttt{batch}\right).
 \end{align}
 
 \noindent\textbf{where:}
