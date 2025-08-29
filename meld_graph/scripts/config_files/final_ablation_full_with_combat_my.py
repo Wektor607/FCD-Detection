@@ -43,13 +43,13 @@ losses=[
     "max_epochs_lr_decay": 1000,
     "max_patience": 1000,
     "loss_dictionary": {
-            "cross_entropy": {"weight": 1.0}, #<- doesn't work# "cross_entropy": {"weight": 0.1}, #<- doesn't work
-            # "focal_loss": {"alpha": 0.25, "gamma": 2, "weight": 1.0}, # 'focal_loss': {'alpha': 0.25, 'gamma': 2, 'weight': 0.7},#1 # Works for me know! # 'focal_loss': {'alpha': 0.2, 'gamma': 2, 'weight': 0.6}
-            "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1},
-            # "object_detection":{"apply_to_bottleneck": True, "weight": 1}, # "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 0.2},#1},
-            "dice": {"class_weights": [0.0, 1.0], "weight": 1.0}, # "dice": {"class_weights": [0.0, 1.0], "weight": 0.2},#1}, # "dice": {"class_weights": [0.0, 1.0], "weight": 0.3}
-            "lesion_classification": {"apply_to_bottleneck": True, "weight": 1},
+            # "cross_entropy": {"weight": 1.0},           # слабее, чем dice
+            "focal_loss": {"alpha": 0.25, "gamma": 2, "weight": 1.0},  # если используешь вместо CE
+            "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1.0}, # как регуляризатор
+            "dice": {"class_weights": [0.0, 1.0], "weight": 1.0},      # главный лосс
+            "lesion_classification": {"apply_to_bottleneck": True, "weight": 1.0}  # аккуратно, как вспомогательный
         },
+
         "stopping_metric":{'name':'loss','sign':1},
         'metric_smoothing':False,
         "metrics": [

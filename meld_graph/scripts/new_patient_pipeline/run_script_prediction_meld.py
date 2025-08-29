@@ -212,7 +212,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     #predict on new subjects
     if not skip_prediction:
         print(get_m(f'Run predictions', subject_ids, 'STEP 1'))
-        for subject_id in subject_ids[::-1]:
+        for subject_id in subject_ids:
             if subject_id in [
                 # Missing controls (no HDF5 file found)
                 "MELD_H3_3T_C_0007",

@@ -125,13 +125,13 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             optimizer,
             max_lr=self.hparams.lr,  # 3e-3
             total_steps=self.trainer.estimated_stepping_batches,
-            pct_start=0.4,  # короче разгон, чаще помогает
+            pct_start=0.3,  # короче разгон, чаще помогает
             anneal_strategy="cos",
             # div_factor=5.0,  # стартовый lr = max_lr / 5  => 6e-4
             # final_div_factor=50.0,  # финальный lr = max_lr / 50
         )
 
-        return {"optimizer": optimizer}#, "lr_scheduler": lr_scheduler}
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
     def forward(self, x):
         return self.model(x)
@@ -155,8 +155,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         dists_pooled        = {7: dist_maps}
         self.cortex_mask    = torch.from_numpy(self.c.cortex_mask)
         cortex_pooled       = {7: self.cortex_mask.to(y.device).bool()}    # [V7] bool
-
-        # TODO: add later for xyzr auch
 
         for level in range(min(self.ds_levels), 7)[::-1]:
             labels_pooled[level] = ( 
@@ -206,7 +204,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             estimates,
             labels=target,
             distance_map=dist_maps_cortex,
-            #xyzr=xyzr,
             deep_supervision_level=None,
             device=self.device,
             n_vertices=y.shape[2]
@@ -235,8 +232,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
             estimates_ds = {}
             logp_ds = outputs[f"ds{level}_log_softmax"].view(B, H, V_l, 2).permute(0, 3, 1, 2)  # [B,2,H,V_l]
-            logp_ds = logp_ds[:, :, :, cortex_pooled[level]]                                   # [B,2,H,V_cortex_l]
-            logp_ds = logp_ds.reshape(B, 2, -1)                                                # [B,2,H*V_cortex_l]
+            logp_ds = logp_ds[:, :, :, cortex_pooled[level]]                                    # [B,2,H,V_cortex_l]
+            logp_ds = logp_ds.reshape(B, 2, -1)                                                 # [B,2,H*V_cortex_l]
 
             estimates_ds["log_softmax"] = logp_ds
             estimates_ds['non_lesion_logits'] = outputs[f'ds{level}_non_lesion_logits'].view(B, 2, -1)[:, :, cortex_mask].view(B, -1)
@@ -267,14 +264,15 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         pprobs = probs.view(B, H, -1)
         target = target.view(B, H, -1)
 
-        probs_bin = pprobs.clone()
-        for i in range(probs.shape[0]):
-            for h in range(2):  # lh, rh
-                th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
-                probs_bin[i, h] = (probs[i, h] >= th).float()
+        # probs_bin = pprobs.clone()
+        # for i in range(probs.shape[0]):
+        #     for h in range(2):  # lh, rh
+        #         th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
+        #         probs_bin[i, h] = (probs[i, h] >= th).float()
 
         y_flat = target.view(-1)            # [B*N_cortex]
-        p_flat = probs_bin.view(-1)
+        # p_flat = probs_bin.view(-1)
+        p_flat = pprobs.view(-1)
 
         # Обновляем метрики тем же образом, как делал раньше
         if stage == "test":
@@ -333,8 +331,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # ---------- End of my losses code ----------
 
         if stage == "test":
-            # for sid, pred, tgt in zip(subject_ids, probs, y):
-            for sid, pred, tgt in zip(subject_ids, probs_bin, target):
+            for sid, pred, tgt in zip(subject_ids, pprobs, target):
+            # for sid, pred, tgt in zip(subject_ids, probs_bin, target):
                 dice_i = self.dice(pred, tgt).item()
                 ppv_i = self.ppv(pred, tgt).item()
                 iou_i = self.iou(pred, tgt).item()

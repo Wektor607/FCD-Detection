@@ -62,26 +62,32 @@ def run_command(command, verbose=True):
         raise RuntimeError(f"Command failed: {command}")
 
 
+from pathlib import Path
+
 def convert_lesion_mgh_to_nii(folder_name, subjects_dir, hemi='lh', verbose=True):
-    surf_path = f"{subjects_dir}/{folder_name}/labels/labels-{hemi}.mgh"
-    vol_mgz = f"{subjects_dir}/{folder_name}/labels/{hemi}.lesion.mgz"
-    vol_nii = f"{subjects_dir}/{folder_name}/{hemi}.lesion.nii.gz"
-    print(surf_path, '\n', vol_mgz, '\n', vol_nii)
-    print(vol_nii)
-    fsaverage_root = "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
-    fsaverage_path = f"{fsaverage_root}/fsaverage_sym/mri"
-    T1_path = f"{fsaverage_path}/T1.mgz"
-    orig_path = f"{fsaverage_path}/orig.mgz"
+    subjects_dir = Path(subjects_dir)
+    fsaverage_root = Path("/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing")
+    fsavg_mri = fsaverage_root / "fsaverage_sym" / "mri"
 
-    cmd1 = f'SUBJECTS_DIR={fsaverage_root} mri_surf2vol --identity fsaverage_sym --template {T1_path} --o {vol_mgz} --hemi {hemi} \
-    --surfval {surf_path} --fillribbon'
-    run_command(cmd1, verbose)
-    cmd2 = f'SUBJECTS_DIR={subjects_dir} mri_vol2vol --mov {vol_mgz} --targ {orig_path} --regheader --o {vol_mgz} --nearest'
-    run_command(cmd2, verbose)
-    cmd3 = f'SUBJECTS_DIR={subjects_dir} mri_convert {vol_mgz} {vol_nii} -rt nearest'
-    run_command(cmd3, verbose)
+    surf_path = subjects_dir / folder_name / "labels" / f"labels-{hemi}.mgh"
+    template  = fsavg_mri / "orig.mgz"           # сразу целевой шаблон
+    vol_nii   = subjects_dir / folder_name / f"{hemi}.lesion.nii.gz"
 
-    return vol_nii
+    # 1) поверхность -> объём в пространстве fsaverage_sym/orig.mgz
+    #    Сразу пишем .nii.gz, чтобы не вызывать mri_convert.
+    cmd = (
+        f"SUBJECTS_DIR={fsaverage_root} "
+        f"mri_surf2vol --identity fsaverage_sym "
+        f"--template {template} "
+        f"--o {vol_nii} "
+        f"--hemi {hemi} "
+        f"--surfval {surf_path} "
+        f"--fillribbon"
+    )
+    run_command(cmd, verbose)
+
+    return str(vol_nii)
+
 
 
 def process_t1_mask_only(mask_path, output_dir, base_name='subject', t1_path=None):

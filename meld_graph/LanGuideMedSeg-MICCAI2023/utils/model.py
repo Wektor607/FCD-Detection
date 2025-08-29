@@ -7,6 +7,7 @@ import torch.nn as nn
 import numpy as np
 from utils.layers import GuideDecoder
 from meld_graph.icospheres import IcoSpheres
+from engine.pooling import HexPool
 from meld_graph.spiralconv import SpiralConv
 from typing import List
 from torch_geometric.data import Data, Batch
@@ -140,12 +141,17 @@ class LanGuideMedSeg(nn.Module):
             level += 1
 
         # ----------------------------
+        self.pool_layers = {
+            level: HexPool(icos.get_downsample(target_level=level))
+            for level in range(1, 7)[::-1]
+        }
+
         final_in = feature_dim[0]
         
         self.activation_function = nn.LeakyReLU()
         self.hemi_classification_head = nn.ModuleList([
             nn.Conv1d(final_in, 1, kernel_size=1),
-            nn.Linear(2 * len(icos.icospheres[7]["coords"]), 2)
+            nn.Linear(len(icos.icospheres[1]["coords"]), 2)
         ])
 
         self.final_lin_one_class = nn.Linear(final_in, 1)
@@ -176,7 +182,7 @@ class LanGuideMedSeg(nn.Module):
 
         # Climb from deep to shallow stages (list of B Data objects per stage)
         current_graphs  = graph_features[-1].to_data_list()
-
+        
         # Each decoder maps stage N → N-1, then N-1 → N-2, etc.
         for idx, decoder in enumerate(self.decoders):
             stage_from  = self.num_stages - 1 - idx
@@ -190,9 +196,7 @@ class LanGuideMedSeg(nn.Module):
             ds_logp_level               = []
             ds_dist_level               = []
             updated_graphs: List[Data]  = []
-            cur_level = self.ds_levels[
-                idx
-            ]  # level for Deep Supervision head at this stage
+            cur_level                   = self.ds_levels[idx]  # level for Deep Supervision head at this stage
             for j in range(B):
                 vis_feat = current_graphs[j].x.unsqueeze(0)  # [1, N_from, C_from]
                 skip_feat = next_graphs[j].x.unsqueeze(0)  # [1, N_to, C_to]
@@ -255,10 +259,15 @@ class LanGuideMedSeg(nn.Module):
             log_seg_logits  = nn.LogSoftmax(dim=1)(seg_logits)
             final_logp_list.append(log_seg_logits)  # [N1, 2]
             
-            hemi_classification = self.activation_function(self.hemi_classification_head[0](g.x.unsqueeze(2)))
+            pool_g = g.x.unsqueeze(0).unsqueeze(0)  # [1,1,N1,C]
+            for lvl in range(1, 7)[::-1]:
+                pool_g = self.pool_layers[lvl](pool_g)
+            pool_g = pool_g.squeeze(0).squeeze(0)
+            hemi_classification = self.activation_function(self.hemi_classification_head[0](pool_g.unsqueeze(2)))
             hemi_classification = self.hemi_classification_head[1](hemi_classification.view(-1))
             hemi_classification = nn.LogSoftmax(dim=0)(hemi_classification)
             final_classification.append(hemi_classification)
+
             # distance head
             if hasattr(self, "dist_lin"):
                 dist_logits = self.dist_lin(g.x)  # [N1, 1]
@@ -267,6 +276,7 @@ class LanGuideMedSeg(nn.Module):
         outputs["log_softmax"]          = torch.cat(final_logp_list, dim=0)  # [B*H*V1, 2]
         outputs["non_lesion_logits"]    = torch.cat(final_dist_list, dim=0)  # [B*H*V1]
         outputs["hemi_log_softmax"]     = torch.cat(final_classification,dim=0)
+        
         return outputs
         # logits_list: List[torch.Tensor] = []
         # for g in current_graphs:
