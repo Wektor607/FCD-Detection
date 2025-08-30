@@ -42,7 +42,7 @@ L_{dice} = 1 - \frac{2 \sum_{i=1}^n y_i \hat{y}_i}{\sum_{i=1}^n y_i^2 + \sum_{i=
 \]
 
 \subsection{Distance Loss}
-To provide the network with additional contextual information and reduce false positives, we include a distance regression loss $L_{dist}$. The model is trained to predict the normalized geodesic distance $d_i$ of each vertex to the lesion boundary. We use a mean absolute error weighted by $(d_i+1)^{-1}$, so that errors near the lesion boundary are penalized more strongly than errors in distant non-lesional regions:
+To provide the network with additional contextual information and reduce false positives, we include a distance regression loss $L_{dist}$. The model is trained to predict the normalized geodesic distance $d_i$ of each vertex to the lesion boundary, $n$ is the number of vertices. We use a mean absolute error weighted by $(d_i+1)^{-1}$, so that errors near the lesion boundary are penalized more strongly than errors in distant non-lesional regions:
 \[
 L_{dist} = \frac{1}{n} \sum_{i=1}^{n} \frac{|d_i - \hat{y}_{i,0}|}{d_i + 1}.
 \]

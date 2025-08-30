@@ -1,6 +1,5 @@
 from utils.model import LanGuideMedSeg
 from engine.losses import SegmentationLoss
-from monai.losses import DiceLoss
 from torchmetrics import Accuracy, Dice
 from meld_graph.paths import MELD_DATA_PATH
 
@@ -79,7 +78,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         self.iou = BinaryJaccardIndex().to(args.device)
         self.acc = Accuracy(task="binary").to(args.device)
 
-        self.dice_fn = DiceLoss(include_background=False, sigmoid=True)
         self.config = load_config(
             "/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
         )
@@ -261,18 +259,20 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         # Calculate metrics on cortex only
         probs = logp[:, 1, :].exp()
-        pprobs = probs.view(B, H, -1)
+        print("probs stats:", probs.min().item(), probs.max().item(), probs.mean().item())
         target = target.view(B, H, -1)
 
-        # probs_bin = pprobs.clone()
-        # for i in range(probs.shape[0]):
-        #     for h in range(2):  # lh, rh
-        #         th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
-        #         probs_bin[i, h] = (probs[i, h] >= th).float()
+        pprobs = probs.view(B, H, -1).contiguous()  # [B, H, V_cortex]
+
+        probs_bin = torch.empty_like(pprobs)
+        for i in range(B):
+            for h in range(H):  # 2 полушария
+                pv = pprobs[i, h]  # [V_cortex]
+                th = self.compute_adaptive_threshold(pv.detach().cpu().numpy())
+                probs_bin[i, h] = (pv >= th).float()
 
         y_flat = target.view(-1)            # [B*N_cortex]
-        # p_flat = probs_bin.view(-1)
-        p_flat = pprobs.view(-1)
+        p_flat = probs_bin.view(-1)
 
         # Обновляем метрики тем же образом, как делал раньше
         if stage == "test":
@@ -331,8 +331,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         # ---------- End of my losses code ----------
 
         if stage == "test":
-            for sid, pred, tgt in zip(subject_ids, pprobs, target):
-            # for sid, pred, tgt in zip(subject_ids, probs_bin, target):
+            # for sid, pred, tgt in zip(subject_ids, pprobs, target):
+            for sid, pred, tgt in zip(subject_ids, probs_bin, target):
                 dice_i = self.dice(pred, tgt).item()
                 ppv_i = self.ppv(pred, tgt).item()
                 iou_i = self.iou(pred, tgt).item()
