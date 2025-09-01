@@ -2,6 +2,12 @@
 
 \begin{document}
 \chapter{Introduction}
+
+This chapter first highlights the importance of epilepsy detection and discusses the limitations of existing methods. 
+It then outlines the main objectives of the thesis and its research contributions. 
+Finally, the chapter concludes with an overview of the thesis structure.
+
+\section{Motivation}
 Automatic detection of tumors using medical imaging is widely studied in many internal organs. 
 Recent advances in deep learning and transformer-based approaches have led to impressive results in the diagnosis of lung cancer~\cite{Durgam2025LungCancer}, brain tumor~\cite{Abdusalomov2023BrainTumor}, kidney \ac{ct}~\cite{Sharma2025KidneyCT}, and breast cancer~\cite{Mehmood2025BreastCancer}. 
 These studies demonstrate the potential of modern computer vision techniques to achieve clinically significant results in various diagnostic tasks.  
@@ -19,9 +25,42 @@ and pneumothorax segmentation~\cite{Huemann2024ConTEXTualNet}.
 These advances demonstrate that textual annotations, ranging from atlas-based region names to descriptive clinical reports, provide valuable complementary information. 
 By projecting textual and visual features into a shared latent space, such information can be effectively aligned and leveraged to enhance model performance.
 
+\section{Aims of the Thesis}
+The main objective of this thesis is to investigate how the integration of textual and visual information 
+can improve the accuracy of epileptogenic lesion detection. 
+To this end, several research questions were formulated:
+
+\begin{enumerate}
+    \item Does incorporating textual descriptions from anatomical atlases influence the accuracy of lesion segmentation?
+    \item Can competitive performance be achieved using only partial atlas information (e.g., hemisphere or lobe labels)?
+    \item How does the integration of additional \ac{gnn} blocks on top of \ac{meld}-based representations affect segmentation quality?
+\end{enumerate}
+
 We systematically evaluate the impact of different types of textual information, as well as alternative strategies 
-for combining visual features, including the integration of an additional \ac{gnn} blocks on top of \ac{meld}-based representations. 
-We analyze how these design choices influence segmentation performance, demonstrating that the joint integration 
-of language and visual features can enhance both the accuracy and the sensitivity of epileptogenic lesion detection.
+for combining visual features, including the integration of additional \ac{gnn} layers. 
+We further analyze how these design choices influence segmentation performance, 
+demonstrating that the joint integration of language and visual features can enhance both the accuracy 
+and the sensitivity of epileptogenic lesion detection.
+
+\section{Contributions}
+
+The main contributions of this thesis can be summarized as follows:
+
+\begin{enumerate}
+    \item Proposes a novel multimodal architecture for the detection of epileptogenic lesions, c
+    ombining visual representations with language-guided features.
+    \item Conducted a comprehensive set of experiments to explore design choices, including the number of 
+    connections in the \ac{gnn} blocks and the integration of different textual branches in the GuideDecoder, 
+    in order to optimize segmentation performance.
+    \item Systematically investigated the effect of different types of textual descriptions (e.g., 
+    full atlas annotations, hemispheric information, lobe-level labels) on model accuracy and sensitivity.
+    \item Provided thorough documentation and usage guidelines for the developed code.
+\end{enumerate}
+
+\section{Thesis structure}
+Chapter~\ref{chapter:Related_works} reviews prior research on \acs{fcd} detection and text-guided medical image segmentation, highlighting key architectural designs, fusion strategies, and limitations that motivate our approach. 
+Chapter~\ref{chapter:Method} introduces the proposed multimodal segmentation framework for epileptogenic lesion detection, describing its surface-based visual feature extraction, GNN block, RadBERT textual embeddings, and their integration within the GuideDecoder. 
+Chapter~\ref{chapter:Dataset} details the datasets used in this study, namely the Bonn dataset and the large-scale MELD cohort, along with the preprocessing steps, data augmentation strategies, and types of atlas-based textual descriptions. 
+Chapter~\ref{chapter:Experiments} TODO
 
 \end{document}

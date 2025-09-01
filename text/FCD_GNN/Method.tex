@@ -2,7 +2,7 @@
 
 \begin{document}
 \chapter{Method}
-
+\label{chapter:Method}
 As mentioned earlier, the design of our architecture was inspired by the work of~\cite{Zhong2023Ariadne}. 
 The key differences in our implementation are threefold: 
 (1) we increase the number of feature extraction layers, 
@@ -13,7 +13,7 @@ and each component is described in more detail below.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{architecture.png}
+    \includegraphics[width=1.0\textwidth]{architecture.png}
     \caption{Overview of the proposed multimodal segmentation architecture. 
     Visual features extracted from FreeSurfer surface space are processed through hierarchical GNN layers, 
     while textual embeddings from RadBERT guide the decoder via cross-attention.}

@@ -146,9 +146,9 @@ class GuideDecoder(nn.Module):
 
         # TODO: Make a hyperparameter
         # text-guided version
-        # vis_coarse = self.guide_layer(vis, txt, chunk)
+        vis_coarse = self.guide_layer(vis, txt, chunk)
         # Non text-guided version
-        vis_coarse = vis.clone()
+        # vis_coarse = vis.clone()
 
         # split hemispheres
         vis_coarse = vis_coarse.reshape(B, H, vis_coarse.shape[1] // H, C)

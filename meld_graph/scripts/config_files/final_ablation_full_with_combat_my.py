@@ -43,8 +43,8 @@ losses=[
     "max_epochs_lr_decay": 1000,
     "max_patience": 1000,
     "loss_dictionary": {
-            # "cross_entropy": {"weight": 1.0},           # слабее, чем dice
-            "focal_loss": {"alpha": 0.25, "gamma": 2, "weight": 1.0},  # если используешь вместо CE
+            "cross_entropy": {"weight": 1.0},           # слабее, чем dice
+            # "focal_loss": {"alpha": 0.25, "gamma": 2, "weight": 1.0},  # если используешь вместо CE
             "distance_regression": {"loss": "mae", "weigh_by_gt": True, "weight": 1.0}, # как регуляризатор
             "dice": {"class_weights": [0.0, 1.0], "weight": 1.0},      # главный лосс
             "lesion_classification": {"apply_to_bottleneck": True, "weight": 1.0}  # аккуратно, как вспомогательный

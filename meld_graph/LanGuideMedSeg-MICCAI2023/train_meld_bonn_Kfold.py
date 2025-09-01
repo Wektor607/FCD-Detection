@@ -7,6 +7,10 @@ import csv
 import numpy as np
 import pandas as pd
 
+import torch.nn as nn
+from torchmetrics import Accuracy, Dice
+from torchmetrics.classification import BinaryJaccardIndex, Precision
+
 import torch.multiprocessing
 from torch.utils.data import DataLoader, Sampler
 
@@ -22,6 +26,7 @@ import utils.config as config
 from utils.data import EpilepDataset
 from engine.wrapper import LanGuideMedSegWrapper
 from meld_graph.paths import FS_SUBJECTS_PATH
+from meld_graph.meld_cohort import MeldCohort
 
 # теперь можно вызвать
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -281,8 +286,17 @@ if __name__ == "__main__":
             verbose=True,
         )
 
+        # ckpt_loss = ModelCheckpoint(
+        #     dirpath=args.model_save_path,
+        #     filename=f"{args.model_save_filename}_fold{fold + 1}_best-loss",
+        #     monitor="val_loss",
+        #     save_top_k=1,
+        #     mode="min",
+        #     verbose=True,
+        # )
+
         early_stopping = EarlyStopping(
-            monitor="val_dice",  # 'val_loss',
+            monitor="val_dice", #"val_loss",
             patience=args.patience,
             mode="max",  # 'min',
         )
@@ -294,6 +308,7 @@ if __name__ == "__main__":
             accelerator=accelerator,
             devices=devices,
             # strategy=strategy, ###################
+            # callbacks=[ckpt_loss, model_ckpt, early_stopping],
             callbacks=[model_ckpt, early_stopping],
             enable_progress_bar=True,
             # precision=32,                  # без AMP
@@ -335,6 +350,97 @@ if __name__ == "__main__":
 
         # 3) Evaluate on TEST
         model.eval()
+
+        # Checking MELD results on test data
+        if check:
+            test_metrics = nn.ModuleDict(
+                {
+                    "acc": Accuracy(task="binary"),
+                    "dice": Dice(),
+                    "ppv": Precision(task="binary"),
+                    "MIoU": BinaryJaccardIndex(),
+                }
+            )
+            cohort = MeldCohort()
+
+            cortex_mask = torch.from_numpy(
+                cohort.cortex_mask
+            )  # shape [N], dtype=torch.bool
+
+            metrics_history = {name: [] for name in test_metrics.keys()}
+
+            for batch in dl_test:
+                (subject_ids, text), y = batch
+                B, H, N = y.shape
+
+                for b, sid in enumerate(subject_ids):
+                    # извлекаем GT для кортикальных вершин
+                    gt = y[b]  # [2, N]
+                    gt_cortex = gt[:, cortex_mask]  # [2, N_cortex]
+                    gt_flat = gt_cortex.flatten()  # [2*N_cortex]
+
+                    # загружаем ваши предсказания
+                    nii_path = os.path.join(
+                        # MELD_DATA_PATH, f"input/{sid}/anat/features", "result.npz",
+                        MELD_DATA_PATH,
+                        f"preprocessed/meld_files/{sid}/features",
+                        "result.npz",
+                    )
+                    arr = np.load(nii_path)["result"]
+                    pred = torch.from_numpy(arr.astype("float32"))  # [2, N]
+
+                    # pred_label = pred.argmax(dim=0)
+
+                    # # 3) бинаризуем: 1 — потенциальный объект, 0 — шум
+                    # binary_pred = (pred_label == 1).cpu().numpy()  # ndarray [N_cortex]
+
+                    # # 4) находим связные компоненты (кластеризацию)
+                    # clusters, num_clusters = label(binary_pred)
+                    # print(f"{sid} num_clusters = {num_clusters}")
+                    # metrics_history.setdefault("num_clusters", []).append(num_clusters)
+
+                    # # 6) качество по каждому кластеру
+                    # for cl_id in range(1, num_clusters + 1):
+                    #     cluster_mask = clusters == cl_id
+                    #     if cluster_mask.sum() == 0:
+                    #         continue
+                    #     for name, metric in test_metrics.items():
+                    #         metric.update(
+                    #             torch.from_numpy(cluster_mask).unsqueeze(
+                    #                 0
+                    #             ),  # [1, n_pts_total]
+                    #             torch.from_numpy(
+                    #                 gt_flat.reshape(2, -1)[1, :][cluster_mask]
+                    #             ).unsqueeze(0),
+                    #         )
+                    #         val = metric.compute().item()
+                    #         metric.reset()
+                    #         print(f"{sid} {name} кластер {cl_id} = {val:.4f}")
+                    #         key = f"{name}_cluster_{cl_id}"
+                    #         metrics_history.setdefault(key, []).append(val)
+
+                    # print("---")
+
+                    # 3) обновляем метрики, сохраняем в history
+                    for name, metric in test_metrics.items():
+                        metric.update(pred, gt_flat.long())
+                        val = metric.compute().item()
+                        metric.reset()
+
+                        print(f"{sid} {name} = {val:.4f}")
+                        metrics_history[name].append(val)
+
+                    print("---")
+
+            # 4) после всех субъектов считаем медиану и 2.5–97.5 перцентили
+
+            print("\n=== Сводная статистика по всем субъектам ===")
+            for name, values in metrics_history.items():
+                vals = np.array(values)
+                med = np.median(vals)
+                lo, hi = np.percentile(vals, [2.5, 97.5])
+                print(f"{name:>5}: median={med:.4f}  [{lo:.4f}–{hi:.4f}]")
+        
         test_results = trainer.test(
             model,
             dataloaders=dl_test,

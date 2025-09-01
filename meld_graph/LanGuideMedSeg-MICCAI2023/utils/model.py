@@ -118,7 +118,7 @@ class LanGuideMedSeg(nn.Module):
 
         # The first value represents the proportion of lesion pixels across all scans,
         # and the second value represents the proportion of background pixels
-        pos_bias = -3.0 # np.log(0.006917 / 0.993083)
+        pos_bias = np.log(0.006917 / 0.993083)
 
         self.ds_heads = nn.ModuleDict()
         self.ds_dist_heads = nn.ModuleDict()
@@ -204,10 +204,10 @@ class LanGuideMedSeg(nn.Module):
                 N_from = vis_feat.size(1)
 
                 # TODO: hyperparameter
-                if N_from < 40962:
-                    txt_emb = text_hidden_last[j].unsqueeze(0)  # [1, L_seq, 768]
-                else:
-                    txt_emb = None
+                # if N_from < 40962:
+                txt_emb = text_hidden_last[j].unsqueeze(0)  # [1, L_seq, 768]
+                # else:
+                #     txt_emb = None
 
                 # TODO: hyperparameter
                 chunk = N_from > 40962

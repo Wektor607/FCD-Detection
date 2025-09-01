@@ -259,7 +259,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         # Calculate metrics on cortex only
         probs = logp[:, 1, :].exp()
-        print("probs stats:", probs.min().item(), probs.max().item(), probs.mean().item())
+        
         target = target.view(B, H, -1)
 
         pprobs = probs.view(B, H, -1).contiguous()  # [B, H, V_cortex]
@@ -270,6 +270,10 @@ class LanGuideMedSegWrapper(pl.LightningModule):
                 pv = pprobs[i, h]  # [V_cortex]
                 th = self.compute_adaptive_threshold(pv.detach().cpu().numpy())
                 probs_bin[i, h] = (pv >= th).float()
+
+        frac_pos = probs_bin.float().mean()
+        print(f"\n{stage}/frac_positive: ", frac_pos)
+        print(f"\n{stage}/mean_prob_lesion: ", pprobs.mean())
 
         y_flat = target.view(-1)            # [B*N_cortex]
         p_flat = probs_bin.view(-1)
@@ -357,11 +361,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             #     MELD_DATA_PATH, "output", "predictions_reports"
             # )
 
-            # for (
-            #     sid,
-            #     p,
-            # ) in zip(subject_ids, logits):
-            #     predictions = torch.sigmoid(p).detach().cpu().numpy()
+            # for (sid, pred) in zip(subject_ids, probs_bin):
+            #     predictions = pred.detach().cpu().numpy()
 
             #     classifier_dir = os.path.join(
             #         subjects_fs_dir, sid, "xhemi", "classifier"

@@ -93,6 +93,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     
     for subject_id in subject_ids:  
         features        = eva.data_dictionary[subject_id]["feature_maps"]
+        result          = eva.data_dictionary[subject_id]["result"]
         labels          = eva.data_dictionary[subject_id]["full_labels"]
         dist_map_gt     = eva.data_dictionary[subject_id]["geodesic_distance"]
         # xyzr_gt         = eva.data_dictionary[subject_id]["xyzr"]
@@ -136,7 +137,6 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         save_surface_mgh(rh, rh_path)
         print(f"Saved labels to {lh_path} and {rh_path}")
 
-        # по желанию — метаданные, чтобы быстро понимать «пустое» ли полушарие
         meta = {
             "n_vertices": int(n_hemi),
             "lh_sum": float(lh.sum()),
@@ -150,19 +150,19 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         # np.savez_compressed(estimates_path, 
         #                     estimates)
 
-        # res_path = os.path.join(save_dir, "result.npz")
-        # if isinstance(result, np.ndarray):
-        #     np.savez_compressed(res_path, result=result)        
-        # elif isinstance(result, dict):
-        #     np.savez_compressed(
-        #         res_path,
-        #         **{f"pred_{hemi}": arr.detach().cpu().numpy()
-        #         for hemi, arr in result.items()}
-        #     )
-        # else:
-        #     raise TypeError(f"Неожиданный тип result: {type(result)}")
+        res_path = os.path.join(save_dir, "result.npz")
+        if isinstance(result, np.ndarray):
+            np.savez_compressed(res_path, result=result)        
+        elif isinstance(result, dict):
+            np.savez_compressed(
+                res_path,
+                **{f"pred_{hemi}": arr.detach().cpu().numpy()
+                for hemi, arr in result.items()}
+            )
+        else:
+            raise TypeError(f"Неожиданный тип result: {type(result)}")
 
-        # print(f"Saved prediction result to {res_path}")
+        print(f"Saved prediction result to {res_path}")
 
     # #threshold predictions
     # eva.threshold_and_cluster()
