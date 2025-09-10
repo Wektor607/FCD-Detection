@@ -1,32 +1,29 @@
-from utils.model import LanGuideMedSeg
-from engine.losses import SegmentationLoss
-from torchmetrics import Accuracy, Dice
-from meld_graph.paths import MELD_DATA_PATH
+from __future__ import annotations
+from typing import Any, Dict, List, Tuple, Union
 
-import os
+from utils.model import LanGuideMedSeg
+from torchmetrics import Accuracy, Dice
+
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.icospheres import IcoSpheres
-from torchmetrics.classification import BinaryJaccardIndex, Precision, Specificity
+from torchmetrics.classification import (
+    BinaryJaccardIndex,
+    Precision,
+    Specificity,
+    BinaryF1Score,
+)
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from copy import deepcopy
 import pandas as pd
+from utils.utils import summarize_ci, compute_adaptive_threshold
 import sys
 import numpy as np
 import datetime
-import nibabel as nb
-from engine.converter_mgh_to_nifti import (
-    convert_prediction_mgh_to_nii,
-    save_gt_as_mgh,
-    convert_gt_to_nii,
-    run_command,
-    get_combat_feature_path,
-    save_mgh,
-    h5py,
-)
 from engine.pooling import HexPool
 from engine.loss_meld import calculate_loss
+
 
 def load_config(config_file):
     """load config.py file and return config object"""
@@ -41,31 +38,38 @@ def load_config(config_file):
 
 
 class LanGuideMedSegWrapper(pl.LightningModule):
-    def __init__(self, args, tokenizer, max_len, alpha=0.85, gamma=2):
-        super(LanGuideMedSegWrapper, self).__init__()
-        self.save_hyperparameters(args)
+    def __init__(self, args: Any) -> None:
+        super().__init__()
 
+        self.save_hyperparameters(args)
+        self.config: Any = load_config(
+            "/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
+        )
+        self.params: Dict[str, Any] = (
+            next(iter(self.config.losses))
+            if isinstance(self.config.losses, list)
+            else self.config.losses
+        )
+        layer_sizes: List[List[int]] = list(
+            self.params["data_parameters"]["layer_sizes"]
+        )
         self.model = LanGuideMedSeg(
             args.bert_type,
             args.meld_script_path,
             args.feature_path,
             args.output_dir,
-            args.project_dim,
+            layer_sizes,
             args.device,
-            tokenizer,
-            max_len,
+            args.feature_dim,
+            args.text_lens,
+            args.max_len,
         )
 
-        self.alpha = alpha
-        self.gamma = gamma
-
-        self.loss_fn = SegmentationLoss(alpha=alpha, gamma=gamma)
-
-        self.train_metrics = nn.ModuleDict(
+        self.train_metrics: nn.ModuleDict[str, nn.Module] = nn.ModuleDict(
             {
                 "acc": Accuracy(task="binary"),
                 "spec": Specificity(task="binary"),
-                "dice": Dice(),
+                "dice": BinaryF1Score(),  # Dice(),
                 "ppv": Precision(task="binary"),
                 "IoU": BinaryJaccardIndex(),
             }
@@ -73,51 +77,37 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         self.val_metrics = deepcopy(self.train_metrics)
         self.test_metrics = deepcopy(self.train_metrics)
 
-        self.dice = Dice().to(args.device)
-        self.ppv = Precision(task="binary").to(args.device)
-        self.iou = BinaryJaccardIndex().to(args.device)
-        self.acc = Accuracy(task="binary").to(args.device)
-
-        self.config = load_config(
-            "/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
-        )
+        self.dice: nn.Module = Dice().to(args.device)
+        self.ppv: nn.Module = Precision(task="binary").to(args.device)
+        self.iou: nn.Module = BinaryJaccardIndex().to(args.device)
+        self.acc: nn.Module = Accuracy(task="binary").to(args.device)
 
         self.c = MeldCohort()
 
-        self.history = {}
-        self.test_dice_scores = []
-        self.test_ppv_scores = []
-        self.test_iou_scores = []
-        self.test_acc_scores = []
+        self.history: Dict[int, Dict[str, Union[float, int]]] = {}
+        self.test_dice_scores: List[float] = []
+        self.test_ppv_scores: List[float] = []
+        self.test_iou_scores: List[float] = []
+        self.test_acc_scores: List[float] = []
 
-        self.base_path = args.feature_path
-
-        # 1) подготовим пулеры на все уровни, как у авторов
+        self.base_path: str = args.feature_path
         self.icospheres = IcoSpheres()
-        self.params = next(iter(self.config.losses)) if isinstance(self.config.losses, list) else self.config.losses
-        self.ds_levels = self.params["network_parameters"][
+
+        self.ds_levels: List[int] = self.params["network_parameters"][
             "training_parameters"
         ]["deep_supervision"]["levels"]
-        self.ds_weights = self.params["network_parameters"][
+        self.ds_weights: List[float] = self.params["network_parameters"][
             "training_parameters"
         ]["deep_supervision"]["weight"]
-        self.pool_layers = {
+        self.pool_layers: Dict[int, HexPool] = {
             level: HexPool(self.icospheres.get_downsample(target_level=level))
             for level in range(min(self.ds_levels), 7)[::-1]
         }
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = torch.optim.AdamW(
             self.parameters(), lr=self.hparams.lr, weight_decay=1e-3
         )  # 1e-2
-        # lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        #     optimizer,
-        #     max_lr=self.hparams.lr,# * 10, # <- better than 0.3 and 0.003
-        #     # *10 <- cause a gradient explosion
-        #     total_steps=self.trainer.estimated_stepping_batches, # 600
-        #     pct_start=0.3, # 0.2
-        #     anneal_strategy='cos',
-        # )
 
         lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
@@ -125,16 +115,26 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             total_steps=self.trainer.estimated_stepping_batches,
             pct_start=0.3,  # короче разгон, чаще помогает
             anneal_strategy="cos",
-            # div_factor=5.0,  # стартовый lr = max_lr / 5  => 6e-4
-            # final_div_factor=50.0,  # финальный lr = max_lr / 50
         )
 
-        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": lr_scheduler,
+                "interval": "step",
+                "frequency": 1,
+                "name": "one_cycle",
+            },
+        }
 
-    def forward(self, x):
+    def forward(
+        self, x: Tuple[List[str], Dict[str, torch.Tensor]]
+    ) -> Dict[str, torch.Tensor]:
         return self.model(x)
 
-    def shared_step(self, batch, batch_idx, stage: str):
+    def shared_step(
+        self, batch: Dict[str, Any], batch_idx: int, stage: str
+    ) -> torch.Tensor:
         """
         General code for train/val/test.
         batch = (x, y, ...), where
@@ -143,58 +143,66 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         ignore the rest of the batch elements
         stage: "train" | "val" | "test"
         """
-        x, y, dist_maps = batch
-        subject_ids, text = x
-        
+        subject_ids = batch["subject_id"]  # list[str]
+        text = batch["text"]  # dict with input_ids, attention_mask
+        y = batch["roi"]  # torch.Tensor
+        dist_maps = batch["dist_maps"]  # torch.Tensor
+
         # Pooling layers of targets
         B, H, V7 = y.shape
         dist_maps = dist_maps.view(B, 2, -1)
-        labels_pooled       = {7: y.long()}                                  # [B,H,V7]
-        dists_pooled        = {7: dist_maps}
-        self.cortex_mask    = torch.from_numpy(self.c.cortex_mask)
-        cortex_pooled       = {7: self.cortex_mask.to(y.device).bool()}    # [V7] bool
+        labels_pooled = {7: y.long()}  # [B,H,V7]
+        dists_pooled = {7: dist_maps}
+        self.cortex_mask = torch.from_numpy(self.c.cortex_mask).to(y.device)
+        cortex_pooled = {7: self.cortex_mask.to(y.device).bool()}  # [V7] bool
 
         for level in range(min(self.ds_levels), 7)[::-1]:
-            labels_pooled[level] = ( 
-                self.pool_layers[level](labels_pooled[level + 1].float())
-            ).long()  # [B,H,V_level]
-        
-            dists_pooled[level] = self.pool_layers[level](dists_pooled[level + 1], center_pool=True)
+            pooled = self.pool_layers[level](labels_pooled[level + 1].float())
+            labels_pooled[level] = (pooled >= 0.5).long()  # [B,H,V_level]
+
+            dists_pooled[level] = self.pool_layers[level](
+                dists_pooled[level + 1], center_pool=True
+            )
             dists_pooled[level] = torch.clip(dists_pooled[level], 0, 300)
 
-            cx = cortex_pooled[level + 1].float().unsqueeze(0).unsqueeze(0)   # [1,1,V_{l+1}]
-            cx = self.pool_layers[level](cx)                                   # [1,1,V_level] float
-            cortex_pooled[level] = cx.squeeze(0).squeeze(0).bool()
-        
-        y = y.float()
+            cortex_mask = (
+                cortex_pooled[level + 1].float().unsqueeze(0).unsqueeze(0)
+            )  # [1,1,V_{l+1}]
+            cortex_mask = self.pool_layers[level](cortex_mask)  # [1,1,V_level] float
+            cortex_pooled[level] = cortex_mask.squeeze(0).squeeze(0).bool()
 
-        outputs = self(x)
+        y = y.float()
+        outputs = self([subject_ids, text])
 
         # Loss configuration
         B, H, V7 = y.shape
-        loss_cfg = self.params['network_parameters']['training_parameters']['loss_dictionary']
+        loss_cfg = self.params["network_parameters"]["training_parameters"][
+            "loss_dictionary"
+        ]
 
         # ---------- Loss on final layer (S7) ----------
-        estimates = {}
-        
+
         # [B*H*V, 2] -> [B, H, V, 2] -> [B, 2, H, V]
         logp = outputs["log_softmax"].view(B, H, V7, 2).permute(0, 3, 1, 2)  # [B,2,H,V]
-        logp = logp[:, :, :, self.cortex_mask]                                # [B,2,H,V_cortex]
-        logp = logp.reshape(B, 2, -1)                                         # [B,2,H*V_cortex]
-        
-        y_mask = y[:, :, self.cortex_mask]                   # [B,H,V_cortex]
+        logp = logp[:, :, :, self.cortex_mask]  # [B,2,H,V_cortex]
+        logp = logp.reshape(B, 2, -1)  # [B,2,H*V_cortex]
+
+        y_mask = y[:, :, self.cortex_mask]  # [B,H,V_cortex]
         target = y_mask.view(B, -1).long()
 
         dist_maps_cortex = dist_maps[:, :, self.cortex_mask]
         dist_maps_cortex = dist_maps_cortex.view(B, -1)
 
-        estimates["log_softmax"] =  logp
+        estimates = {}
+        estimates["log_softmax"] = logp
+        estimates["hemi_log_softmax"] = outputs["hemi_log_softmax"]
         # distance head
         if "non_lesion_logits" in outputs:
-            non_lesion_logits_cortex = outputs["non_lesion_logits"].view(B, 2, -1)[:, :, self.cortex_mask]
+            non_lesion_logits_cortex = outputs["non_lesion_logits"].view(B, 2, -1)[
+                :, :, self.cortex_mask
+            ]
             estimates["non_lesion_logits"] = non_lesion_logits_cortex.reshape(B, -1)
-        estimates["hemi_log_softmax"] = outputs["hemi_log_softmax"]
-        
+
         losses = {}
 
         losses_main = calculate_loss(
@@ -204,136 +212,94 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             distance_map=dist_maps_cortex,
             deep_supervision_level=None,
             device=self.device,
-            n_vertices=y.shape[2]
+            n_vertices=y.shape[2],
         )
         total_loss = sum(losses_main.values())
         losses.update({f"main/{k}": v for k, v in losses_main.items()})
 
         # ---------- Losses on DS-levels ----------
-        
+
         for weight, level in zip(self.ds_weights, self.ds_levels):
             key = f"ds{level}_log_softmax"
             if key not in outputs:
                 continue
 
-            V_l = labels_pooled[level].size(-1)
-
-            cortex_mask = cortex_pooled[level]   # [V_l] bool
-            y_l = labels_pooled[level][:, :, cortex_mask]  # [B,H,V_l] -> [B,H,V_l_cortex]
-            y_l = y_l.reshape(y_l.shape[0], -1)   # [B*H*V_l]
+            num_vert_ds = labels_pooled[level].size(-1)
+            cortex_mask = cortex_pooled[level]  # [V_l] bool
+            y_l = labels_pooled[level][
+                :, :, cortex_mask
+            ]  # [B,H,V_l] -> [B,H,V_l_cortex]
+            y_l = y_l.reshape(y_l.shape[0], -1)  # [B*H*V_l]
 
             dist_map_l = dists_pooled[level]
             dist_map_l = dist_map_l[:, :, cortex_mask]
             dist_map_l = dist_map_l.view(B, -1)
 
-            n_vert_ds = V_l
-
             estimates_ds = {}
-            logp_ds = outputs[f"ds{level}_log_softmax"].view(B, H, V_l, 2).permute(0, 3, 1, 2)  # [B,2,H,V_l]
-            logp_ds = logp_ds[:, :, :, cortex_pooled[level]]                                    # [B,2,H,V_cortex_l]
-            logp_ds = logp_ds.reshape(B, 2, -1)                                                 # [B,2,H*V_cortex_l]
+            logp_ds = (
+                outputs[f"ds{level}_log_softmax"]
+                .view(B, H, num_vert_ds, 2)
+                .permute(0, 3, 1, 2)
+            )  # [B,2,H,V_l]
+            logp_ds = logp_ds[:, :, :, cortex_pooled[level]]  # [B,2,H,V_cortex_l]
+            logp_ds = logp_ds.reshape(B, 2, -1)  # [B,2,H*V_cortex_l]
 
             estimates_ds["log_softmax"] = logp_ds
-            estimates_ds['non_lesion_logits'] = outputs[f'ds{level}_non_lesion_logits'].view(B, 2, -1)[:, :, cortex_mask].view(B, -1)
+            estimates_ds["non_lesion_logits"] = (
+                outputs[f"ds{level}_non_lesion_logits"]
+                .view(B, 2, -1)[:, :, cortex_mask]
+                .view(B, -1)
+            )
 
             ds_losses = calculate_loss(
-                loss_cfg, 
-                estimates_ds, 
+                loss_cfg,
+                estimates_ds,
                 labels=y_l,
                 distance_map=dist_map_l,
-                deep_supervision_level=level, 
-                device=self.device, 
-                n_vertices=n_vert_ds
+                deep_supervision_level=level,
+                device=self.device,
+                n_vertices=num_vert_ds,
             )
-            # print(ds_losses)
-            for k, v in ds_losses.items():
-                total_loss = total_loss + weight * v
-            losses.update({f"ds{level}/{k}": weight * v for k, v in ds_losses.items()})
+
+            for _, val_loss in ds_losses.items():
+                total_loss = total_loss + weight * val_loss
+            losses.update(
+                {
+                    f"ds{level}/{name_loss}": weight * loss_val
+                    for name_loss, loss_val in ds_losses.items()
+                }
+            )
 
         # ---------- logging ----------
-        self.log(f"{stage}/loss_total", total_loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
-        for name, val in losses.items():
-            self.log(f"{stage}/{name}", val, on_step=True, on_epoch=True, sync_dist=True)
-
-        loss = total_loss #sum(losses.values())
+        self.log(
+            f"{stage}/loss_total",
+            total_loss,
+            prog_bar=True,
+            on_step=True,
+            on_epoch=True,
+            sync_dist=True,
+        )
 
         # Calculate metrics on cortex only
         probs = logp[:, 1, :].exp()
-        
-        target = target.view(B, H, -1)
-
         pprobs = probs.view(B, H, -1).contiguous()  # [B, H, V_cortex]
+        target = target.view(B, H, -1)
 
         probs_bin = torch.empty_like(pprobs)
         for i in range(B):
-            for h in range(H):  # 2 полушария
+            for h in range(H):  # 2 hemispheres
                 pv = pprobs[i, h]  # [V_cortex]
-                th = self.compute_adaptive_threshold(pv.detach().cpu().numpy())
+                th = compute_adaptive_threshold(pv.detach().cpu().numpy())
                 probs_bin[i, h] = (pv >= th).float()
 
-        frac_pos = probs_bin.float().mean()
-        print(f"\n{stage}/frac_positive: ", frac_pos)
-        print(f"\n{stage}/mean_prob_lesion: ", pprobs.mean())
+        # frac_pos = probs_bin.float().mean()
+        # print(f"\n{stage}/frac_positive: ", frac_pos)
+        # print(f"\n{stage}/mean_prob_lesion: ", pprobs.mean())
 
-        y_flat = target.view(-1)            # [B*N_cortex]
+        y_flat = target.view(-1)  # [B*N_cortex]
         p_flat = probs_bin.view(-1)
 
         # Обновляем метрики тем же образом, как делал раньше
-        if stage == "test":
-            for m in self.test_metrics.values():
-                m.update(p_flat, y_flat)
-        else:
-            metrics = self.train_metrics if stage == "train" else self.val_metrics
-            for name, m in metrics.items():
-                m.update(p_flat, y_flat)
-                val = m.compute()
-                # У тебя "spec" логируется как FPR (1 - specificity)
-                if name == "spec":
-                    val = 1 - val
-                self.log(name, val, prog_bar=True, on_step=True, on_epoch=False, sync_dist=True)
-
-        # ---------- Code for my losses ----------
-        # Remain only cortex vertices
-        # logits = logits.view_as(y)
-        # logits = logits[:, :, self.c.cortex_mask]
-        # y = y[:, :, self.c.cortex_mask]
-
-        # Static loss
-        # loss = self.loss_fn.static_loss(logits, y)
-        # Dynamic loss
-        # loss = self.loss_fn.dynamic_loss(logits, y)
-
-        # probs = torch.sigmoid(logits)
-        # y = y.long()
-        # y_flat = y.view(-1)
-
-        # probs_bin = probs.clone()
-        # for i in range(probs.shape[0]):
-        #     for h in range(2):  # lh, rh
-        #         th = self.compute_adaptive_threshold(probs[i, h].detach().cpu().numpy())
-        #         probs_bin[i, h] = (probs[i, h] >= th).float()
-
-        # if stage == "test":
-        #     for name, m in self.test_metrics.items():
-        #         m.update(probs_bin.view(-1), y_flat)
-        # else:
-        #     metrics = self.train_metrics if stage == "train" else self.val_metrics
-
-        #     for name, m in metrics.items():
-        #         m.update(probs_bin.view(-1), y_flat)
-        #         val = m.compute()
-        #         if name == "spec":
-        #             val = 1 - val
-        #         self.log(
-        #             name,
-        #             val,
-        #             prog_bar=True,
-        #             on_step=True,
-        #             on_epoch=False,
-        #             sync_dist=True,
-        #         )
-        # ---------- End of my losses code ----------
-
         if stage == "test":
             # for sid, pred, tgt in zip(subject_ids, pprobs, target):
             for sid, pred, tgt in zip(subject_ids, probs_bin, target):
@@ -351,7 +317,21 @@ class LanGuideMedSegWrapper(pl.LightningModule):
                     f"[TEST sample {sid!r}] Dice={dice_i:.3f}, PPV={ppv_i:.3f}, "
                     f"IoU={iou_i:.3f}, Acc={acc_i:.3f}"
                 )
-
+        else:
+            metrics = self.train_metrics if stage == "train" else self.val_metrics
+            for name, metric in metrics.items():
+                val = metric(p_flat, y_flat)
+                # У тебя "spec" логируется как FPR (1 - specificity)
+                if name == "spec":
+                    val = 1 - val
+                self.log(
+                    name,
+                    val,
+                    prog_bar=True,
+                    on_step=True,
+                    on_epoch=False,
+                    sync_dist=True,
+                )
             # ---------- Save predictions as MGH and NIfTI ----------
 
             # subjects_fs_dir = (
@@ -438,10 +418,12 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             #     run_command(cmd_gt, verbose=False)
             #     print(f"🎉 Final combined GT   NIfTI: {gt_final}")
 
-        return loss
+        return total_loss
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         loss = self.shared_step(batch, batch_idx, stage="train")
+        # print(f"[TRAIN epoch {self.current_epoch}] " +
+        #   ", ".join(f"{k}={v:.4f}" for k, v in losses.items()))
         self.log(
             "train_loss",
             loss,
@@ -452,8 +434,10 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         )
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         loss = self.shared_step(batch, batch_idx, stage="val")
+        # print(f"[VAL   epoch {self.current_epoch}] " +
+        #   ", ".join(f"{k}={v:.4f}" for k, v in losses.items()))
         self.log(
             "val_loss",
             loss,
@@ -464,7 +448,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         )
         return loss
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         loss = self.shared_step(batch, batch_idx, stage="test")
         self.log(
             "test_loss",
@@ -476,7 +460,11 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         )
         return loss
 
-    def shared_epoch_end(self, outputs, stage="train"):
+    def shared_epoch_end(
+        self,
+        outputs: List[Union[Dict[str, torch.Tensor], torch.Tensor, Tuple[Any, ...]]],
+        stage: str = "train",
+    ) -> Dict[str, Union[int, float]]:
         """
         outputs: list from the results of the corresponding step:
         - for train: list[{"loss": tensor, ...}] (Lightning will pack the dictionary)
@@ -533,7 +521,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         return stats
 
-    def training_epoch_end(self, outputs):
+    def training_epoch_end(self, outputs: List[Any]) -> None:
         stats = self.shared_epoch_end(outputs, stage="train")
         print(
             f"\n[TRAIN epoch {stats['epoch']}] "
@@ -552,7 +540,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             sync_dist=True,
         )
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs: List[Any]) -> None:
         stats = self.shared_epoch_end(outputs, stage="val")
         nowtime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print("\n" + "=" * 80 + f" {nowtime}")
@@ -587,7 +575,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
                     file=sys.stderr,
                 )
 
-    def test_epoch_end(self, outputs):
+    def test_epoch_end(self, outputs: List[Any]) -> None:
         stats = self.shared_epoch_end(outputs, stage="test")
         print(
             f"\n[TEST  epoch {stats['epoch']}] "
@@ -604,33 +592,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             logger=True,
             sync_dist=True,
         )
-
-        # def summarize(scores):
-        #     med = np.median(scores)
-        #     lo, hi = np.percentile(scores, [2.5, 97.5])
-        #     return med, lo, hi
-
-        # d_med, d_lo, d_hi = summarize(self.test_dice_scores)
-        # p_med, p_lo, p_hi = summarize(self.test_ppv_scores)
-        # i_med, i_lo, i_hi = summarize(self.test_iou_scores)
-        # a_med, a_lo, a_hi = summarize(self.test_acc_scores)
-
-        def summarize_ci(scores, B=10_000, alpha=0.05, seed=42):
-            x = np.asarray(scores, dtype=float)
-            x = x[~np.isnan(x)]
-            N = x.size
-            if N == 0:
-                return np.nan, np.nan, np.nan
-            if N == 1:
-                return float(x[0]), float(x[0]), float(x[0])
-
-            rng = np.random.default_rng(seed)
-            idx = rng.integers(0, N, size=(B, N))  # 10k resamples
-            boot_meds = np.median(x[idx], axis=1)  # median in each resample
-            lo, hi = np.percentile(
-                boot_meds, [2.5, 97.5]
-            )  # 95% CI (percentile bootstrap)
-            return float(np.median(x)), float(lo), float(hi)
 
         d_med, d_lo, d_hi = summarize_ci(self.test_dice_scores)
         p_med, p_lo, p_hi = summarize_ci(self.test_ppv_scores)
@@ -652,7 +613,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         return metrics
 
-    def on_test_epoch_start(self):
+    def on_test_epoch_start(self) -> None:
         self.test_dice_scores.clear()
         self.test_ppv_scores.clear()
         self.test_iou_scores.clear()
@@ -660,12 +621,5 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         for m in self.test_metrics.values():
             m.reset()
 
-    def get_history(self):
+    def get_history(self) -> pd.DataFrame:
         return pd.DataFrame(self.history.values())
-
-    @staticmethod
-    def compute_adaptive_threshold(prediction: np.ndarray) -> float:
-        mp = prediction.max()
-        if mp >= 0.5:
-            return 0.5
-        return max(mp * 0.2, 0.01)

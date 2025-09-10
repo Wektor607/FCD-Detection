@@ -165,8 +165,8 @@ def full_pipeline(data4sharing_root, report_log_path):
 
         # --- Маячок №1
         print(f"[1] Открыт каталог {data4sharing_root}")
-
-        for folder_obj in os.listdir(data4sharing_root):
+        for folder_obj in reversed(os.listdir(data4sharing_root)):
+        # for folder_obj in os.listdir(data4sharing_root):
             if 'MELD' not in folder_obj:
                 continue
             label_files = []

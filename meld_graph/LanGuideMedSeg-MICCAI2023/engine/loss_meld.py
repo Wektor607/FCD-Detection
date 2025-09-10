@@ -3,6 +3,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 import torch
+from monai.losses import DiceLoss as MonaiDiceLoss
 from functools import partial
 
 
@@ -47,31 +48,34 @@ class DiceLoss(torch.nn.Module):
             else:
                 self.epsilon = 1e-15
 
+        self.dice_fn = MonaiDiceLoss(sigmoid=False)
+
     def forward(self, inputs, targets, **kwargs):
-        targets = targets.float()
+        # targets = targets.float()
         probs = torch.exp(inputs)
 
-        dice = dice_coeff(probs, targets, smooth=self.epsilon)  # [2] or [2, N]
+        return self.dice_fn(probs[:, 1:2, :], targets.unsqueeze(1).float())
+        # dice = dice_coeff(probs, targets, smooth=self.epsilon)  # [2] or [2, N]
 
-        # if the matrix returned is [2, N], collapse by N
-        if dice.dim() == 2 and dice.size(0) == 2:
-            dice = dice.mean(dim=1)  # -> [2]
+        # # if the matrix returned is [2, N], collapse by N
+        # if dice.dim() == 2 and dice.size(0) == 2:
+        #     dice = dice.mean(dim=1)  # -> [2]
 
-        elif dice.dim() != 1 or dice.numel() != 2:
-            raise ValueError(
-                f"Unexpected dice shape {tuple(dice.shape)}; expected [2] or [2, N]."
-            )
+        # elif dice.dim() != 1 or dice.numel() != 2:
+        #     raise ValueError(
+        #         f"Unexpected dice shape {tuple(dice.shape)}; expected [2] or [2, N]."
+        #     )
 
-        cw = torch.as_tensor(
-            self.class_weights, dtype=inputs.dtype, device=inputs.device
-        )
-        denom = cw.sum()
-        dice_value = (dice * cw).sum() / (
-            denom
-            if denom.item() != 0
-            else torch.tensor(2.0, device=cw.device, dtype=cw.dtype)
-        )
-        return 1.0 - dice_value
+        # cw = torch.as_tensor(
+        #     self.class_weights, dtype=inputs.dtype, device=inputs.device
+        # )
+        # denom = cw.sum()
+        # dice_value = (dice * cw).sum() / (
+        #     denom
+        #     if denom.item() != 0
+        #     else torch.tensor(2.0, device=cw.device, dtype=cw.dtype)
+        # )
+        # return 1.0 - dice_value
 
     # def forward(self, inputs, targets, device=None, **kwargs):
     #     dice = dice_coeff(torch.exp(inputs), targets, smooth=self.epsilon)
@@ -167,7 +171,7 @@ class DistanceRegressionLoss(torch.nn.Module):
             self.weigh_by_gt = False
             self.loss = "mse"
 
-    def forward(self, inputs, target, distance_map, **kwargs):        
+    def forward(self, inputs, target, distance_map, **kwargs):
         inputs = torch.squeeze(inputs)
         # normalise distance map
         distance_map = torch.div(distance_map, 300)
@@ -323,7 +327,7 @@ def calculate_loss(
         "object_detection": SmoothL1Loss(),
     }
     if distance_map is not None:
-        distance_map.to(device)
+        distance_map = distance_map.to(device)
     losses = {}
     for loss_def in loss_dict.keys():
         # TODO if deep supverision level
@@ -365,13 +369,17 @@ def calculate_loss(
                     cur_estimates = estimates_dict["hemi_log_softmax"]
             else:
                 cur_estimates = estimates_dict[f"{prefix}log_sumexp"]
-            
+
             # cur_labels = torch.any(
             #     labels.view(labels.shape[0] // n_vertices, -1), dim=1
             # ).long()
-            cur_labels = torch.any(
-                labels.view(labels.shape[0] * 2, -1), dim=1
-            ).long()
+
+            # cur_labels = torch.any(labels.view(labels.shape[0] * 2, -1), dim=1).long()
+            B, HN = labels.shape
+            H = 2
+            N = HN // H
+            labels_hemi = labels.reshape(B, H, N).any(dim=2).long()
+            cur_labels = labels_hemi.reshape(-1)
 
         else:
             raise NotImplementedError(f"Unknown loss def {loss_def}")

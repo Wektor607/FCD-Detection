@@ -1,3 +1,4 @@
+from typing import Optional, List, Callable
 import torch
 import torch.nn as nn
 import math
@@ -5,7 +6,7 @@ import math
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, dropout=0, max_len: int = 2000000) -> None:
-        super(PositionalEncoding, self).__init__()
+        super().__init__()
 
         self.dropout = nn.Dropout(p=dropout)
         pe = torch.zeros(max_len, d_model)
@@ -18,7 +19,7 @@ class PositionalEncoding(nn.Module):
         pe = pe.unsqueeze(0)  # size=(1, L, d_model)
         self.register_buffer("pe", pe)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         #  output = word_embedding + positional_embedding
         x = x + nn.Parameter(
             self.pe[:, : x.size(1)], requires_grad=False
@@ -34,7 +35,7 @@ class GuideDecoderLayer(nn.Module):
         input_text_len: int = 128,
         embed_dim: int = 768,
         chunk_size: int = 4096,
-    ):
+    ) -> None:
         super(GuideDecoderLayer, self).__init__()
 
         self.in_channels = in_channels
@@ -65,7 +66,14 @@ class GuideDecoderLayer(nn.Module):
 
         self.scale = nn.Parameter(torch.tensor(1.421), requires_grad=True)
 
-    def _chunked_attention(self, q, k, v, attn_module, chunk_size=4096):
+    def _chunked_attention(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        attn_module: nn.MultiheadAttention,
+        chunk_size: int = 4096,
+    ):
         chunks = zip(
             q.split(chunk_size, dim=1),
             k.split(chunk_size, dim=1),
@@ -74,7 +82,15 @@ class GuideDecoderLayer(nn.Module):
         out_chunks = [attn_module(qc, kc, value=vc)[0] for qc, kc, vc in chunks]
         return torch.cat(out_chunks, dim=1)
 
-    def _adaptive_chunked_attn(self, q, k, v, attn_module, chunk=8192, min_chunk=512):
+    def _adaptive_chunked_attn(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        attn_module: nn.MultiheadAttention,
+        chunk: int = 8192,
+        min_chunk: int = 512,
+    ) -> torch.Tensor:
         """
         We try to split by init_chunk, and if it's still OOM,
         each time we divide by 2 until we fall below min_chunk.
@@ -92,7 +108,9 @@ class GuideDecoderLayer(nn.Module):
                     continue
                 raise
 
-    def forward(self, x, txt, chunk):
+    def forward(
+        self, x: torch.Tensor, txt: Optional[torch.Tensor], chunk: bool
+    ) -> torch.Tensor:
         """
         x:[B N C1]
         txt:[B,L,C]
@@ -114,7 +132,6 @@ class GuideDecoderLayer(nn.Module):
         if txt is not None:
             # Cross-Attention
             vis2 = self.norm2(vis)
-
             txt = self.text_project(txt)
 
             # txt = self.txt_norm(txt) # <- a little bit lower accuracy if we use text normalization
@@ -124,14 +141,15 @@ class GuideDecoderLayer(nn.Module):
             )
 
             vis2 = self.cross_attn_norm(vis2)
-
             vis = vis + self.scale * vis2
 
         return vis
 
 
 class GuideDecoder(nn.Module):
-    def __init__(self, in_channels, out_channels, text_len, input_text_len) -> None:
+    def __init__(
+        self, in_channels: int, out_channels: int, text_len: int, input_text_len: int
+    ) -> None:
         super().__init__()
 
         self.guide_layer = GuideDecoderLayer(
@@ -140,15 +158,30 @@ class GuideDecoder(nn.Module):
 
         self.activation_function = nn.LeakyReLU()
 
-    def forward(self, vis, skip_vis, txt, unpool, spiral_conv, chunk):
+    def forward(
+        self,
+        vis: torch.Tensor,
+        skip_vis: torch.Tensor,
+        txt: Optional[torch.Tensor],
+        unpool: Callable[..., torch.Tensor],
+        spiral_conv: List[Callable[..., torch.Tensor]],
+        chunk: bool,
+    ) -> torch.Tensor:
+        """
+        vis:       [B, N, C]
+        skip_vis:  [B, N_skip, C_skip]
+        txt:       [B, L, C_txt] or None
+        unpool:    function for upsampling [B,H,N,C] -> [B,N_fine,C]
+        spiral_conv: list of conv modules applied per hemisphere
+        """
         B, _, C = vis.shape
         H = 2
 
         # TODO: Make a hyperparameter
         # text-guided version
-        vis_coarse = self.guide_layer(vis, txt, chunk)
+        # vis_coarse = self.guide_layer(vis, txt, chunk)
         # Non text-guided version
-        # vis_coarse = vis.clone()
+        vis_coarse = vis.clone()
 
         # split hemispheres
         vis_coarse = vis_coarse.reshape(B, H, vis_coarse.shape[1] // H, C)

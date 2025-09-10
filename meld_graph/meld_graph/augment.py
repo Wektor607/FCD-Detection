@@ -172,11 +172,11 @@ class Augment:
         tdd = subject_data_dict.copy()
         # randomly augment lesion using distances and noise
         # NOTE lesion augmentation needs to happen before spinning, as medial wall is re-masked after new distances were calculated
-        # if (tdd["labels"] == 1).any():
-        #     if np.random.rand() < self.get_p_param("augment_lesion"):
-        #         tdd = self.augment_lesion(tdd)
-        #         self.recompute_distance_and_smoothed(tdd)
-        #         print("augment_lesion")
+        if (tdd["labels"] == 1).any():
+            if np.random.rand() < self.get_p_param("augment_lesion"):
+                tdd = self.augment_lesion(tdd)
+                self.recompute_distance_and_smoothed(tdd)
+                print("augment_lesion")
 
         mesh_transform = False
         indices = np.arange(tdd["features"].shape[0], dtype=int)

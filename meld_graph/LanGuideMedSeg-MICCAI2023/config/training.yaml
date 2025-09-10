@@ -1,38 +1,38 @@
 TRAIN:
   train_batch_size: 8
-  lr: 0.0003 # 0.003
+  lr              : 0.0003 # 0.003
 
   valid_batch_size: 4
 
-  # image_size: [160, 256, 256] # [224,224]
+  feature_dim     : [32, 32, 64, 64, 128, 128, 256]
+  text_lens       : [128, 64, 64, 32, 32, 16, 16]
+  max_len         : 256 # max text len
 
-  min_epochs: 20
-  max_epochs: 100
-  warmup_epochs: 0
-  patience: 20
+  min_epochs      : 20
+  max_epochs      : 100
+  warmup_epochs   : 0
+  patience        : 20
+  device          : 0
 
-  device: 0
-
-  model_save_path: ./save_model
-  model_save_filename: medseg
+  model_save_path     : ./save_model
+  model_save_filename : medseg
 
   project_name: FCD_detection
-  run_name: FCD_finetuning
+  run_name    : FCD_finetuning
 
 MODEL:
-  bert_type: StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
-  # vision_type: facebook/convnext-tiny-224
-  project_dim: 768
+  bert_type   : StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
+  project_dim : 768
 
   meld_script_path: ../meldgraph.sh
-  feature_path: ../data
-  output_dir: ../data/input
+  feature_path    : ../data
+  output_dir      : ../data/input
 
 DATA:
-  train_csv_path: ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv # ./data/QaTa-COV19-v2/prompt/train.csv
-  train_root_path: ../data/preprocessed/meld_files # ./data/QaTa-COV19-v2/Train
+  train_csv_path  : ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv # MELD_BONN_dataset_augmented.csv
+  train_root_path : ../data/preprocessed/meld_files
 
-  test_csv_path: ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv #MELD_BONN_dataset_orig.csv #../data/preprocessed/Res_full.csv #./data/QaTa-COV19-v2/prompt/test.csv
-  test_root_path: ../data/preprocessed/meld_files #./data/QaTa-COV19-v2/Test
+  test_csv_path   : ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv # MELD_BONN_dataset_augmented.csv
+  test_root_path  : ../data/preprocessed/meld_files
 
-  split_path: ../data/preprocessed/MELD_BONN_splits.csv
+  split_path      : ../data/preprocessed/MELD_splits.csv

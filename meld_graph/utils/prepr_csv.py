@@ -15,7 +15,7 @@ def project_path(relative_path):
     return os.path.join(PROJECT_ROOT, relative_path)
 
 # --- Configuration ---
-file_name = 'MELD_BONN_dataset_augmented_full'#input()
+file_name = 'MELD_BONN_dataset_augmented'#input()
 mode = 'full'#input()
 INPUT_CSV   = project_path(os.path.join("data", "preprocessed", f"{file_name}.csv"))   # исходный файл
 MODE        = mode      # варианты: "full", "hemisphere", "hemisphere_lobe", "full+hemisphere", "dominant", "no_percentage"
@@ -81,6 +81,7 @@ def extract_dominant(text: str) -> str:
 # --- Main Processing ---
 
 def transform_region(text: str, mode: str, inverse: bool) -> str:
+    text = text.replace("_", " ")
     if mode == "full":
         return text
     if mode == "hemisphere":

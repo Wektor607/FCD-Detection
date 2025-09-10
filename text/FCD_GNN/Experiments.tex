@@ -48,6 +48,12 @@ The Dice Loss $L_{dice}$ directly optimizes for the overlap between predicted an
 L_{dice} = 1 - \frac{2 \sum_{i=1}^n y_i \hat{y}_i}{\sum_{i=1}^n y_i^2 + \sum_{i=1}^n \hat{y}_i^2 + \epsilon}
 \]
 
+It is important to note that we considered two different implementations of this loss. 
+In the \href{https://docs.monai.io/en/stable/losses.html}{MONAI library}, the Dice score is calculated for each sample and then averaged over the batch (macro-average), 
+whereas in the MELD implementation the aggregation is performed immediately over the entire batch (micro-average). 
+Under strong class imbalance between background and lesion voxels, the micro-averaged version shifts the loss contribution towards the background, 
+which reduces the gradient signal for rare lesions and leads to training instability. 
+For this reason, we used the MONAI implementation, which provided higher metric values and enabled the model to detect more \ac{fcd}s.
 \subsection{Distance Loss}
 To provide the network with additional contextual information and reduce false positives, we include a distance regression loss $L_{dist}$. The model is trained to predict the normalized geodesic distance $d_i$ of each vertex to the lesion boundary. We use a mean absolute error weighted by $(d_i+1)^{-1}$, so that errors near the lesion boundary are penalized more strongly than errors in distant non-lesional regions:
 \[
@@ -70,8 +76,43 @@ To encourage gradient flow and stabilize training, we adopt deep supervision at 
 \bigskip
 % In summary, our loss function combines focal and dice terms for accurate and robust segmentation, a distance regression loss for boundary-awareness, a weakly-supervised classification loss for subject-level consistency, and deep supervision for effective optimization across the entire U-Net.
 
-\section{Connecting MELD Feature Stages into the GNN Block}
-TODO
+\section{Metrics}
+For evaluating the performance of the model we used several commonly applied metrics in medical image 
+analysis: Dice score, \ac{ppv}, \ac{iou}, and Accuracy.  
+Below we briefly describe each of them.
+
+\subsection{Dice score} 
+The Dice similarity coefficient (DSC) is defined as the harmonic mean between precision and recall. 
+For two sets of predicted positives $P$ and ground truth positives $G$, it is given by
+\[
+\mathrm{Dice}(P,G) = \frac{2 \, |P \cap G|}{|P| + |G|} = \frac{2TP}{2TP + FP + FN},
+\]
+where $TP$, $FP$ and $FN$ denote true positives, false positives and false negatives, respectively.
+
+\subsection{Positive Predictive Value} 
+Also known as precision, \ac{ppv} measures the proportion of correctly identified positive samples among all predicted positives:
+\[
+\mathrm{PPV} = \frac{TP}{TP + FP}.
+\]
+
+\subsection{Intersection over Union} 
+The \ac{iou} (also called the Jaccard index) quantifies the overlap between predicted and ground truth labels:
+\[
+\mathrm{IoU}(P,G) = \frac{|P \cap G|}{|P \cup G|} = \frac{TP}{TP + FP + FN}.
+\]
+
+\subsection{Accuracy} 
+Accuracy measures the proportion of correctly classified samples among all samples:
+\[
+\mathrm{ACC} = \frac{TP + TN}{TP + TN + FP + FN},
+\]
+where $TN$ denotes the number of true negatives.
+
+\section{Connecting MELD Stages to GNN}
+In our initial experiments, after combining the vision and text features, the obtained results were of relatively low quality. 
+This observation suggested that the output representations produced by MELD at higher stages are rather sparse, which may limit the predictive capacity of the model. 
+To address this, we hypothesized that aggregating information from multiple MELD stages could improve the expressivity of the GNN block and lead to more accurate predictions. 
+Therefore, we conducted a series of experiments in which different numbers of MELD feature stages were connected to the GNN block, ranging from high-level features to lower-level ones, in order to evaluate the impact of stage-wise integration on model performance.
 \section{Text--Decoder Connections (Layer Injection)}
 TODO
 \section{Effect of Textual Descriptions}

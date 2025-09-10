@@ -107,8 +107,8 @@ All intensity transforms act channel–wise on \texttt{features}:
 \[
 x_c \;\leftarrow\; (x_c - \mu_c)\,f + \mu_c,
 \]
-\[min_c = \min(x_c), \quad
-max_c = \max(x_c),
+\[min_c \coloneqq \min(x_c), \quad
+max_c \coloneqq \max(x_c),
 \]
 \[
 x_c[x_c < min_c] \;=\; min_c, \quad

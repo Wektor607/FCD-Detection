@@ -108,12 +108,11 @@ losses=[
         '.inter_z.asym.intra_z.combat.on_lh.wm_FLAIR_0.5.sm3.mgh',
         '.inter_z.asym.intra_z.combat.on_lh.wm_FLAIR_1.sm3.mgh',
     ],
-    'object_detection':True,
+    "object_detection":True,
     "preprocessing_parameters": {
         "scaling": None, 
         "zscore": '../data/feature_means_kernel3.json',
     },
-    
     "augment_data": {
         "augment_lesion": {"p": 0.0},
         "blur": {"p": 0.2},
@@ -127,6 +126,14 @@ losses=[
         "spinning": {"file": "data/spinning/spinning_ico7_10.npy", "p": 0.2},
         "warping": {"file": "data/warping/warping_ico7_10.npy", "p": 0.2},
     },
+    "layer_sizes":[
+            [32, 32, 32],
+            [32, 32, 32],
+            [64, 64, 64],
+            [64, 64, 64],
+            [128, 128, 128],
+            [128, 128, 128],
+    ],
     "combine_hemis": None,
     "synthetic_data": {
         "run_synthetic": False,

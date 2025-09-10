@@ -16,8 +16,8 @@ class HexPool(nn.Module):
 
     def forward(self, x: torch.Tensor, center_pool: bool = False) -> torch.Tensor:
         """
-        x: [B,H,N_hi,C] (features) 
-        or [B,H,N_hi] (labels/maps) 
+        x: [B,H,N_hi,C] (features)
+        or [B,H,N_hi] (labels/maps)
         or [N_hi,C] / [N_hi] (без батча/головы)
         return:
         if input [B,H,N_hi,C] -> [B,H,N_lo,C]
@@ -39,26 +39,21 @@ class HexPool(nn.Module):
                 return x[:N_lo]
             else:
                 raise ValueError(f"Unsupported x.dim()={x.dim()} in center_pool")
-        
+
         if x.dim() == 4:
-            
             gathered = x[:, :, self.neigh_indices, :]
             return gathered.max(dim=3).values
         elif x.dim() == 3:
-            
             gathered = x[:, :, self.neigh_indices]
             return gathered.max(dim=3).values
         elif x.dim() == 2:
-            
             gathered = x[:, self.neigh_indices]
             return gathered.max(dim=1).values
         elif x.dim() == 1:
-            
             gathered = x[self.neigh_indices]
             return gathered.max(dim=1).values
         else:
             raise ValueError(f"Unsupported x.dim()={x.dim()}, expected 1–4")
-
 
 
 class HexUnpool(nn.Module):
