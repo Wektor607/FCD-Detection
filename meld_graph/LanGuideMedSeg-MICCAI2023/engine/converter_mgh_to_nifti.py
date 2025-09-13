@@ -3,6 +3,8 @@ import h5py
 import numpy as np
 import os
 import nibabel as nb
+from pathlib import Path
+from typing import Union
 
 
 def run_command(command: str, verbose: bool):
@@ -43,18 +45,18 @@ def save_gt_as_mgh(h5_path: str, hemi: str, out_dir: str, subjects_fs_dir: str):
     data = arr1d[:, np.newaxis, np.newaxis].astype(np.float32)
 
     # make MGHImage with the same affinity as T1.mgz
-    t1_mgz = os.path.join(subjects_fs_dir, "fsaverage_sym", "mri", "T1.mgz")
+    t1_mgz = subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
     affine = nb.load(t1_mgz).affine
 
     img = nb.MGHImage(data, affine)
 
     os.makedirs(out_dir, exist_ok=True)
-    out_mgh = os.path.join(out_dir, f"{hemi}.gt.mgh")
+    out_mgh = out_dir / f"{hemi}.gt.mgh"
     nb.save(img, out_mgh)
     print(f"✅ Save GT MGH: {out_mgh}")
     return out_mgh
 
-
+# TODO: change join on Path
 def convert_gt_to_nii(
     subjects_dir: str, mgh_path: str, hemi: str, verbose: bool = True
 ):
@@ -62,12 +64,12 @@ def convert_gt_to_nii(
     Converts <hemi>.gt.mgh → <hemi>.gt.nii.gz via fsaverage_sym template
     """
     base = os.path.dirname(mgh_path)
-    mgz_path = mgh_path.replace(".mgh", ".mgz")
-    nii_path = os.path.join(base, f"{hemi}.gt.nii.gz")
+    mgz_path = mgh_path.with_suffix(".mgz") #.replace(".mgh", ".mgz")
+    nii_path = Path(base) / f"{hemi}.gt.nii.gz"
 
-    fsavg = os.path.join(subjects_dir, "fsaverage_sym", "mri")
-    T1 = os.path.join(fsavg, "T1.mgz")
-    orig = os.path.join(fsavg, "orig.mgz")
+    fsavg = subjects_dir / "fsaverage_sym" / "mri"
+    T1 = fsavg / "T1.mgz"
+    orig = fsavg / "orig.mgz"
 
     # 1) surface → volume
     cmd1 = (
@@ -108,8 +110,9 @@ def convert_prediction_mgh_to_nii(
     predictions_dir — where to put prediction_{sid}.nii.gz
     """
     # 1) Surface→Volume
-    vol_mgz = out_mgh.replace(".mgh", ".mgz")
-    T1_path = os.path.join(subjects_dir, "fsaverage_sym", "mri", "T1.mgz")
+    vol_mgz = out_mgh.with_suffix(".mgz") #.replace(".mgh", ".mgz")
+    mri_path = subjects_dir / "fsaverage_sym" / "mri"
+    T1_path = mri_path / "T1.mgz"
     cmd1 = (
         f"SUBJECTS_DIR={subjects_dir} "
         f"mri_surf2vol --identity fsaverage_sym "
@@ -122,7 +125,7 @@ def convert_prediction_mgh_to_nii(
     run_command(cmd1, verbose)
 
     # 2) (optional) reprojection to orig - can be skipped if there is no orig
-    orig_path = os.path.join(subjects_dir, "fsaverage_sym", "mri", "orig.mgz")
+    orig_path = mri_path / "orig.mgz"
     if os.path.isfile(orig_path):
         cmd2 = (
             f"SUBJECTS_DIR={subjects_dir} "
@@ -135,9 +138,7 @@ def convert_prediction_mgh_to_nii(
         run_command(cmd2, verbose)
 
     # 3) MGZ→NIfTI
-    vol_nii = os.path.join(
-        predictions_dir, os.path.basename(out_mgh).replace(".mgh", ".nii.gz")
-    )
+    vol_nii = predictions_dir / os.path.basename(out_mgh).replace(".mgh", ".nii.gz")
     cmd3 = f"SUBJECTS_DIR={subjects_dir} mri_convert {vol_mgz} {vol_nii} -rt nearest"
     run_command(cmd3, verbose)
 
@@ -156,18 +157,14 @@ def save_mgh(filename, vertex_values, demo_img):
     new_img = nb.MGHImage(data, demo_img.affine, demo_img.header)
     nb.save(new_img, filename)
 
+def get_combat_feature_path(combat_hdf5_path: Union[str, Path], sid: str) -> Path:
+    base = Path(combat_hdf5_path)
+    candidates = [
+        base / f"{sid}_patient_featurematrix_combat.hdf5",
+        base / f"{sid}_control_featurematrix_combat.hdf5",
+    ]
+    for path in candidates:
+        if path.exists():
+            return path
+    raise FileNotFoundError(f"File don't find for {sid}: {', '.join(map(str, candidates))}")
 
-def get_combat_feature_path(combat_hdf5_path, sid):
-    patient_path = os.path.join(
-        combat_hdf5_path, f"{sid}_patient_featurematrix_combat.hdf5"
-    )
-    if os.path.exists(patient_path):
-        return patient_path
-
-    control_path = os.path.join(
-        combat_hdf5_path, f"{sid}_control_featurematrix_combat.hdf5"
-    )
-    if os.path.exists(control_path):
-        return control_path
-
-    raise FileNotFoundError(f"Файл не найден: ни {patient_path}, ни {control_path}")

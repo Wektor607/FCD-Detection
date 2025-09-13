@@ -515,7 +515,7 @@ class MeldSubject:
             else:
                 surf_dir_path = os.path.join("BONN", self.scanner, "patient", self.site_code, hemi)
             # print('Here')
-            # print(surf_dir_path)
+            print(surf_dir_path)
             keys =  list(f[surf_dir_path].keys())
             # remove lesion and boundaries from list of features
             if ".on_lh.lesion.mgh" in keys:

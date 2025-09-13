@@ -77,6 +77,7 @@ def get_cfg():
 if __name__ == "__main__":
     args = get_cfg()
 
+    eva, cohort = config.inference_config()
     wandb_logger = WandbLogger(project=args.project_name, log_model=True)
 
     tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True)
@@ -111,6 +112,7 @@ if __name__ == "__main__":
             output_dir=args.output_dir,
             feature_path=args.feature_path,
             subject_ids=train_fold_ids,
+            cohort=cohort
         )
 
         ds_valid = EpilepDataset(
@@ -121,6 +123,7 @@ if __name__ == "__main__":
             output_dir=args.output_dir,
             feature_path=args.feature_path,
             subject_ids=val_fold_ids,
+            cohort=cohort
         )
 
         hc_set = set(
@@ -168,10 +171,12 @@ if __name__ == "__main__":
             model = LanGuideMedSegWrapper.load_from_checkpoint(
                 checkpoint_path=ckpt_path,
                 args=args,
+                eva=eva
             )
         else:
             model = LanGuideMedSegWrapper(
                 args,
+                eva=eva
             )
 
         if ckpt_path is None:
@@ -183,16 +188,25 @@ if __name__ == "__main__":
         model_ckpt = ModelCheckpoint(
             dirpath=args.model_save_path,
             filename=filename,
-            monitor="val_dice",  # 'val_loss',
+            monitor="val_dice",
             save_top_k=1,
-            mode="max",  # 'min',
+            mode="max",
+            verbose=True,
+        )
+
+        loss_ckpt = ModelCheckpoint(
+            dirpath=args.model_save_path,
+            filename=filename,
+            monitor="val_loss",
+            save_top_k=1,
+            mode="min",
             verbose=True,
         )
 
         early_stopping = EarlyStopping(
-            monitor="val_dice",  # "val_loss",
+            monitor="val_loss",
             patience=args.patience,
-            mode="max",  # 'min',
+            mode="min",
         )
 
         trainer = pl.Trainer(
@@ -201,6 +215,7 @@ if __name__ == "__main__":
             max_epochs=args.max_epochs,
             accelerator=accelerator,
             devices=devices,
+            # callbacks=[model_ckpt, loss_ckpt, early_stopping],
             callbacks=[model_ckpt, early_stopping],
             enable_progress_bar=True,
         )

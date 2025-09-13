@@ -29,10 +29,10 @@ MODEL:
   output_dir      : ../data/input
 
 DATA:
-  train_csv_path  : ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv # MELD_BONN_dataset_augmented.csv
+  train_csv_path  : ../data/preprocessed/H101_reports_fullfull.csv # MELD_BONN_dataset_augmented_full.csv
   train_root_path : ../data/preprocessed/meld_files
 
-  test_csv_path   : ../data/preprocessed/MELD_BONN_dataset_augmented_full.csv # MELD_BONN_dataset_augmented.csv
+  test_csv_path   : ../data/preprocessed/H101_reports_fullfull.csv # MELD_BONN_dataset_augmented_full.csv
   test_root_path  : ../data/preprocessed/meld_files
 
-  split_path      : ../data/preprocessed/MELD_splits.csv
+  split_path      : ../data/preprocessed/BONN_splits_full_test.csv

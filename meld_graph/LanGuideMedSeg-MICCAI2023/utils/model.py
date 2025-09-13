@@ -167,19 +167,13 @@ class LanGuideMedSeg(nn.Module):
             updated_graphs: List[Data] = []
 
             for j in range(B):
-                vis_feat: torch.Tensor = current_graphs[j].x.unsqueeze(
-                    0
-                )  # [1, N_from, C_from]
-                skip_feat: torch.Tensor = next_graphs[j].x.unsqueeze(
-                    0
-                )  # [1, N_to, C_to]
+                vis_feat: torch.Tensor = current_graphs[j].x.unsqueeze(0)  # [1, N_from, C_from]
+                skip_feat: torch.Tensor = next_graphs[j].x.unsqueeze(0)  # [1, N_to, C_to]
                 # TODO: hyperparameter
                 # if N_from < 40962:
-                txt_emb: torch.Tensor = text_hidden_last[j].unsqueeze(
-                    0
-                )  # [1, L_seq, 768]
+                # txt_emb: torch.Tensor = text_hidden_last[j].unsqueeze(0)  # [1, L_seq, 768]
                 # else:
-                #     txt_emb = None
+                txt_emb = None
 
                 # TODO: hyperparameter
                 chunk: bool = vis_feat.size(1) > 40962

@@ -7,6 +7,11 @@ from ast import literal_eval
 
 import yaml
 
+from meld_graph.meld_cohort import MeldCohort
+from meld_graph.paths import EXPERIMENT_PATH, MODEL_PATH
+import tempfile
+from meld_graph.experiment import Experiment
+from meld_graph.evaluation import Evaluator
 
 class CfgNode(dict):
     """
@@ -156,3 +161,35 @@ def _check_and_coerce_cfg_value_type(replacement, original, key, full_key):
             original_type, replacement_type, original, replacement, full_key
         )
     )
+
+def inference_config():
+    hdf5_file_root = "{site_code}_{group}_featurematrix_combat.hdf5"
+    # create dataset csv
+    tmp = tempfile.NamedTemporaryFile(mode="w")
+    model_name = MODEL_PATH
+    experiment_path = os.path.join(EXPERIMENT_PATH, model_name)
+    exp = Experiment.from_folder(experiment_path)
+        
+    #update experiment 
+    exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, dataset=tmp.name, data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats')
+    exp.data_parameters["hdf5_file_root"] = hdf5_file_root
+    exp.data_parameters["dataset"] = tmp.name
+
+    exp.experiment_path = experiment_path
+    cohort = MeldCohort(
+        hdf5_file_root=exp.data_parameters["hdf5_file_root"],
+        dataset=exp.data_parameters["dataset"],
+        data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats'
+    )
+
+    eva = Evaluator(
+        experiment=exp,
+        cohort=exp.cohort,
+        threshold="slope_threshold",
+        min_area_threshold=100,
+        thresh_and_clust=True,
+        mode="test",
+        model_name="best_model",
+    )
+
+    return eva, cohort

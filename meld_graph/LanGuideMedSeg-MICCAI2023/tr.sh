@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exp1_not_flipping_and_spinning
+#SBATCH --job-name=exp2_not_flipping_and_spinning
 #SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1

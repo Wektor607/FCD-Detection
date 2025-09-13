@@ -12,18 +12,22 @@ from torchmetrics.classification import (
     Specificity,
     BinaryF1Score,
 )
+
+from pathlib import Path
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from copy import deepcopy
+from engine.loss_meld import dice_coeff, tp_fp_fn_tn
 import pandas as pd
-from utils.utils import summarize_ci, compute_adaptive_threshold
+from utils.utils import summarize_ci
 import sys
 import numpy as np
 import datetime
+from engine.converter_mgh_to_nifti import *
 from engine.pooling import HexPool
 from engine.loss_meld import calculate_loss
-
+from utils.utils import convert_preds_to_nifti
 
 def load_config(config_file):
     """load config.py file and return config object"""
@@ -38,7 +42,7 @@ def load_config(config_file):
 
 
 class LanGuideMedSegWrapper(pl.LightningModule):
-    def __init__(self, args: Any) -> None:
+    def __init__(self, args: Any, eva: Any) -> None:
         super().__init__()
 
         self.save_hyperparameters(args)
@@ -53,6 +57,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         layer_sizes: List[List[int]] = list(
             self.params["data_parameters"]["layer_sizes"]
         )
+        self.eva = eva
+        self.ckpt_path = Path(args.ckpt_path).stem if args.ckpt_path is not None else None
         self.model = LanGuideMedSeg(
             args.bert_type,
             args.meld_script_path,
@@ -285,138 +291,35 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         pprobs = probs.view(B, H, -1).contiguous()  # [B, H, V_cortex]
         target = target.view(B, H, -1)
 
-        probs_bin = torch.empty_like(pprobs)
-        for i in range(B):
-            for h in range(H):  # 2 hemispheres
-                pv = pprobs[i, h]  # [V_cortex]
-                th = compute_adaptive_threshold(pv.detach().cpu().numpy())
-                probs_bin[i, h] = (pv >= th).float()
-
-        # frac_pos = probs_bin.float().mean()
-        # print(f"\n{stage}/frac_positive: ", frac_pos)
-        # print(f"\n{stage}/mean_prob_lesion: ", pprobs.mean())
-
-        y_flat = target.view(-1)  # [B*N_cortex]
-        p_flat = probs_bin.view(-1)
-
+        all_preds = []
         # Обновляем метрики тем же образом, как делал раньше
+        for sid, pred, tgt in zip(subject_ids, pprobs, target):
+        # for sid, pred, tgt in zip(subject_ids, probs_bin, target):
+            pred_np = torch.cat([pred[0], pred[1]], dim=0).detach().cpu().numpy().astype("float32")
+            mini = {sid: {"result": pred_np}}
+            out = self.eva.threshold_and_cluster(data_dictionary=mini, save_prediction=False)
+            
+            probs_flat = out[sid]["cluster_thresholded"]        # (2*N_cortex,)
+            all_preds.append(torch.from_numpy(probs_flat).view(H, -1).contiguous())
+            gt_flat = tgt.reshape(-1)
+            
+            mask = torch.as_tensor(np.array(probs_flat > 0)).long()
+            labels = torch.as_tensor(np.array(gt_flat).astype(bool)).long()
+            dices = dice_coeff(torch.nn.functional.one_hot(mask, num_classes=2), labels)
+
+            tp, fp, fn, tn = tp_fp_fn_tn(mask, labels)
+            iou = tp / (tp + fp + fn + 1e-8)
+            ppv = tp / (tp + fp + 1e-8)
+
+            self.test_dice_scores.append(dices[1])
+            self.test_ppv_scores.append(ppv)
+            self.test_iou_scores.append(iou)
+            print(f"[{sid}] Dice lesional={dices[1]:.3f}, IoU={iou:.3f}, PPV={ppv:.3f}, "
+                f"TP={tp}, FP={fp}, FN={fn}, TN={tn}")
+
+        # ---------- Save predictions as MGH and NIfTI ----------
         if stage == "test":
-            # for sid, pred, tgt in zip(subject_ids, pprobs, target):
-            for sid, pred, tgt in zip(subject_ids, probs_bin, target):
-                dice_i = self.dice(pred, tgt).item()
-                ppv_i = self.ppv(pred, tgt).item()
-                iou_i = self.iou(pred, tgt).item()
-                acc_i = self.acc(pred, tgt).item()
-
-                self.test_dice_scores.append(dice_i)
-                self.test_ppv_scores.append(ppv_i)
-                self.test_iou_scores.append(iou_i)
-                self.test_acc_scores.append(acc_i)
-
-                print(
-                    f"[TEST sample {sid!r}] Dice={dice_i:.3f}, PPV={ppv_i:.3f}, "
-                    f"IoU={iou_i:.3f}, Acc={acc_i:.3f}"
-                )
-        else:
-            metrics = self.train_metrics if stage == "train" else self.val_metrics
-            for name, metric in metrics.items():
-                val = metric(p_flat, y_flat)
-                # У тебя "spec" логируется как FPR (1 - specificity)
-                if name == "spec":
-                    val = 1 - val
-                self.log(
-                    name,
-                    val,
-                    prog_bar=True,
-                    on_step=True,
-                    on_epoch=False,
-                    sync_dist=True,
-                )
-            # ---------- Save predictions as MGH and NIfTI ----------
-
-            # subjects_fs_dir = (
-            #     "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
-            # )
-            # predictions_output_root = os.path.join(
-            #     MELD_DATA_PATH, "output", "predictions_reports"
-            # )
-
-            # for (sid, pred) in zip(subject_ids, probs_bin):
-            #     predictions = pred.detach().cpu().numpy()
-
-            #     classifier_dir = os.path.join(
-            #         subjects_fs_dir, sid, "xhemi", "classifier"
-            #     )
-            #     predictions_dir = os.path.join(
-            #         predictions_output_root, sid, "predictions"
-            #     )
-            #     os.makedirs(classifier_dir, exist_ok=True)
-            #     os.makedirs(predictions_dir, exist_ok=True)
-
-            #     h5_path = os.path.join(
-            #         subjects_fs_dir,
-            #         "meld_combats",
-            #         f"{sid}_patient_featurematrix_combat.hdf5",
-            #     )
-            #     for idx, hemi in enumerate(["lh", "rh"]):
-            #         # Prediction overlay
-            #         overlay = np.zeros_like(self.c.cortex_mask, dtype=np.float32)
-            #         overlay[self.c.cortex_mask] = predictions[idx]
-
-            #         # Read template thickness to get shape/affine
-            #         combat_file = get_combat_feature_path(
-            #             os.path.join(subjects_fs_dir, "meld_combats"), sid
-            #         )
-            #         with h5py.File(combat_file, "r") as f:
-            #             key = ".combat.on_lh.thickness.sm3.mgh"
-            #             if key not in f[hemi]:
-            #                 raise KeyError(f"No dataset {key!r} in group {hemi}")
-            #             base_arr = f[hemi][key][:]
-
-            #         mgh_img = nb.MGHImage(
-            #             base_arr[np.newaxis, :, np.newaxis],
-            #             affine=nb.load(
-            #                 os.path.join(
-            #                     subjects_fs_dir, "fsaverage_sym", "mri", "T1.mgz"
-            #                 )
-            #             ).affine,
-            #         )
-
-            #         # Save prediction MGH → NIfTI
-            #         out_mgh_pred = os.path.join(
-            #             classifier_dir, f"{hemi}.prediction.mgh"
-            #         )
-            #         save_mgh(out_mgh_pred, overlay, mgh_img)
-            #         print(f"Saved PRED MGH: {out_mgh_pred}")
-            #         convert_prediction_mgh_to_nii(
-            #             subjects_fs_dir,
-            #             out_mgh_pred,
-            #             hemi,
-            #             predictions_dir,
-            #             verbose=True,
-            #         )
-
-            #         mgh_gt = save_gt_as_mgh(
-            #             h5_path, hemi, predictions_dir, subjects_fs_dir
-            #         )
-            #         if mgh_gt:
-            #             convert_gt_to_nii(subjects_fs_dir, mgh_gt, hemi, verbose=True)
-
-            #     # Combine both hemispheres for prediction
-            #     lh_nii = os.path.join(predictions_dir, "lh.prediction.nii.gz")
-            #     rh_nii = os.path.join(predictions_dir, "rh.prediction.nii.gz")
-            #     final_nii = os.path.join(predictions_dir, f"prediction_{sid}.nii.gz")
-            #     cmd = f"mri_concat --i {lh_nii} --i {rh_nii} --o {final_nii} --combine"
-            #     run_command(cmd, verbose=True)
-            #     print(f"🎉 Final combined PRED NIfTI: {final_nii}")
-
-            #     # Combine both hemispheres for ground‐truth
-            #     gt_lh_nii = os.path.join(predictions_dir, "lh.gt.nii.gz")
-            #     gt_rh_nii = os.path.join(predictions_dir, "rh.gt.nii.gz")
-            #     gt_final = os.path.join(predictions_dir, f"ground_truth_{sid}.nii.gz")
-            #     cmd_gt = f"mri_concat --i {gt_lh_nii} --i {gt_rh_nii} --o {gt_final} --combine"
-            #     run_command(cmd_gt, verbose=False)
-            #     print(f"🎉 Final combined GT   NIfTI: {gt_final}")
+            convert_preds_to_nifti(self.ckpt_path, subject_ids, all_preds, self.c)
 
         return total_loss
 
@@ -496,25 +399,25 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         elif stage == "test":
             metrics = self.test_metrics
 
-        for name, metric in metrics.items():
-            val = metric.compute().item()
-            metric.reset()
-            if name == "spec":
-                val = 1 - val
+        # for name, metric in metrics.items():
+        #     val = metric.compute().item()
+        #     metric.reset()
+        #     if name == "spec":
+        #         val = 1 - val
 
-            stats[f"{stage}_{name}"] = val
+        #     stats[f"{stage}_{name}"] = val
 
         if self.test_dice_scores != []:
             # Summarize test metrics
             stats[f"{stage}_Dice_med"] = np.median(self.test_dice_scores)
             stats[f"{stage}_PPV_med"] = np.median(self.test_ppv_scores)
             stats[f"{stage}_IoU_med"] = np.median(self.test_iou_scores)
-            stats[f"{stage}_ACC_med"] = np.median(self.test_acc_scores)
+            # stats[f"{stage}_ACC_med"] = np.median(self.test_acc_scores)
 
             stats[f"{stage}_dice"] = np.mean(self.test_dice_scores)
             stats[f"{stage}_ppv"] = np.mean(self.test_ppv_scores)
             stats[f"{stage}_IoU"] = np.mean(self.test_iou_scores)
-            stats[f"{stage}_acc"] = np.mean(self.test_acc_scores)
+            # stats[f"{stage}_acc"] = np.mean(self.test_acc_scores)
 
         if stage != "test":
             self.history[self.current_epoch] = stats.copy()
@@ -526,8 +429,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         print(
             f"\n[TRAIN epoch {stats['epoch']}] "
             f"loss={stats['train_loss']:.4f}, "
-            f"acc={stats['train_acc']:.4f}, "
-            f"fp={stats['train_spec']:.4f}, "
+            # f"acc={stats['train_acc']:.4f}, "
+            # f"fp={stats['train_spec']:.4f}, "
             f"ppv={stats['train_ppv']:.4f}, "
             f"dice={stats['train_dice']:.4f}, "
             f"IoU={stats['train_IoU']:.4f}"
@@ -547,8 +450,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         print(
             f"[VAL   epoch {stats['epoch']}] "
             f"loss={stats['val_loss']:.4f}, "
-            f"acc={stats['val_acc']:.4f}, "
-            f"fp={stats['val_spec']:.4f}, "
+            # f"acc={stats['val_acc']:.4f}, "
+            # f"fp={stats['val_spec']:.4f}, "
             f"ppv={stats['val_ppv']:.4f}, "
             f"dice={stats['val_dice']:.4f}, "
             f"IoU={stats['val_IoU']:.4f}"
@@ -580,8 +483,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         print(
             f"\n[TEST  epoch {stats['epoch']}] "
             f"loss={stats['test_loss']:.4f}, "
-            f"acc={stats['test_acc']:.4f}, "
-            f"fp={stats['test_spec']:.4f}, ",
+            # f"acc={stats['test_acc']:.4f}, "
+            # f"fp={stats['test_spec']:.4f}, ",
             f"ppv={stats['test_ppv']:.4f}, "
             f"dice={stats['test_dice']:.4f}, "
             f"IoU={stats['test_IoU']:.4f}",
@@ -596,20 +499,20 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         d_med, d_lo, d_hi = summarize_ci(self.test_dice_scores)
         p_med, p_lo, p_hi = summarize_ci(self.test_ppv_scores)
         i_med, i_lo, i_hi = summarize_ci(self.test_iou_scores)
-        a_med, a_lo, a_hi = summarize_ci(self.test_acc_scores)
+        # a_med, a_lo, a_hi = summarize_ci(self.test_acc_scores)
 
         metrics = {
             "Dice_med": d_med,  # "dice_lo": d_lo, "dice_hi": d_hi,
             "PPV_med": p_med,  # "ppv_lo": p_lo,  "ppv_hi": p_hi,
             "IoU_med": i_med,  # "iou_lo": i_lo,  "iou_hi": i_hi,
-            "ACC_med": a_med,  # "acc_lo": a_lo,  "acc_hi": a_hi,
+            # "ACC_med": a_med,  # "acc_lo": a_lo,  "acc_hi": a_hi,
         }
 
         print("\n=== OVERALL TEST METRICS ===")
         print(f"Dice : {d_med:.3f} (95% CI {d_lo:.3f}-{d_hi:.3f})")
         print(f"PPV  : {p_med:.3f} (95% CI {p_lo:.3f}-{p_hi:.3f})")
         print(f"IoU  : {i_med:.3f} (95% CI {i_lo:.3f}-{i_hi:.3f})")
-        print(f"Acc  : {a_med:.3f} (95% CI {a_lo:.3f}-{a_hi:.3f})")
+        # print(f"Acc  : {a_med:.3f} (95% CI {a_lo:.3f}-{a_hi:.3f})")
 
         return metrics
 

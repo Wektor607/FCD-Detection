@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=exp1_not_flipping
-#SBATCH --partition=A100short
+#SBATCH --partition=A40short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=1
@@ -31,6 +31,6 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
-WANDB_MODE=disabled python3 test.py 
+WANDB_MODE=disabled python3 test.py --ckpt_path ./save_model/exp1_loss.ckpt
+# --meld_check
 # --ckpt_path ./save_model/medseg_fold1-v1.ckpt
-#--meld_check

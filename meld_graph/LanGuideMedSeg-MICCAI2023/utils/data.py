@@ -13,7 +13,7 @@ from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import BASE_PATH
 from meld_graph.data_preprocessing import Preprocess as Prep
 from torch.utils.data import Dataset
-
+import tempfile
 
 def load_config(config_file: str) -> Any:
     """load config.py file and return config object"""
@@ -37,6 +37,7 @@ class EpilepDataset(Dataset):
         output_dir: str = "",
         feature_path: str = "",
         subject_ids: Optional[List[str]] = None,
+        cohort: MeldCohort = None
     ) -> None:
         super().__init__()
 
@@ -76,11 +77,12 @@ class EpilepDataset(Dataset):
         self.data = self.data.set_index("sub")
         self.data = self.data.loc[subject_ids]
 
-        cohort = MeldCohort(
-            hdf5_file_root="{site_code}_{group}_featurematrix_combat.hdf5",
-            dataset=None,
-            data_dir=BASE_PATH,
-        )
+        # tmp = tempfile.NamedTemporaryFile(mode="w")
+        # cohort = MeldCohort(
+        #     hdf5_file_root="{site_code}_{group}_featurematrix_combat.hdf5",
+        #     dataset=tmp.name,
+        #     data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats',
+        # )
 
         self.config = load_config(
             "/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"

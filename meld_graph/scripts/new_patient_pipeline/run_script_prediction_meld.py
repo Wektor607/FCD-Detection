@@ -90,11 +90,12 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         save_prediction=True,
         roc_curves_thresholds=None,
         )
-    
+
     for subject_id in subject_ids:  
         features        = eva.data_dictionary[subject_id]["feature_maps"]
         result          = eva.data_dictionary[subject_id]["result"]
         labels          = eva.data_dictionary[subject_id]["full_labels"]
+        input_labels    = eva.data_dictionary[subject_id]["input_labels"] # labels after cortex mask
         dist_map_gt     = eva.data_dictionary[subject_id]["geodesic_distance"]
         # xyzr_gt         = eva.data_dictionary[subject_id]["xyzr"]
         
@@ -137,6 +138,9 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         save_surface_mgh(rh, rh_path)
         print(f"Saved labels to {lh_path} and {rh_path}")
 
+        input_labels_path = os.path.join(lab_dir, "labels_gt.npz")
+        np.savez(input_labels_path, input_labels)
+        print(f"Saved distance maps GT to {input_labels_path}")
         meta = {
             "n_vertices": int(n_hemi),
             "lh_sum": float(lh.sum()),
@@ -164,10 +168,10 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
 
         print(f"Saved prediction result to {res_path}")
 
-    # #threshold predictions
-    # eva.threshold_and_cluster()
-    # #write results in csv
-    # eva.stat_subjects()
+    # # #threshold predictions
+    eva.threshold_and_cluster()
+    # # #write results in csv
+    eva.stat_subjects()
     # #plot images 
     # if plot_images: 
     #     eva.plot_subjects_prediction()
@@ -212,7 +216,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     #predict on new subjects
     if not skip_prediction:
         print(get_m(f'Run predictions', subject_ids, 'STEP 1'))
-        for subject_id in subject_ids:
+        for subject_id in subject_ids[::-1]:
             if subject_id in [
                 # Missing controls (no HDF5 file found)
                 "MELD_H3_3T_C_0007",
@@ -281,10 +285,10 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
                 continue
             
             # # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
-            preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
-            if os.path.isdir(preproc_root):
-                print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
-                continue
+            # preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
+            # if os.path.isdir(preproc_root):
+            #     print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
+            #     continue
             # -----------------------------------------------
             predict_subjects(subject_ids=np.array([subject_id]), 
                             output_dir=classifier_output_dir,  

@@ -1,4 +1,5 @@
 import os
+import sys
 
 from tqdm import tqdm
 import torch
@@ -12,20 +13,19 @@ from torchmetrics import Accuracy
 from torchmetrics.classification import BinaryJaccardIndex, Precision, BinaryF1Score
 
 import torch.multiprocessing
-from utils.utils import summarize_ci, compute_adaptive_threshold
+from utils.utils import summarize_ci
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
-
 from transformers import AutoTokenizer
 
-import utils.config as config
 from utils.data import EpilepDataset
+from engine.loss_meld import dice_coeff, tp_fp_fn_tn
 from engine.wrapper import LanGuideMedSegWrapper
-from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import MELD_DATA_PATH
+import utils.config as config
 
 # теперь можно вызвать
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -79,10 +79,10 @@ def get_cfg():
     cfg.ckpt_path = cli.ckpt_path
     return cfg
 
-
 if __name__ == "__main__":
     args = get_cfg()
 
+    eva, cohort = config.inference_config()
     wandb_logger = WandbLogger(project=args.project_name, log_model=True)
 
     tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True)
@@ -116,6 +116,7 @@ if __name__ == "__main__":
         output_dir=args.output_dir,
         feature_path=args.feature_path,
         subject_ids=test_ids,
+        cohort=cohort
     )
 
     dl_test = DataLoader(
@@ -139,25 +140,23 @@ if __name__ == "__main__":
                 "IoU": BinaryJaccardIndex(),
             }
         )
-        cohort = MeldCohort()
-
-        cortex_mask = torch.from_numpy(
-            cohort.cortex_mask.astype(bool)
-        )  # shape [N], dtype=torch.bool
 
         metrics_history = {name: [] for name in test_metrics.keys()}
 
+        dice_metric = []
+        iou_metric = []
+        ppv_metric = []
+        
         for batch in tqdm(dl_test):
             subject_ids = batch["subject_id"]  # list[str]
             y = batch["roi"]  # torch.Tensor
             B, H, N = y.shape
 
             for b, sid in enumerate(subject_ids):
-                # извлекаем GT для кортикальных вершин
                 gt = y[b]  # [2, N]
-                gt_cortex = gt[:, cortex_mask]  # [2, N_cortex]
-                gt_flat = gt_cortex.reshape(-1).long()  # [2*N_cortex]
-                # загружаем ваши предсказания
+                gt_cortex = gt[:, cohort.cortex_mask]  # [2, N_cortex]
+                gt_flat = gt_cortex.reshape(-1)  # [2*N_cortex]
+                
                 nii_path = os.path.join(
                     MELD_DATA_PATH,
                     f"preprocessed/meld_files/{sid}/features",
@@ -165,69 +164,34 @@ if __name__ == "__main__":
                 )
                 with np.load(nii_path, allow_pickle=False) as npz:
                     arr = npz["result"].astype("float32")
-                pred = torch.from_numpy(arr.astype("float32")).reshape(H, -1)  # [2, N]
 
-                probs_bin = torch.zeros_like(pred, dtype=torch.float32)
+                mini = {sid: {"result": arr.copy()}}
+                out = eva.threshold_and_cluster(data_dictionary=mini, save_prediction=False)
+                probs_flat = out[sid]["cluster_thresholded"]           # (2*N_cortex,)
+               
+                mask = torch.as_tensor(np.array(probs_flat > 0)).long()
+                labels = torch.as_tensor(np.array(gt_flat).astype(bool)).long()
+                dices = dice_coeff(torch.nn.functional.one_hot(mask, num_classes=2), labels)
 
-                for h in range(H):  # 2 полушария
-                    pv = pred[h]  # [V_cortex], torch
-                    pv_np = pv.detach().cpu().numpy()
-                    th = compute_adaptive_threshold(pv_np)
-                    probs_bin[h] = (pv >= th).float()
+                tp, fp, fn, tn = tp_fp_fn_tn(mask, labels)
+                iou = tp / (tp + fp + fn + 1e-8)
+                ppv = tp / (tp + fp + 1e-8)
 
-                probs_flat = probs_bin.view(-1)
-                # pred_label = pred.argmax(dim=0)
-
-                # # 3) бинаризуем: 1 — потенциальный объект, 0 — шум
-                # binary_pred = (pred_label == 1).cpu().numpy()  # ndarray [N_cortex]
-
-                # # 4) находим связные компоненты (кластеризацию)
-                # clusters, num_clusters = label(binary_pred)
-                # print(f"{sid} num_clusters = {num_clusters}")
-                # metrics_history.setdefault("num_clusters", []).append(num_clusters)
-
-                # # 6) качество по каждому кластеру
-                # for cl_id in range(1, num_clusters + 1):
-                #     cluster_mask = clusters == cl_id
-                #     if cluster_mask.sum() == 0:
-                #         continue
-                #     for name, metric in test_metrics.items():
-                #         metric.update(
-                #             torch.from_numpy(cluster_mask).unsqueeze(
-                #                 0
-                #             ),  # [1, n_pts_total]
-                #             torch.from_numpy(
-                #                 gt_flat.reshape(2, -1)[1, :][cluster_mask]
-                #             ).unsqueeze(0),
-                #         )
-                #         val = metric.compute().item()
-                #         metric.reset()
-                #         print(f"{sid} {name} кластер {cl_id} = {val:.4f}")
-                #         key = f"{name}_cluster_{cl_id}"
-                #         metrics_history.setdefault(key, []).append(val)
-
-                # print("---")
-
-                # 3) обновляем метрики, сохраняем в history
-                for name, metric in test_metrics.items():
-                    metric.update(probs_flat, gt_flat)
-                    val = metric.compute().item()
-                    metric.reset()
-                    if name == "dice" and val == 0.0:
-                        num_non_predict_samples += 1
-                        print(num_non_predict_samples)
-                    # print(f"{sid} {name} = {val:.4f}")
-                    metrics_history[name].append(val)
-
-                # print("---")
-
-        # 4) после всех субъектов считаем медиану и 2.5–97.5 перцентили
+                dice_metric.append(dices[1])
+                ppv_metric.append(ppv)
+                iou_metric.append(iou)
+                print(f"[{sid}] Dice lesional={dices[1]:.3f}, IoU={iou:.3f}, PPV={ppv:.3f}, "
+                    f"TP={tp}, FP={fp}, FN={fn}, TN={tn}")
 
         print("\n=== Сводная статистика по всем субъектам ===")
-        for name, values in metrics_history.items():
-            med, lo, hi = summarize_ci(values)
+        d_med, d_lo, d_hi = summarize_ci(dice_metric)
+        p_med, p_lo, p_hi = summarize_ci(ppv_metric)
+        i_med, i_lo, i_hi = summarize_ci(iou_metric)
 
-            print(f"{name:>5}: median={med:.4f}  [95% CI {lo:.4f}–{hi:.4f}]")
+        print("\n=== OVERALL TEST METRICS ===")
+        print(f"Dice : {d_med:.3f} (95% CI {d_lo:.3f}-{d_hi:.3f})")
+        print(f"PPV  : {p_med:.3f} (95% CI {p_lo:.3f}-{p_hi:.3f})")
+        print(f"IoU  : {i_med:.3f} (95% CI {i_lo:.3f}-{i_hi:.3f})")
     else:
         ckpt_path = args.ckpt_path  # None
         print(f"[INFO] Loading model from checkpoint: {ckpt_path}")
@@ -235,10 +199,12 @@ if __name__ == "__main__":
             model = LanGuideMedSegWrapper.load_from_checkpoint(
                 checkpoint_path=ckpt_path,
                 args=args,
+                eva=eva
             )
         else:
             model = LanGuideMedSegWrapper(
                 args,
+                eva=eva
             )
 
         # 3) Evaluate on TEST

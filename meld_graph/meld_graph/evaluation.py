@@ -574,14 +574,14 @@ class Evaluator:
                     data["threshold"] = threshold_subj[0]   
             else:
                 data["cluster_thresholded"] = get_cluster_thresholded(predictions, threshold_subj)
-            if save_prediction:
-                # save clustered predictions
-                self.save_prediction(
-                            subj_id,
-                            data["cluster_thresholded"],
-                            dataset_str="prediction_clustered",
-                            suffix=save_prediction_suffix,
-                        )
+            # if save_prediction:
+            #     # save clustered predictions
+            #     self.save_prediction(
+            #                 subj_id,
+            #                 data["cluster_thresholded"],
+            #                 dataset_str="prediction_clustered",
+            #                 suffix=save_prediction_suffix,
+            #             )
         if return_dict:
             return data_dictionary
         else:
@@ -830,6 +830,17 @@ class Evaluator:
                 patient_dice_vars["Dice lesion"],
             ) = list(dices)
 
+            # IoU
+            tp = patient_dice_vars["TP"].item() if hasattr(patient_dice_vars["TP"], "item") else patient_dice_vars["TP"]
+            fp = patient_dice_vars["FP"].item() if hasattr(patient_dice_vars["FP"], "item") else patient_dice_vars["FP"]
+            fn = patient_dice_vars["FN"].item() if hasattr(patient_dice_vars["FN"], "item") else patient_dice_vars["FN"]
+
+            iou_lesion = tp / (tp + fp + fn + 1e-8)
+            ppv_lesion = tp / (tp + fp + 1e-8)
+
+            patient_dice_vars["IoU lesion"] = iou_lesion
+            patient_dice_vars["PPV lesion"] = ppv_lesion
+
             sub_df = pd.DataFrame(
                 np.array(
                     [
@@ -844,6 +855,8 @@ class Evaluator:
                         patient_dice_vars["TN"].numpy(),
                         patient_dice_vars["Dice lesion"].numpy(),
                         patient_dice_vars["Dice non-lesion"].numpy(),
+                        patient_dice_vars["IoU lesion"],
+                        patient_dice_vars["PPV lesion"],
                     ]
                 )
                 .reshape(-1, 1)
@@ -860,6 +873,8 @@ class Evaluator:
                     "tn",
                     "dice lesional",
                     "dice non-lesional",
+                    "IoU lesion",
+                    "PPV lesion"
                 ],
             )
             # save results
