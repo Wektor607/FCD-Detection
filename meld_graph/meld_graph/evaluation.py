@@ -19,9 +19,9 @@ import sklearn.metrics as metrics
 import itertools
 import seaborn as sns
 from meld_graph.paths import MELD_DATA_PATH
-from meld_graph.augment import Augment
-from meld_graph.graph_tools import GraphTools
 from meld_graph.icospheres import IcoSpheres
+import nibabel as nb
+
 
 # for saliency - do not force people to have this
 try:
@@ -555,7 +555,7 @@ class Evaluator:
                 else:
                     best_threshold = np.max([data["result"].max()*threshold_subj['slope'],threshold_subj['min_thresh']])
                 cluster_thresholded = get_cluster_thresholded(predictions, best_threshold)
-                print(f"threshold_subj = {best_threshold}")
+                # print(f"threshold_subj = {best_threshold}")
                 data["threshold"] = best_threshold
                 data["cluster_thresholded"] = cluster_thresholded
             elif self.threshold_mode == 'two_threshold':
@@ -935,16 +935,11 @@ class Evaluator:
 
             # initialise the icosphere or flat map
             if flat_map != True:
-                from meld_graph.icospheres import IcoSpheres
-
                 icos = IcoSpheres()
                 ico_ini = icos.icospheres[7]
                 coords = ico_ini["coords"]
                 faces = ico_ini["faces"]
             else:
-                import nibabel as nb
-                from meld_graph.paths import MELD_PARAMS_PATH
-
                 flat = nb.load(os.path.join(MELD_PARAMS_PATH, "fsaverage_sym", "surf", "lh.full.patch.flat.gii"))
                 coords, faces = flat.darrays[0].data, flat.darrays[1].data
 

@@ -1,8 +1,10 @@
+# Run command: PYTHONPATH=/home/s17gmikh/FCD-Detection python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
 import logging as log
 import subprocess
 import glob
 import json
 import os
+import sys
 from bids.layout import BIDSLayout
 import pandas as pd
 from subprocess import Popen
@@ -31,7 +33,6 @@ def get_m(message, subject=None, type_message='INFO'):
                 print(f"[WARN] Could not write log to {log_path}: {e}")
     return msg
 
-import sys
 def return_meld_T1_FLAIR(meld_dir, subject_id):
     subject_data={}
     subject_data['id'] = subject_id

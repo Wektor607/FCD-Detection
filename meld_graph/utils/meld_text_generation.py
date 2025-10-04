@@ -410,7 +410,7 @@ def full_pipeline(data4sharing_root, report_log_path):
                 continue
 
             # 2) Проверка, что ещё не делали
-            if sid in processed_subjects:
+            if sid in processed_subjects or "H101" not in sid:
                 print(f"[!] {sid} уже есть в all_reports.csv, пропускаем")
                 continue
             # 2) генерим отчёт

@@ -9,4 +9,4 @@ scripts/wandb
 scripts/config_files/reproducibility
 data
 dataset
-LanGuideMedSeg-MICCAI2023/save_model
+LanGuideMedSeg_MICCAI2023/save_model/

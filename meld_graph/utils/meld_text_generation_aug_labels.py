@@ -130,10 +130,6 @@ def process_t1_mask_only(mask_path, output_dir, base_name='subject', t1_path=Non
     create_output(z_img_path, outdir=output_dir, cluster_extent=0, atlas=['harvard_oxford', 'aal'])
 
     reports  = pd.read_csv(os.path.join(output_dir, f"{base_name}_mask_zmap_clusters.csv"))
-    # print("Harvord: ", reports["harvard_oxford"])
-    # print("AAL: ", reports["aal"])
-    # harv_rep = reports["harvard_oxford"].item()
-    # aal_rep  = reports["aal"].item()
     harv_rep = reports["harvard_oxford"].dropna().iloc[0] if not reports["harvard_oxford"].dropna().empty else "N/A"
     aal_rep  = reports["aal"].dropna().iloc[0] if not reports["aal"].dropna().empty else "N/A"
 
@@ -167,7 +163,9 @@ def full_pipeline(data4sharing_root, report_log_path):
         print(f"[1] Открыт каталог {data4sharing_root}")
         for folder_obj in reversed(os.listdir(data4sharing_root)):
         # for folder_obj in os.listdir(data4sharing_root):
-            if 'MELD' not in folder_obj:
+            # if 'MELD' not in folder_obj:
+            #     continue
+            if 'ipynb' in folder_obj or 'csv' in folder_obj or 'reports' in folder_obj:
                 continue
             label_files = []
             sid = folder_obj
@@ -178,10 +176,10 @@ def full_pipeline(data4sharing_root, report_log_path):
                 label_files.append(labels)
             
             # 2) Проверка, что ещё не делали
-            if sid in processed_subjects:
-                print(f"[!] {sid} уже есть в all_reports.csv, пропускаем")
+            if sid in processed_subjects: #or "_H101_" in sid:
+                print(f"[!] {sid} already exist in all_reports.csv, skip")
                 continue
-            # # 2) генерим отчёт
+            # 3) генерим отчёт
             report_dir = os.path.join(data4sharing_root, "reports", sid)
             os.makedirs(report_dir, exist_ok=True)
             print(sid)
@@ -201,7 +199,7 @@ def full_pipeline(data4sharing_root, report_log_path):
                 nii_path = convert_lesion_mgh_to_nii(sid, data4sharing_root, hemi=hemi)
                 
                 if not os.path.isfile(nii_path):
-                    print(f"❌ {sid}: .nii.gz не найден, пропускаем")
+                    print(f"❌ {sid}: .nii.gz didn't find, skip")
                     continue
                 harv, aal = process_t1_mask_only(
                     mask_path=nii_path,

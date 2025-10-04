@@ -6,10 +6,10 @@ import sys
 
 if __name__ == "__main__":
     # Путь к вашему существующему CSV с результатами
-    reports_csv = "/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/all_augmented_reports.csv"
+    reports_csv = "/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/meld_files/all_augmented_reports.csv" #H101_reports.csv"
     # Корневая папка, где лежат ваши HDF5/NIfTI-файлы
     comb_root   = "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats"
-    out_dir     = "/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/MELD_BONN_dataset_augmented.csv"
+    out_dir     = "/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/MELD_BONN_dataset_augmented.csv" # H101_reports_full.csv"
     # Читаем отчёты
     reports_df = pd.read_csv(reports_csv, dtype=str)
 

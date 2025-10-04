@@ -183,20 +183,20 @@ class Augment:
         
         # mesh augmentations
         # stack the transformations into a single indexing step
-        # if np.random.rand() < self.get_p_param("spinning"):
-        #     mesh_transform = True
-        #     indices = indices[self.spinning.get_indices()]
-        #     print("spinning")
+        if np.random.rand() < self.get_p_param("spinning"):
+            mesh_transform = True
+            indices = indices[self.spinning.get_indices()]
+            print("spinning")
         
-        # if np.random.rand() < self.get_p_param("warping"):
-        #     mesh_transform = True
-        #     indices = indices[self.warping.get_indices()]
-        #     print("warping")
+        if np.random.rand() < self.get_p_param("warping"):
+            mesh_transform = True
+            indices = indices[self.warping.get_indices()]
+            print("warping")
         
-        # if np.random.rand() < self.get_p_param("flipping"):
-        #     mesh_transform = True
-        #     indices = indices[self.flipping.get_indices()]
-        #     print("flipping")
+        if np.random.rand() < self.get_p_param("flipping"):
+            mesh_transform = True
+            indices = indices[self.flipping.get_indices()]
+            print("flipping")
         
         # apply just once
         if mesh_transform:

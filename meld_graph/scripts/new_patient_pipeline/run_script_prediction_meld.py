@@ -29,9 +29,10 @@ from meld_graph.paths import (FS_SUBJECTS_PATH,
 from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
-from scripts.manage_results.register_back_to_xhemi import register_subject_to_xhemi
-from scripts.manage_results.move_predictions_to_mgh import move_predictions_to_mgh
-from scripts.manage_results.plot_prediction_report import generate_prediction_report
+import scripts.env_setup
+# from scripts.manage_results.register_back_to_xhemi import register_subject_to_xhemi
+# from scripts.manage_results.move_predictions_to_mgh import move_predictions_to_mgh
+# from scripts.manage_results.plot_prediction_report import generate_prediction_report
 from meld_graph.tools_pipeline import get_m, create_demographic_file, create_dataset_file
 
 import warnings
@@ -44,7 +45,7 @@ def save_surface_mgh(arr_1d, out_path: str):
     nb.save(img, out_path)               # .mgh или .mgz — без разницы
 
 def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=False,
-    experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT, aug_mode='test'):       
+    experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT, aug_mode='test', return_results=False):       
     ''' function to predict on new subject using trained MELD classifier'''
     
     hdf5_file_root = "{site_code}_{group}_featurematrix_combat.hdf5"
@@ -91,6 +92,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         roc_curves_thresholds=None,
         )
 
+    results_dict = {}
     for subject_id in subject_ids:  
         features        = eva.data_dictionary[subject_id]["feature_maps"]
         result          = eva.data_dictionary[subject_id]["result"]
@@ -99,75 +101,89 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         dist_map_gt     = eva.data_dictionary[subject_id]["geodesic_distance"]
         # xyzr_gt         = eva.data_dictionary[subject_id]["xyzr"]
         
-        labels_np = np.asarray(labels).reshape(-1)  # (2*N,)
-
-        assert labels_np.size % 2 == 0, f"Unexpected labels length: {labels_np.size}"
-        n_hemi = labels_np.size // 2
-
-
-        lh = labels_np[:n_hemi].astype(np.float32)
-        rh = labels_np[n_hemi:].astype(np.float32)
-        
-        # estimates    = eva.data_dictionary[subject_id]["estimates"]
-        # используем тот output_dir, который пришёл в функцию
-        save_dir = f"./data/preprocessed/meld_files/{subject_id}/features"
-        print(save_dir)
-        os.makedirs(save_dir, exist_ok=True)
-
-        feat_path = os.path.join(save_dir, "feature_maps.npz")
-        np.savez_compressed(
-            feat_path,
-            **{stage: tensor.detach().cpu().numpy() for stage, tensor in features.items()}
-        )
-        print(f"Saved features to {feat_path}")
-
-        dist_maps_path = os.path.join(save_dir, "distance_maps_gt.npz")
-        np.savez(dist_maps_path, dist_map_gt)
-        print(f"Saved distance maps GT to {dist_maps_path}")
-
-        # xyzr_path = os.path.join(save_dir, "xyzr_gt.npz")
-        # np.savez(xyzr_path, xyzr_gt)
-        # print(f"Saved xyzr GT to {xyzr_path}")
-
-        # сохраняем labels в .mgh или .mgz (можно .mgz — будет меньше весить)
-        lab_dir  = os.path.join(f"./data/preprocessed/meld_files/{subject_id}", "labels")
-        lh_path = os.path.join(lab_dir, "labels-lh.mgh")  # или "labels-lh.mgz"
-        rh_path = os.path.join(lab_dir, "labels-rh.mgh")  # или "labels-rh.mgz"
-        os.makedirs(lab_dir, exist_ok=True)
-        save_surface_mgh(lh, lh_path)
-        save_surface_mgh(rh, rh_path)
-        print(f"Saved labels to {lh_path} and {rh_path}")
-
-        input_labels_path = os.path.join(lab_dir, "labels_gt.npz")
-        np.savez(input_labels_path, input_labels)
-        print(f"Saved distance maps GT to {input_labels_path}")
-        meta = {
-            "n_vertices": int(n_hemi),
-            "lh_sum": float(lh.sum()),
-            "rh_sum": float(rh.sum()),
-            "lh_has_lesion": bool(lh.sum() > 0),
-            "rh_has_lesion": bool(rh.sum() > 0),
-        }
-        print(meta)
-        np.savez(os.path.join(lab_dir, "labels-meta.npz"), **meta)
-        # estimates_path = os.path.join(save_dir, "estimates.npz")
-        # np.savez_compressed(estimates_path, 
-        #                     estimates)
-
-        res_path = os.path.join(save_dir, "result.npz")
-        if isinstance(result, np.ndarray):
-            np.savez_compressed(res_path, result=result)        
-        elif isinstance(result, dict):
-            np.savez_compressed(
-                res_path,
-                **{f"pred_{hemi}": arr.detach().cpu().numpy()
-                for hemi, arr in result.items()}
-            )
+        if return_results:
+            # складываем всё в словарь Python
+            results_dict[subject_id] = {
+                "features": {k: v.detach().cpu().numpy() for k, v in features.items()},
+                "result": result if isinstance(result, np.ndarray) else {
+                    k: v.detach().cpu().numpy() for k, v in result.items()
+                },
+                # "labels": np.asarray(labels),
+                # "input_labels": np.asarray(input_labels),
+                # "dist_map_gt": np.asarray(dist_map_gt),
+            }
         else:
-            raise TypeError(f"Неожиданный тип result: {type(result)}")
+            labels_np = np.asarray(labels).reshape(-1)  # (2*N,)
 
-        print(f"Saved prediction result to {res_path}")
+            assert labels_np.size % 2 == 0, f"Unexpected labels length: {labels_np.size}"
+            n_hemi = labels_np.size // 2
 
+
+            lh = labels_np[:n_hemi].astype(np.float32)
+            rh = labels_np[n_hemi:].astype(np.float32)
+            
+            # estimates    = eva.data_dictionary[subject_id]["estimates"]
+            # используем тот output_dir, который пришёл в функцию
+            save_dir = f"./data/preprocessed/meld_files/{subject_id}/features"
+            print(save_dir)
+            os.makedirs(save_dir, exist_ok=True)
+
+            feat_path = os.path.join(save_dir, "feature_maps.npz")
+            np.savez_compressed(
+                feat_path,
+                **{stage: tensor.detach().cpu().numpy() for stage, tensor in features.items()}
+            )
+            print(f"Saved features to {feat_path}")
+
+            dist_maps_path = os.path.join(save_dir, "distance_maps_gt.npz")
+            np.savez(dist_maps_path, dist_map_gt)
+            print(f"Saved distance maps GT to {dist_maps_path}")
+
+            # xyzr_path = os.path.join(save_dir, "xyzr_gt.npz")
+            # np.savez(xyzr_path, xyzr_gt)
+            # print(f"Saved xyzr GT to {xyzr_path}")
+
+            # сохраняем labels в .mgh или .mgz (можно .mgz — будет меньше весить)
+            lab_dir  = os.path.join(f"./data/preprocessed/meld_files/{subject_id}", "labels")
+            lh_path = os.path.join(lab_dir, "labels-lh.mgh")  # или "labels-lh.mgz"
+            rh_path = os.path.join(lab_dir, "labels-rh.mgh")  # или "labels-rh.mgz"
+            os.makedirs(lab_dir, exist_ok=True)
+            save_surface_mgh(lh, lh_path)
+            save_surface_mgh(rh, rh_path)
+            print(f"Saved labels to {lh_path} and {rh_path}")
+
+            input_labels_path = os.path.join(lab_dir, "labels_gt.npz")
+            np.savez(input_labels_path, input_labels)
+            print(f"Saved distance maps GT to {input_labels_path}")
+            meta = {
+                "n_vertices": int(n_hemi),
+                "lh_sum": float(lh.sum()),
+                "rh_sum": float(rh.sum()),
+                "lh_has_lesion": bool(lh.sum() > 0),
+                "rh_has_lesion": bool(rh.sum() > 0),
+            }
+            
+            np.savez(os.path.join(lab_dir, "labels-meta.npz"), **meta)
+            # estimates_path = os.path.join(save_dir, "estimates.npz")
+            # np.savez_compressed(estimates_path, 
+            #                     estimates)
+
+            res_path = os.path.join(save_dir, "result.npz")
+            if isinstance(result, np.ndarray):
+                np.savez_compressed(res_path, result=result)        
+            elif isinstance(result, dict):
+                np.savez_compressed(
+                    res_path,
+                    **{f"pred_{hemi}": arr.detach().cpu().numpy()
+                    for hemi, arr in result.items()}
+                )
+            else:
+                raise TypeError(f"Unexpected type result: {type(result)}")
+
+            print(f"Saved prediction result to {res_path}")
+
+    if return_results:
+        return results_dict
     # # #threshold predictions
     eva.threshold_and_cluster()
     # # #write results in csv
@@ -177,9 +193,10 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     #     eva.plot_subjects_prediction()
     # #compute saliency:
     # if saliency:
-    #     eva.calculate_saliency()
+        # eva.calculate_saliency()
+    return None
 
-def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test'):
+def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test', return_results=False):
     harmo_code = str(harmo_code)
     subject_id=None
     subject_ids=None
@@ -213,7 +230,16 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     
     subject_ids_failed=[]
 
+    # Skip data augmentation for test samples to ensure deterministic evaluation
+    # (do not modify predictions with training-time transforms)
+    meld_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'BONN_splits_full_test.csv'))
+    bonn_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'MELD_splits.csv'))
+
+    meld_test_split = meld_list[meld_list['split'] == 'test']['subject_id'].tolist()
+    bonn_test_split = bonn_list[bonn_list['split'] == 'test']['subject_id'].tolist()
+
     #predict on new subjects
+    results = {}
     if not skip_prediction:
         print(get_m(f'Run predictions', subject_ids, 'STEP 1'))
         for subject_id in subject_ids[::-1]:
@@ -282,21 +308,32 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
                 # Zero mask after converting to Nifti
                 "MELD_H9_3T_FCD_0003",
             ]:
+            # or subject_id.startswith("MELD_H101_3T_C_"):
                 continue
             
-            # # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
+            # Убрать для инференса, иначе объект не создается
+            # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
             # preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
             # if os.path.isdir(preproc_root):
             #     print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
             #     continue
             # -----------------------------------------------
-            predict_subjects(subject_ids=np.array([subject_id]), 
+            if subject_id in meld_test_split or subject_id in bonn_test_split:
+                aug_mode = 'test'
+                print(f"[TEST SPLIT] {subject_id} in test split, aug_mode set to 'test'")
+            else:
+                aug_mode = 'train'
+                print(f"[TRAIN SPLIT] {subject_id} in train split, aug_mode set to 'train'")
+            result = predict_subjects(subject_ids=np.array([subject_id]), 
                             output_dir=classifier_output_dir,  
                             plot_images=True, 
                             saliency=True,
                             experiment_path=experiment_path, 
                             hdf5_file_root= DEFAULT_HDF5_FILE_ROOT,
-                            aug_mode=aug_mode)
+                            aug_mode=aug_mode,
+                            return_results=return_results)
+            if result is not None:
+                results.update(result) 
     else:
         print(get_m(f'Skip predictions', subject_ids, 'STEP 1'))
     # if not no_prediction_nifti:        
@@ -339,9 +376,12 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     if len(subject_ids_failed)>0:
         print(get_m(f'One step of the pipeline has failed and process has been aborted for subjects {subject_ids_failed}', None, 'ERROR'))
         return False
+    
+    if return_results:
+        return results
+    return None
 
 if __name__ == '__main__':
-    import scripts.env_setup
     scripts.env_setup.setup()
 
     #parse commandline arguments 
@@ -391,6 +431,9 @@ if __name__ == '__main__':
                         help="Make augmentation for training data or not",
                         required=True,
                         default='test')
+    parser.add_argument("--return_results",
+                        help="For FastAPI: return results as dictionary",
+                        default=False)
     args = parser.parse_args()
     print(args) 
     
@@ -426,7 +469,7 @@ if __name__ == '__main__':
         shutil.copy(os.path.join(MELD_DATA_PATH,args.demographic_file), demographic_file_tmp)
     
     # Run: ./meldgraph.sh run_script_prediction_meld.py --list_ids /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --demographic_file /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --aug_mode train
-    run_script_prediction(
+    results = run_script_prediction(
                         harmo_code = args.harmo_code,
                         list_ids=args.list_ids,
                         sub_id=args.id,
@@ -435,6 +478,31 @@ if __name__ == '__main__':
                         split = args.split,
                         skip_prediction=args.skip_prediction,
                         verbose = args.debug_mode,
-                        aug_mode=args.aug_mode
+                        aug_mode=args.aug_mode,
+                        return_results=args.return_results
                         )
-                
+    
+    if args.return_results and results is not None:
+        import pickle
+        
+        # базовая директория для всех результатов
+        base_dir = "/home/s17gmikh/FCD-Detection/backend/data_results"
+        os.makedirs(base_dir, exist_ok=True)
+
+        # если results — список, берём первый словарь
+        if isinstance(results, list):
+            results = results[0]
+
+        # берём subject_id (он у тебя ключ в словаре)
+
+        # создаём папку для конкретного пациента
+        subject_dir = os.path.join(base_dir, *results.keys())  # достаёт id без хардкода
+        os.makedirs(subject_dir, exist_ok=True)
+
+        out_path = os.path.join(subject_dir, "results.pkl")
+        with open(out_path, "wb") as f:
+            pickle.dump(results, f)
+
+
+        # выводим в stdout только путь
+        print(out_path)
