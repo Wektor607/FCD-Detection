@@ -1,0 +1,484 @@
+/* Фон */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #e0f7fa, #fce4ec);
+  min-height: 100vh;
+}
+
+/* Хедер */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.0rem 2.0rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: transparent;
+  z-index: 10;
+}
+
+.header-logo {
+  width: clamp(80px, 18vw, 400px);
+  height: auto;
+  object-fit: contain;
+  margin-right: 12px;
+  margin-top: -40px;
+  transition: width 0.3s ease;
+}
+
+.header-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #2c3e50;
+  white-space: nowrap; /* чтобы текст не переносился под лого */
+}
+
+/* Контейнер */
+.home-container {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem; /* минимальный вариант */
+}
+
+
+/* Контейнер */
+.home-container {
+  display: block;        /* убрали flex, чтобы карточка не центрировалась жестко */
+  padding: 6rem 2rem 3rem;
+}
+
+/* Карточка */
+.card {
+  max-width: 900px;
+  margin: 0 auto;        /* центрируем по ширине */
+  background: #fff;
+  padding: 2.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  text-align: justify;
+}
+
+.card h1 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+}
+
+/* Кнопки */
+.button-row {
+  display: flex;
+  justify-content: center; /* вот это добавляем */
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.btn {
+  display: inline-block;
+  justify-content: center; /* вот это добавляем */
+  background: #42a5f5;
+  color: white;
+  padding: 0.9rem 1.8rem;
+  border-radius: 2rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  min-width: 160px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(66, 165, 245, 0.4);
+}
+.btn:hover {
+  background: #1e88e5;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .header-logo {
+    width: 10vw;
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-logo {
+    width: 20vw;
+    max-width: 90px;
+  }
+}
+
+/* Центрирование всей страницы */
+.upload-textarea {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 1rem;
+  resize: vertical;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  vertical-align: top;
+  line-height: 1.4;
+  min-height: 80px;
+  font-family: inherit;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.upload-textarea::placeholder {
+  color: #999;
+  opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.form-field {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  position: relative;
+  z-index: 1;
+}
+
+.textarea-container {
+  position: relative;
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-start; /* кнопки слева */
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.btn.small-btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 1.2rem;
+  font-size: 0.9rem;
+  min-width: 130px; /* одинаковая ширина */
+  justify-content: center;
+  text-align: center;
+}
+
+.upload-label .btn.small-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.upload-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.card {
+  max-width: 600px;
+  width: 100%;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+  background: #42a5f5;
+  color: white;
+  padding: 0.9rem 1.8rem;
+  border-radius: 2rem;
+  font-weight: bold;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(66, 165, 245, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn:hover {
+  background: #1e88e5;
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  background: #90caf9;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.hidden {
+  display: none;
+}
+
+.file-selected {
+  font-size: 14px;
+  color: #10b981; /* зеленый */
+  margin-top: 10px;
+  opacity: 1;
+}
+
+.fade-in_file {
+  animation: fadeOut 3s forwards; /* запуск анимации */
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  80% { opacity: 1; }  /* держим видимым почти всё время */
+  100% { opacity: 0; } /* плавно исчезает */
+}
+
+
+/* Спиннер */
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-cat {
+  display: inline-block;
+  font-size: 20px;
+  animation: jump 0.6s infinite ease-in-out;
+}
+
+@keyframes jump {
+  0%   { transform: translateY(0); }
+  30%  { transform: translateY(-8px); }
+  60%  { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+
+/* Плавное появление */
+.fade-in {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Стиль кнопки скачивания */
+/* Dropdown */
+.dropdown {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.dropdown-btn {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.6rem;
+  background: #f9f9f9;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.dropdown-btn:hover {
+  background: #f1f1f1;
+}
+
+.dropdown-list {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.6rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  z-index: 50;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.dropdown-list.open {
+  max-height: 500px; /* достаточно большое значение, чтобы влезли все модели */
+  opacity: 1;
+}
+
+.dropdown-item {
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dropdown-item:hover {
+  background: #f1f5ff;
+}
+
+/* Контейнер для описания */
+.model-description-wrapper {
+  margin-top: 0.8rem;
+}
+
+/* Само описание */
+.model-description {
+  padding: 0.8rem 1rem;
+  border-radius: 0.8rem;
+  background: #f9fbff;
+  border: 1px solid #d0e0ff;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.description-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.description-header {
+  flex-shrink: 0;
+}
+
+.description-header strong {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.description-text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+
+/* Когда нужно показать */
+.model-description.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dropdown-btn .chevron-icon {
+  transition: transform 0.3s ease;
+}
+
+.dropdown-btn.open .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* Кнопки скачивания такие же, как обычные */
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.6rem;
+  border-radius: 2rem; /* овальные */
+  font-weight: bold;
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+/* Эффект подскока */
+.download-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* PNG — синий */
+.download-btn.blue {
+  background: #42a5f5;
+}
+.download-btn.blue:hover {
+  background: #1e88e5;
+}
+
+/* NIfTI — зелёный */
+.download-btn.green {
+  background: #10b981;
+}
+.download-btn.green:hover {
+  background: #059669;
+}
+
+/* Контейнер для центровки кнопок */
+.download-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* .result-image { */
+  /* display: block;     чтобы img занял всю ширину строки */
+  /* margin-left: auto;  авто-отступ слева */
+  /* margin-right: auto; авто-отступ справа */
+  /* max-height: 24rem;  то же, что max-h-96 */
+  /* border: 1px solid #ddd; */
+  /* border-radius: 8px; */
+  /* box-shadow: 0 4px 12px rgba(0,0,0,0.2); */
+/* } */
+
+.result-image {
+  max-width: 100%;
+  width: 80%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 18px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+
+.result-text {
+  display: inline-block;
+  color: #222;
+  font-size: 1.08em;
+  font-weight: 500;
+  max-width: 80%;
+  text-align: left;
+  margin-bottom: 18px;
+}
