@@ -6,20 +6,20 @@
 
 We investigate three factors: (i) how many \ac{meld} feature \emph{stages} are fed into the GNN block; (ii) how many hidden layers from the text encoder are injected into the GuideDecoder; and (iii) the effect of including textual descriptions. 
 
-We freeze the \ac{meld} backbone. In all variants, we \emph{train} the same geometry-based upsampling path
-(HexUnpool + SpiralConv) and the segmentation head. The variants differ only in whether and how
-the GuideDecoder is used before upsampling:
+% We freeze the \ac{meld} backbone. In all variants, we \emph{train} the same geometry-based upsampling path
+% (HexUnpool + SpiralConv) and the segmentation head. The variants differ only in whether and how
+% the GuideDecoder is used before upsampling:
 
-\begin{enumerate}
-  \item \textbf{Unpool+Spiral (no text).} No GuideDecoder is used; features are fed directly into the
-        upsampling path (HexUnpool + SpiralConv) and the segmentation head; no textual input.
-  \item \textbf{GuideDecoder (self-attention only).} A GuideDecoder layer is inserted before upsampling,
-        but the text branch is disabled, so only self-attention operates; the same Unpool+Spiral path and
-        segmentation head are trained.
-  \item \textbf{GuideDecoder + Text (full).} The full GuideDecoder is used (self-attention plus
-        cross-attention to the text encoder); textual descriptions are provided, while the same
-        Unpool+Spiral path and segmentation head are trained.
-\end{enumerate}
+% \begin{enumerate}
+%   \item \textbf{Unpool+Spiral (no text).} No GuideDecoder is used; features are fed directly into the
+%         upsampling path (HexUnpool + SpiralConv) and the segmentation head; no textual input.
+%   \item \textbf{GuideDecoder (self-attention only).} A GuideDecoder layer is inserted before upsampling,
+%         but the text branch is disabled, so only self-attention operates; the same Unpool+Spiral path and
+%         segmentation head are trained.
+%   \item \textbf{GuideDecoder + Text (full).} The full GuideDecoder is used (self-attention plus
+%         cross-attention to the text encoder); textual descriptions are provided, while the same
+%         Unpool+Spiral path and segmentation head are trained.
+% \end{enumerate}
 
 \section{Loss function}
 Following best practices for medical image segmentation and to ensure a fair comparison with the \ac{meld} model, we employed a composite loss. The loss function is defined as
@@ -101,21 +101,577 @@ The \ac{iou} (also called the Jaccard index) quantifies the overlap between pred
 \mathrm{IoU}(P,G) = \frac{|P \cap G|}{|P \cup G|} = \frac{TP}{TP + FP + FN}.
 \]
 
-\subsection{Accuracy} 
-Accuracy measures the proportion of correctly classified samples among all samples:
-\[
-\mathrm{ACC} = \frac{TP + TN}{TP + TN + FP + FN},
-\]
-where $TN$ denotes the number of true negatives.
+% \subsection{Accuracy} 
+% Accuracy measures the proportion of correctly classified samples among all samples:
+% \[
+% \mathrm{ACC} = \frac{TP + TN}{TP + TN + FP + FN},
+% \]
+% where $TN$ denotes the number of true negatives.
 
-\section{Connecting MELD Stages to GNN}
-In our initial experiments, after combining the vision and text features, the obtained results were of relatively low quality. 
-This observation suggested that the output representations produced by MELD at higher stages are rather sparse, which may limit the predictive capacity of the model. 
-To address this, we hypothesized that aggregating information from multiple MELD stages could improve the expressivity of the GNN block and lead to more accurate predictions. 
-Therefore, we conducted a series of experiments in which different numbers of MELD feature stages were connected to the GNN block, ranging from high-level features to lower-level ones, in order to evaluate the impact of stage-wise integration on model performance.
-\section{Text--Decoder Connections (Layer Injection)}
-TODO
-\section{Effect of Textual Descriptions}
-TODO
+\section{Implementation Details}
+The proporsed framework was trained with the following hyperparameters. 
+The training batch size was fixed at 8 and the validation batch size at 4. 
+The initial learning rate was set to $3 \times 10^{-4}$ and optimized using 
+the OneCycleLR scheduler (maximum learning rate $3 \times 10^{-3}$). 
+The schedule included a warm-up phase during the first 10\% of training steps, 
+followed by cosine annealing. 
+Training was performed for up to 100~epochs (minimum 20~epochs), 
+with early stopping applied if the validation performance did not improve for 20~epochs.  
+For evaluation, we trained an ensemble of five independently initialized models (seeds 42–46). 
+At test time, we averaged their per-vertex predictions to form the final output.  
+
+The model integrated surface-based graph features and contextual text embeddings. 
+Feature channel dimensions across the encoder stages were \\
+$[32,32,64,64,128,128,256]$, 
+with corresponding text sequence lengths \\
+$[128,64,64,32,32,16,16]$, 
+and a maximum text length of 256~tokens. 
+Deep supervision was employed with levels 
+$I_{ds} = [6,5,4,3,2,1]$ 
+and associated weights \\
+$w_{ds} = [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.0150765]$. 
+The text encoder was initialized from RadBERT, 
+with a projection dimension of 768.  
+
+To address class imbalances, non-lesional hemispheres were undersampled, 
+ensuring that approximately one third of training examples contained a lesion. 
+Data augmentation strategies included random flipping ($p=0.5$), 
+Gaussian blur ($p=0.2$), spinning and warping ($p=0.2$ each), 
+brightness, contrast, gamma correction and Gaussian noise ($p=0.15$ each), 
+and low-resolution simulation ($p=0.25$).
+
+\subsection{Hardware} 
+All experiments were performed on the \emph{Bender} high-performance computing cluster at the University of Bonn, 
+equipped with NVIDIA A100 GPUs (80~GiB each) and AMD EPYC CPUs. 
+A detailed description of the system can be found in the official documentation\footnote{\url{https://www.hpc.uni-bonn.de/en/systems/bender}}. 
+Our implementation used PyTorch~2.1.0+cu121, TorchVision~0.16.0+cu121, TorchAudio~2.1.0+cu121, Torch Geometric~2.5.3, Torch Scatter~2.1.2, 
+TorchMetrics~0.11.4, and Python~3.9.18.  
+
+\section{Basic Experiments}
+Before tuning various hyperparameters such as the number of text connections in the GuideDecoder or the number of unfrozen layers in the LLM, it is essential to first determine the best-performing base model for further experiments. This step saves time and resources by first identifying the most promising model.
+  
+
+We freeze the \ac{meld} backbone and unfreeze the last three layers of RadBERT.
+In all variants, we \emph{train} the same geometry-based upsampling path
+(HexUnpool + SpiralConv) and the segmentation head. The experiments differ only in whether and how the GuideDecoder is used before upsampling, and whether textual features are included.
+
+We consider the following configurations:
+
+\begin{itemize}
+\item \textbf{MELD} serves as the baseline.
+\item \textbf{Exp1 (Unpool+Spiral, no text).} No GuideDecoder is used; features are fed directly into the upsampling path (HexUnpool + SpiralConv) and the segmentation head; no textual input.
+\item \textbf{Exp2 (GuideDecoder, self-attention only).} A GuideDecoder layer is inserted before upsampling, but the text branch is disabled, so only self-attention operates; the same Unpool+Spiral path and segmentation head are trained.
+\item \textbf{Exp3\_full (GuideDecoder + Text).} The full GuideDecoder is used (self-attention plus cross-attention to the text encoder); textual descriptions are provided using complete Atlas annotations.
+\item \textbf{Exp3\_hemi+lobe (GuideDecoder + Text).} Same as Exp3\_full, but Atlas descriptions are reduced to hemisphere and lobe names.
+\item \textbf{Test2 (GuideDecoder + Text).} Same as Exp3\_hemi+lobe, but the decoder is initialized from Exp1 and unfrozen from the first epoch.
+\item \textbf{Test3 (GuideDecoder + Text).} Same as Exp3\_hemi+lobe, but the decoder is initialized from Exp1 and unfrozen only after 10 epochs.
+\end{itemize}
+
+The last two variants were introduced to investigate the impact of using a pre-trained decoder on overall performance. They were applied to the \texttt{Exp3\_hemi+lobe} model, since later analysis will demonstrate that this variant provides the most consistent balance across metrics.
+
+It is important to note that all experiments in this section were conducted \textbf{without} lesion–mask augmentation, flipping, warping, or spinning. Since some augmentations were found to substantially degrade performance, results with augmentation will be presented in the following chapters.
+  
+In both tables, the best results are highlighted in green, the second-best in blue, and the third-best in orange.
+
+\paragraph{Main cohort}
+
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Median performance on the main cohort.}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+MELD & 0.232 & 0.156 & \colorbox{green!20}{0.707} & 0.131 & 162 / 259 \\
+Exp1 & 0.178 & \colorbox{blue!20}{0.242} & \colorbox{blue!20}{0.685} & 0.098 & 157 / 259 \\
+Exp2 & \colorbox{orange!20}{0.250} & \colorbox{orange!20}{0.223} & \colorbox{orange!20}{0.645} & \colorbox{orange!20}{0.143} & \colorbox{orange!20}{166 / 259} \\
+Exp3\_hemi+lobe & \colorbox{blue!20}{0.260} & \colorbox{blue!20}{0.242} & \colorbox{blue!20}{0.685} & \colorbox{blue!20}{0.149} & 163 / 259 \\
+Test2\_hemi+lobe & \colorbox{green!20}{0.266} & 0.206 & 0.558 & \colorbox{green!20}{0.154} & \colorbox{blue!20}{172 / 259} \\
+Test3\_hemi+lobe & 0.181 & \colorbox{green!20}{0.271} & 0.624 & 0.100 & 163 / 259 \\
+Exp3\_full & \colorbox{blue!20}{0.260} & 0.215 & 0.457 & \colorbox{blue!20}{0.149} & \colorbox{green!20}{175 / 259} \\
+\hline
+\end{tabular}
+\end{table}
+
+% Среди всех моделей Exp3_hemi+lobe показала средний результаты по Dice, PPV pixels и IoU. При этому хоть результа по PPV clusters хуже чему MELD, тем не менее разница около 1.5 %.
+% MELD лишь заняла второе место по PPV clusters, но по все остальным метрикам базовая модель уступает. Наибольший разрыв в качестве заметен по PPV pixels между MELD и Test3_hemi+lobe которы составляет около 12%.
+% По количеству найденных новых очагов лучшее качество показала Exp3_full, найдя на 13 очагов больше, чем MELD, однако по PPV clusters данная модель показывает худшее качество, т.е. она очень много покрывает пикселей положительными,
+% что говорит о сильной чувстивтельности модели.
+% Также интересно, что Test2_hemi+lobe хоть и показало качество хуже по PPV_clusters чем Exp3_hemi+lobe, однак данная модель использовала те же самые текстовые описания и смола найти на 9 очагов больше, т.е.
+% можем сделать вывод, что предобученный декодер может улучшить количество найденных очагов, но при это с проигрышем в качестве предсказний
+
+Among all models, \texttt{Exp3\_hemi+lobe} exhibits the most stable performance: mid-range Dice, PPV\_pixels, and IoU, while its cluster PPV is only about 1.5\% lower than MELD. This indicates that hemisphere- and lobe-level textual input provides a balanced trade-off between sensitivity and precision.  
+
+The \texttt{MELD baseline} takes first place in cluster PPV (0.707) but performs worse on all other metrics. The biggest gap is in PPV\_pixels, where MELD is about 12\% lower than \texttt{Test3\_hemi+lobe}, showing weaker pixel-level localization even though cluster detection is fairly consistent.  
+
+By contrast, \texttt{Exp3\_full} achieves the highest lesion detection count (175 vs.\ 162 for MELD), but at the cost of the lowest cluster PPV (0.457). This shows unstable behavior: the model is very sensitive and segments widely, but also produces many false clusters, reducing precision.  
+
+\texttt{Test2\_hemi+lobe} finds 172 lesions, which is 9 more than \texttt{Exp3\_hemi+lobe}, but its cluster PPV decreases from 0.685 to 0.558. This shows that immediate fine tuning of the pretrained decoder helps to detect more lesions but lowers precision.
+
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Median performance on the independent cohort (Bonn Dataset).}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+MELD & 0.350 & 0.253 & 0.709 & 0.212 & \colorbox{blue!20}{54 / 82} \\
+Exp1 & 0.354 & \colorbox{orange!20}{0.448} & \colorbox{green!20}{0.802} & 0.215 & 49 / 82 \\
+Exp2 & 0.387 & \colorbox{blue!20}{0.449} & 0.704 & 0.240 & 51 / 82 \\
+Exp3\_hemi+lobe & \colorbox{blue!20}{0.396} & 0.438 & \colorbox{blue!20}{0.761} & \colorbox{blue!20}{0.247} & 51 / 82 \\
+Test2\_hemi+lobe & \colorbox{orange!20}{0.394} & 0.339 & 0.590 & \colorbox{orange!20}{0.245} & \colorbox{orange!20}{53 / 82} \\
+Test3\_hemi+lobe & 0.385 & \colorbox{green!20}{0.452} & \colorbox{orange!20}{0.747} & 0.238 & 50 / 82 \\
+Exp3\_full & \colorbox{green!20}{0.423} & 0.370 & 0.415 & \colorbox{green!20}{0.268} & \colorbox{green!20}{57 / 82} \\
+\hline
+\end{tabular}
+\end{table}
+
+% TODO ######################################################
+\paragraph{Independent cohort (Bonn Dataset)}
+On the Bonn dataset, \texttt{Exp3\_hemi+lobe} again ranks second in Dice, PPV clusters, and IoU, remaining only 2--3\% behind the leading results, which underlines its robustness across datasets.  
+
+\texttt{Exp3\_full} achieves the highest number of detected lesions (57 vs.\ 54 for MELD), but as in the main cohort, it yields the weakest cluster PPV (0.415), confirming its unstable, overly sensitive nature.  
+
+\texttt{Test2\_hemi+lobe} detects 2 more lesions than \texttt{Exp3\_hemi+lobe}, but its performance on Dice and IoU is only marginally lower (by about 0.2\%), indicating a small trade-off between sensitivity and segmentation accuracy.  
+
+Overall, these results demonstrate that textual guidance consistently improves segmentation quality, even without fine-grained parameter tuning. Importantly, even partial guidance such as hemisphere and lobe information yields meaningful improvements, helping to balance recall and precision.  
+
+\paragraph{General conclusions.}
+\begin{itemize} %[noitemsep, topsep=0pt]
+    \item \texttt{Exp3\_hemi+lobe} is the most balanced and stable model, performing reliably across datasets and metrics.
+    \item \texttt{Test2\_hemi+lobe} shows slightly less accurate results than \texttt{Exp3\_hemi+lobe}, but detects more lesions, representing a compromise between accuracy and lesion sensitivity.
+    \item \texttt{Exp3\_full} achieves the highest sensitivity and lesion coverage but exhibits instability, generating many false positives.
+    \item Decoder tuning strategies (\texttt{Test2} vs.\ \texttt{Test3}) reveal a trade-off: early fine-tuning increases recall (higher Dice and lesion counts), while delayed fine-tuning improves precision (higher PPV\_pixels).
+    \item The \texttt{MELD baseline} consistently underperforms compared to the proposed models, confirming the added value of textual guidance and decoder adaptation.
+\end{itemize}
+
+
+The full results with confidence intervals are reported in \autoref{tab:main_full} and \autoref{tab:bonn_full}.
+
+\section{Linking MELD to GNN}
+In these experiments we investigated the effect of connecting different numbers of MELD feature stages to the GNN block. The rationale was that higher MELD stages may produce sparse representations, while lower stages provide richer local detail. By progressively adding stages from top to bottom, we aimed to evaluate how multi-stage integration influences model performance. To isolate this effect, the text encoder and GuideDecoder were disabled.
+% In our initial experiments, after combining vision and text features, the obtained results were of relatively low quality. 
+% This observation suggested that the output representations produced by MELD at higher stages are rather sparse, which may limit the predictive capacity of the model. 
+% To address this, we hypothesized that aggregating information from multiple MELD stages could improve the expressivity of the GNN block and lead to more accurate predictions. 
+% Therefore, we conducted a series of experiments in which different numbers of MELD feature stages were connected to the GNN block, ranging from high-level features to lower-level ones, in order to evaluate the impact of stage-wise integration on model performance.
+% And in order to show exactly the influence of the GNN block, we disabled the text model and GuideDecoder.
+
+% A short clarification regarding the experiment names: 
+% \texttt{Exp1 1 layer} means that only the highest-level MELD features were connected to the GNN block, while 
+% \texttt{Exp1 0 layer} corresponds to skipping the GNN block entirely and feeding MELD features directly. 
+% As the number of layers increases, additional MELD stages are progressively included from top to bottom, 
+% so that lower-level representations are added step by step to the higher-level ones.
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Different number of MELD stages connected to the GNN block}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+Exp1 0 layers & 0.148 & 0.129 & 0.649 & 0.080 & 147 / 259 \\
+Exp1 1 layer & 0.149 & 0.141 & 0.668 & 0.080 & 149 / 259 \\
+Exp1 2 layers & 0.192 & 0.172 & 0.553 & \colorbox{blue!20}{0.106} & \colorbox{orange!20}{156 / 259} \\
+Exp1 3 layers & 0.142 & \colorbox{blue!20}{0.206} & \colorbox{blue!20}{0.722} & 0.076 & 146 / 259 \\
+Exp1 4 layers & 0.119 & 0.174 & \colorbox{green!20}{0.760} & 0.063 & 146 / 259 \\
+Exp1 5 layers & \colorbox{blue!20}{0.178} & \colorbox{green!20}{0.242} & 0.685 & \colorbox{orange!20}{0.098} & \colorbox{blue!20}{157 / 259} \\
+Exp1 6 layers & \colorbox{green!20}{0.234} & \colorbox{orange!20}{0.196} & 0.654 & \colorbox{green!20}{0.133} & \colorbox{green!20}{162 / 259} \\
+Exp1 7 layers & \colorbox{orange!20}{0.177} & 0.174 & \colorbox{orange!20}{0.715} & 0.097 & 152 / 259 \\
+\hline
+\end{tabular}
+\end{table}
+
+% Among all models, \texttt{Exp1} with 6 layers performed best overall: it detected the largest number of lesions and achieved the highest Dice and IoU scores, but this came at the cost of reduced precision due to a large number of false positives.  
+
+% In contrast, \texttt{Exp1} with 3 layers showed a more balanced behavior: its PPV metrics ranked second-best, indicating fewer false positives, but it missed more lesions compared to the 6-layer variant.  
+% 0 layers
+% 0.148 (95% CI 0.015-0.268)
+% PPV_pixels  : 0.129 (95% CI 0.013-0.239)
+% PPV_clusters  :  0.6490566037735849
+% IoU  : 0.080 (95% CI 0.008-0.155)
+% 163842
+% 0.149 (95% CI 0.023-0.255)
+% PPV_pixels  : 0.141 (95% CI 0.031-0.222)
+% PPV_clusters  :  0.66796875
+% IoU  : 0.080 (95% CI 0.012-0.146)
+% 40962
+% 0.192 (95% CI 0.082-0.271)
+% PPV_pixels  : 0.172 (95% CI 0.077-0.286)
+% PPV_clusters  :  0.553475935828877
+% IoU  : 0.106 (95% CI 0.043-0.157)
+% 10242
+% 0.142 (95% CI 0.014-0.263)
+% PPV_pixels  : 0.206 (95% CI 0.009-0.334)
+% PPV_clusters  :  0.7222222222222222
+% IoU  : 0.076
+% 2562
+% 0.119 (95% CI 0.001-0.278)
+% PPV_pixels  : 0.174 (95% CI 0.001-0.302)
+% PPV_clusters  :  0.7601809954751131
+% IoU  : 0.063 (95% CI 0.000-0.162)
+% 642
+% 0.178 (95% CI 0.080-0.320)
+% PPV_pixels  : 0.242 (95% CI 0.091-0.345)
+% PPV_clusters  :  0.6851851851851852
+% IoU  : 0.098 (95% CI 0.042-0.190)
+% 162
+% 0.234 (95% CI 0.149-0.333)
+% PPV_pixels  : 0.196 (95% CI 0.107-0.304)
+% PPV_clusters  :  0.6541095890410958
+% IoU  : 0.133 (95% CI 0.080-0.199)
+% 42
+% 0.177 (95% CI 0.037-0.308)
+% PPV_pixels  : 0.174 (95% CI 0.035-0.257)
+% PPV_clusters  :  0.7149122807017544
+% IoU  : 0.097 (95% CI 0.019-0.182)
+
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Different number of MELD stages connected to the GNN block. Independent cohort (Bonn Dataset)}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+Exp1 0 layers & 0.308 & 0.372 & 0.728 & 0.182 & \colorbox{blue!20}{48 / 82} \\
+Exp1 1 layer & 0.229 & 0.338 & 0.718 & 0.130 & \colorbox{blue!20}{48 / 82} \\
+Exp1 2 layers & \colorbox{blue!20}{0.379} & 0.349 & 0.639 & \colorbox{blue!20}{0.234} & \colorbox{green!20}{49 / 82} \\
+Exp1 3 layers & \colorbox{orange!20}{0.362} & \colorbox{green!20}{0.475} & \colorbox{orange!20}{0.841} & \colorbox{orange!20}{0.221} & \colorbox{blue!20}{48 / 82} \\
+Exp1 4 layers & 0.349 & \colorbox{orange!20}{0.420} & \colorbox{blue!20}{0.868} & 0.212 & \colorbox{blue!20}{48 / 82} \\
+Exp1 5 layers & 0.354 & \colorbox{blue!20}{0.448} & 0.802 & 0.215 & \colorbox{green!20}{49 / 82} \\
+Exp1 6 layers & \colorbox{green!20}{0.392} & 0.352 & 0.700 & \colorbox{green!20}{0.244} & \colorbox{green!20}{49 / 82} \\
+Exp1 7 layers & 0.357 & 0.355 & \colorbox{green!20}{0.879} & 0.218 & \colorbox{orange!20}{47 / 82} \\
+\hline
+\end{tabular}
+\end{table}
+
+Across both cohorts, a clear trade-off emerges. Models with a larger number of connected MELD stages (e.g., with 6 layers) achieved the highest Dice and IoU scores and detected the most lesions, but at the expense of lower precision, as indicated by reduced PPV values. In contrast, configurations with fewer connected stages (e.g., 5 layers) provided more balanced results, yielding higher PPV and thus fewer false positives, but missing more lesions overall.
+
+Given that the primary goal of this work is to maximize lesion detection (i.e., higher sensitivity), we adopt the 6-layer configuration for subsequent experiments. Nevertheless, the 5-layer setting appears preferable in scenarios where precision and false-positive control are prioritized.
+% On the independent Bonn dataset, the situation is similar. \texttt{Exp1} with 6 layers again achieved the highest Dice and IoU scores and detected the largest number of lesions, but its PPV dropped significantly, confirming the increase in false positives. The 3-layer model again provided a reasonable compromise between precision and sensitivity, although with lower Dice and IoU.  
+
+% The results show that connecting a larger number of MELD stages to the GNN block increases lesion sensitivity and overlap quality (Dice, IoU), but simultaneously reduces precision, as reflected by lower PPV values. 
+% A lower PPV means that, although multi-stage integration improves the detection of true lesions, it also increases the number of false positive clusters and thereby reduces the reliability of the predictions.
+% Because the objective of this study is to maximize the number of detected lesions, the 6-layer \texttt{Exp1} model is used in subsequent experiments.
+
+% 0 layers
+% 0.308 (95% CI 0.000-0.448)
+% PPV_pixels  : 0.372 (95% CI 0.000-0.557)
+% PPV_clusters  :  0.7285714285714285
+% IoU  : 0.182 (95% CI 0.000-0.289)
+% 163842
+% 0.229 (95% CI 0.000-0.439)
+% PPV_pixels  : 0.338 (95% CI 0.000-0.625)
+% PPV_clusters  :  0.7183098591549296
+% IoU  : 0.130 (95% CI 0.000-0.283)
+% 40962
+% 0.379 (95% CI 0.000-0.473)
+% PPV_pixels  : 0.349 (95% CI 0.000-0.612)
+% PPV_clusters  :  0.6395348837209303
+% IoU  : 0.234 (95% CI 0.000-0.310)
+% 10242
+% 0.362 (95% CI 0.000-0.461)
+% PPV_pixels  : 0.475 (95% CI 0.000-0.692)
+% PPV_clusters  :  0.8412698412698413
+% IoU  : 0.221 (95% CI 0.000-0.299)
+% 2562
+% 0.349 (95% CI 0.000-0.517)
+% PPV_pixels  : 0.420 (95% CI 0.000-0.707)
+% PPV_clusters  :  0.8688524590163934
+% IoU  : 0.212 (95% CI 0.000-0.349)
+% 642
+% 0.354 (95% CI 0.000-0.452)
+% PPV_pixels  : 0.448 (95% CI 0.000-0.715)
+% PPV_clusters  :  0.8028169014084507
+% IoU  : 0.215 (95% CI 0.000-0.292)
+% 162
+% 0.392 (95% CI 0.039-0.565)
+% PPV_pixels  : 0.352 (95% CI 0.029-0.550)
+% PPV_clusters  :  0.7
+% IoU  : 0.244 (95% CI 0.020-0.394)
+% 42
+% 0.357 (95% CI 0.000-0.514)
+% PPV_pixels  : 0.355 (95% CI 0.000-0.621)
+% PPV_clusters  :  0.8793103448275862
+% IoU  : 0.218 (95% CI 0.000-0.346)
+
+
+\section{Text Guidance in Decoder}
+% In this chapter, we investigate the influence of textual descriptions on the segmentation quality.
+% To this end, we conducted a series of experiments in which we unfroze different numbers of RadBERT layers, starting from 0 (all layers frozen) up to 12 (all layers unfrozen) in steps of 3.
+% In principle, one could also perform unfreezing with a step size of 1, but besides being time-consuming, we believe it would not yield substantial improvements in performance. 
+% An exception was made for the first 3 layers, which we evaluated separately. 
+
+To assess the influence of textual descriptions on segmentation quality, we conducted experiments with different numbers of unfrozen RadBERT layers. We compared settings from a fully frozen text encoder (0 layers) up to complete fine-tuning (12 layers), with intermediate configurations in steps of three layers. To better assess the effect of unfreezing a small number of layers, we additionally evaluated a configuration with the first three layers unfrozen.
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Different number of unfreezed layers in RadBERT}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+0 layers & \textbf{0.286} & 0.214 & 0.542 & \textbf{0.167} & \textbf{172 / 259} \\
+3 layers & 0.281 & 0.244 & 0.630 & 0.163 & 164 / 259 \\
+6 layers & 0.256 & 0.223 & 0.587 & 0.147 & 166 / 259 \\
+9 layers & 0.245 & \textbf{0.263} & \textbf{0.634} & 0.139 & 164 / 259 \\
+12 layers & 0.286 & 0.202 & 0.554 & 0.167 & 168 / 259 \\
+\hline
+\end{tabular}
+\end{table}
+
+% 0 layers
+% Dice : 0.286 (95% CI 0.168-0.345)
+% PPV_pixels  : 0.214 (95% CI 0.163-0.303)
+% PPV_clusters  :  0.5417789757412399
+% IoU  : 0.167 (95% CI 0.092-0.209)
+% \section{Effect of Textual Descriptions}
+% 3 layers
+% 0.281 (95% CI 0.171-0.359)
+% PPV_pixels  : 0.244 (95% CI 0.134-0.306)
+% PPV_clusters  :  0.6295081967213115
+% IoU  : 0.163 (95% CI 0.094-0.219)
+% 6 layers
+% 0.256 (95% CI 0.159-0.327)
+% PPV_pixels  : 0.223 (95% CI 0.171-0.325)
+% PPV_clusters  :  0.5865921787709497
+% IoU  : 0.147 (95% CI 0.087-0.196)
+% 9 layers
+% 0.245 (95% CI 0.130-0.357)
+% PPV_pixels  : 0.263 (95% CI 0.133-0.364)
+% PPV_clusters  :  0.6335616438356164
+% IoU  : 0.139 (95% CI 0.070-0.217)
+% 12
+% 0.286 (95% CI 0.156-0.334)
+% PPV_pixels  : 0.202 (95% CI 0.156-0.299)
+% PPV_clusters  :  0.5538057742782152
+% IoU  : 0.167 (95% CI 0.084-0.200)
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Different number of unfreezed layers in RadBERT. Independent cohort (Bonn Dataset)}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+0 layers & \textbf{0.483} & 0.427 & 0.582 & \textbf{0.319} & \textbf{55 / 82} \\
+3 layers & 0.456 & 0.415 & \textbf{0.803} & 0.295 & 52 / 82 \\
+6 layers & 0.367 & 0.398 & 0.655 & 0.225 & 51 / 82 \\
+9 layers & 0.411 & \textbf{0.443} & 0.721 & 0.258 & 52 / 82 \\
+12 layers & 0.444 & 0.371 & 0.663 & 0.286 & 53 / 82 \\
+\hline
+\end{tabular}
+\end{table}
+
+The results show a consistent trend across both cohorts. With a fully frozen text encoder (0 layers), the model achieved the highest Dice and IoU, as well as the largest number of detected lesions. This suggests that extensive fine-tuning of RadBERT does not improve overall segmentation performance and may even degrade it. 
+
+At the same time, partially unfrozen models (especially with 3 or 9 layers) yielded higher \textit{PPV\_clusters} values, indicating fewer false positive clusters and thus a more precise localization of lesions. In particular, the improvement between 0 layers and 3 layers amounts to approximately 9\% in the main cohort and about 22\% in the independent cohort. 
+
+Taken together, these findings reveal a trade-off: freezing RadBERT maximizes sensitivity (number of lesions found), while partial unfreezing improves precision (PPV). Since our primary objective in this study is to detect as many lesions as possible, we adopt the frozen configuration as the default in subsequent experiments. Nevertheless, for applications prioritizing precision, limited fine-tuning of the text encoder may be beneficial.
+
+% We performed experiments both on the main cohort and on an independent one (Bonn Dataset). 
+% The results show that with a fully frozen text model we achieved the best Dice and IoU, as well as the largest number of detected lesions. 
+% However, according to the PPV metrics, the quality of the predictions was the worst among all settings, indicating that the model produced many false positives. 
+% This difference is particularly visible in the PPV\_clusters metric, where the gap between 0 layers and the best result (3 layers) amounts to approximately 9\% in the main cohort and about 22\% in the independent one. 
+
+% Thus, the question arises again of what setting should be considered optimal. 
+% Since in this work our primary goal is to detect as many lesions as possible, even at the cost of a slight drop in quality, we decided to use the frozen model for subsequent experiments. 
+% Nevertheless, we do not exclude the possibility that with other datasets or RadBERT hyperparameters, an unfrozen model may perform better.% 0 layers
+
+% 0 layers
+% Dice: 0.483 (95% CI 0.282-0.574)
+% PPV_pixels  : 0.427 (95% CI 0.237-0.591)
+% PPV_clusters  :  0.5825242718446602
+% IoU  : 0.319 (95% CI 0.164-0.403)
+% 1 layer
+% Dice: 0.439 (95% CI 0.258-0.554)
+% PPV_pixels  : 0.390 (95% CI 0.198-0.656)
+% PPV_clusters  :  0.6829268292682927
+% IoU  : 0.282 (95% CI 0.148-0.384)
+% 3 layers
+% Dice: 0.456 (95% CI 0.007-0.559)
+% PPV_pixels  : 0.415 (95% CI 0.008-0.648)
+% PPV_clusters  :  0.8028169014084507
+% IoU  : 0.295 (95% CI 0.004-0.388)
+% 6 layers
+% Dice: 0.367 (95% CI 0.156-0.523)
+% PPV_pixels  : 0.398 (95% CI 0.114-0.569)
+% PPV_clusters  :  0.6551724137931034
+% IoU  : 0.225 (95% CI 0.091-0.354)
+% 9 layers
+% Dice: 0.411 (95% CI 0.070-0.545)
+% PPV_pixels  : 0.443 (95% CI 0.131-0.619)
+% PPV_clusters  :  0.7215189873417721
+% IoU  : 0.258 (95% CI 0.036-0.375)
+% 12 layers
+% 0.444 (95% CI 0.216-0.546)
+% PPV_pixels  : 0.371 (95% CI 0.177-0.474)
+% PPV_clusters  :  0.6629213483146067
+% IoU  : 0.286 (95% CI 0.123-0.376)
+
+\section{Text–GuideDecoder Connections}
+In these experiments, we examine how the number of LLM connections to the GuideDecoder affects the final performance.
+We tested configurations ranging from 0 connections (no text guidance) to 6 connections (text features connected to all GuideDecoder layers).
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Different number of unfreezed layers in RadBERT}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+0 connections  & 0.234 & 0.196 & 0.654 & 0.133 & 162 / 259 \\
+1 connection   & 0.243 & 0.184 & 0.548 & 0.138 & 169 / 259 \\
+2 connections  & 0.123 & 0.116 & 0.689 & 0.066 & 151 / 259 \\
+3 connections  & 0.074 & 0.076 & \textbf{0.761} & 0.038 & 139 / 259 \\
+4 connections  & \textbf{0.282} & 0.210 & 0.540 & \textbf{0.164} & \textbf{170 / 259} \\
+5 connections  & 0.234 & 0.223 & 0.614 & 0.133 & 161 / 259 \\
+6 connections  & 0.245 & \textbf{0.227} & 0.597 & 0.140 & 163 / 259 \\
+\hline
+\end{tabular}
+\end{table}
+% 6 connections
+% Dice: 0.245 (95% CI 0.100-0.364)
+% PPV_pixels  : 0.227 (95% CI 0.152-0.349)
+% PPV_clusters  :  0.5975232198142415
+% IoU  : 0.140 (95% CI 0.052-0.222)
+% 5 connections 
+% 0.234 (95% CI 0.114-0.356)
+% PPV_pixels  : 0.223 (95% CI 0.138-0.378)
+% PPV_clusters  :  0.6141975308641975
+% IoU  : 0.133 (95% CI 0.061-0.216)
+% 4 connections
+% 0.282 (95% CI 0.166-0.340)
+% PPV_pixels  : 0.210 (95% CI 0.135-0.266)
+% PPV_clusters  :  0.5403899721448467
+% IoU  : 0.164 (95% CI 0.091-0.205)
+% 3 connections
+% Dice: 0.074 (95% CI 0.000-0.264)
+% PPV_pixels  : 0.076 (95% CI 0.000-0.230)
+% PPV_clusters  :  0.7616580310880829
+% IoU  : 0.038 (95% CI 0.000-0.152)
+% 2 connections
+% Dice: 0.123 (95% CI 0.035-0.294)
+% PPV_pixels  : 0.116 (95% CI 0.035-0.209)
+% PPV_clusters  :  0.689795918367347
+% IoU  : 0.066 (95% CI 0.018-0.173)
+% 1 connection
+% Dice: 0.243 (95% CI 0.158-0.318)
+% PPV_pixels  : 0.184 (95% CI 0.100-0.229)
+% PPV_clusters  :  0.5482954545454546
+% IoU  : 0.138 (95% CI 0.086-0.189)
+\begin{table}[ht]
+\centering
+\footnotesize
+\caption{Different number of unfreezed layers in RadBERT. Independent cohort (Bonn Dataset)}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+0 connections & 0.392 & 0.352 & 0.700 & 0.244 & 49 / 82 \\
+1 connection & 0.413 & 0.332 & 0.545 & 0.260 & \textbf{55 / 82} \\
+2 connections & 0.339 & 0.287 & 0.787 & 0.204 & 50 / 82 \\
+3 connections & 0.319 & 0.296 & \textbf{0.875} & 0.189 & 46 / 82 \\
+4 connections & \textbf{0.433} & 0.352 & 0.555 & \textbf{0.276}  & \textbf{55 / 82} \\
+5 connections & 0.406 & 0.397 & 0.682 & 0.255 & 50 / 82 \\
+6 connections & 0.378 & \textbf{0.422} & 0.760 & 0.233 & 50 / 82 \\
+\hline
+\end{tabular}
+\end{table}
+
+In both experiments, using 4 connections yielded the best overall performance, achieving the highest Dice score and IoU, while also detecting the largest number of lesions. This suggests that a moderate level of text guidance provides the optimal balance between leveraging textual information and preserving model stability.
+
+Notably, the difference between using no text guidance (0 connections) and applying it everywhere (6 connections) was relatively small. This implies that excessive text integration may cause overfitting or redundancy, where additional textual connections fail to provide meaningful improvements and can even introduce noise that degrades performance.
+
+Therefore, we adopted 4 connections for all subsequent experiments.
+% 6 connections
+% Dice: 0.378 (95% CI 0.109-0.539)
+% PPV_pixels  : 0.422 (95% CI 0.122-0.672)
+% PPV_clusters  :  0.7605633802816901
+% IoU  : 0.233 (95% CI 0.057-0.369)
+% 5 connections
+% 0.406 (95% CI 0.041-0.533)
+% PPV_pixels  : 0.397 (95% CI 0.101-0.617)
+% PPV_clusters  :  0.6823529411764706
+% IoU  : 0.255 (95% CI 0.021-0.363)
+% 4 connections
+% 0.433 (95% CI 0.236-0.567)
+% PPV_pixels  : 0.352 (95% CI 0.168-0.498)
+% PPV_clusters  :  0.5555555555555556
+% IoU  : 0.276 (95% CI 0.134-0.396)
+% 3 connections
+% 0.319 (95% CI 0.000-0.542)
+% PPV_pixels  : 0.296 (95% CI 0.000-0.581)
+% PPV_clusters  :  0.875
+% IoU  : 0.189 (95% CI 0.000-0.372)
+% 2 connections
+% Dice: 0.339 (95% CI 0.035-0.545)
+% PPV_pixels  : 0.287 (95% CI 0.068-0.486)
+% PPV_clusters  :  0.7878787878787878
+% IoU  : 0.204 (95% CI 0.018-0.374)
+% 1 connection
+% 0.413 (95% CI 0.245-0.550)
+% PPV_pixels  : 0.332 (95% CI 0.188-0.443)
+% PPV_clusters  :  0.5454545454545454
+% IoU  : 0.260 (95% CI 0.141-0.379)
+
+% \section{Augmentations influence}
+
+% In this section, we systematically evaluated the impact of four augmentation types, both individually and in combination, on the final segmentation quality:
+
+% \begin{itemize}
+%     \item \textbf{Flipping} — mirroring the cortical surface across hemispheres.
+%     \item \textbf{Warping} — applying smooth non–rigid deformations to the mesh.
+%     \item \textbf{Spinning} — re–indexing the icosphere to simulate rigid rotations.
+%     \item \textbf{Lesion–mask noise} — perturbing the lesion mask to create additional training samples.
+% \end{itemize}
+
+% These augmentations were chosen to reflect different categories of variation: geometric transformations of the cortical mesh (flipping, warping, spinning) and label–space perturbations (lesion–mask noise). By isolating their effects, we aimed to identify which augmentations improve generalization and which may introduce instability.
+
+% \begin{table}[ht]
+% \centering
+% \footnotesize
+% \caption{Different types of augmentations}
+% \begin{tabular}{lccccc}
+% \hline
+% \textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+% \hline
+% No augmentations & 0.286 & 0.214 & 0.542 & 0.167 & 172 / 259 \\
+% Flipping & 0.000 & 0.000 & 0.557 & 0.000 & 114 / 259 \\
+% Warping & -- & -- & -- & -- & -- \\
+% Spinning & -- & -- & -- & -- & -- \\
+% Lesion–mask noise & -- & -- & -- & -- & -- \\
+% \hline
+% \end{tabular}
+% \end{table}
+% Flipping
+% 0.000 (95% CI 0.000-0.001)
+% PPV_pixels  : 0.000 (95% CI 0.000-0.001)
+% PPV_clusters  :  0.5572755417956656
+% IoU  : 0.000 (95% CI 0.000-0.000)
+
+% \begin{table}[ht]
+% \centering
+% \footnotesize
+% \caption{Different types of augmentations. Independent cohort (Bonn Dataset)}
+% \begin{tabular}{lccccc}
+% \hline
+% \textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+% \hline
+% No augmentations & 0.483 & 0.427 & 0.582 & 0.319 & 55 / 82 \\
+% Flipping & 0.000 & 0.000 & 0.666 & 0.000 & 29 / 82 \\
+% Warping & -- & -- & -- & -- & -- \\
+% Spinning & -- & -- & -- & -- & -- \\
+% Lesion–mask noise & -- & -- & -- & -- & -- \\
+% \hline
+% \end{tabular}
+% \end{table}
+% Flipping
+% Dice : 0.000 (95% CI 0.000-0.000)
+% PPV_pixels  : 0.000 (95% CI 0.000-0.000)
+% PPV_clusters  :  0.6666666666666666
+% IoU  : 0.000 (95% CI 0.000-0.000)
 
 \end{document}

@@ -29,11 +29,16 @@
 \usepackage{array,multirow}
 \usepackage{booktabs} % enables reference bookstyle tables
 \usepackage{longtable} % Make multipage tables without creating a new table for every page
+\usepackage[table]{xcolor} % поддержка раскраски ячеек
 
-\usepackage[format=plain, labelfont=bf]{caption}
-\usepackage{subcaption} % enables use of multiple figures in a figure
+\usepackage[format=plain, labelfont=bf]{caption} % один раз!
+\usepackage{subcaption} % для подфигур
 \captionsetup{compatibility=false}
-\usepackage{enumitem} % allows customization of enumeration and itemize environment
+
+% Настройки отступов для таблиц
+\captionsetup[table]{skip=2pt} % расстояние между caption и таблицей
+\setlength{\textfloatsep}{10pt plus 1pt minus 2pt} % отступ сверху/снизу для table/figure
+\setlength{\floatsep}{8pt plus 1pt minus 2pt}      % отступ между плавающими объектами
 
 %\usepackage{parskip} %alternatively parskip replaces paragraph indentation by increased in-betweeen-paragraph linespacing 
 \usepackage{setspace} % helps setup line spacing
@@ -60,3 +65,4 @@
 \usepackage{bbm}
 % Specify headers and footers in different file for better overview
 \input{setup/headfoot.tex}
+\usepackage{makecell} % в преамбуле

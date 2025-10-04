@@ -3,5 +3,16 @@
 \begin{document}
 \chapter{Conclusion}
 
+This thesis presented a novel multimodal segmentation framework for the detection of focal cortical dysplasia type II, combining surface-based visual features with textual information derived from anatomical atlases. The main findings can be summarized as follows:
+
+\begin{itemize}
+    \item Incorporating textual features consistently improved segmentation performance compared to vision-only baselines, confirming the added value of multimodal integration.
+    \item Connecting six MELD feature stages to the GNN block achieved the highest Dice and IoU scores and maximized the number of detected lesions, although at the cost of reduced precision.
+    \item Frozen RadBERT provided the best overall sensitivity, while partial unfreezing improved PPV and reduced false positives, demonstrating a trade-off between recall and precision.
+    \item Even coarse textual labels such as hemisphere or lobe information yielded substantial improvements, indicating that fine-grained region descriptions are not strictly necessary for performance gains.
+\end{itemize}
+
+Taken together, these results show that multimodal architectures are feasible and beneficial for epileptogenic lesion detection under limited-data conditions. The work establishes a first step toward integrating language and vision for this task. Future research should investigate larger and more heterogeneous datasets, the integration of clinical radiology reports, and alternative fusion strategies to further enhance robustness and generalizability.
+
 \end{document}
 

@@ -2,5 +2,17 @@
 
 \begin{document}
 \chapter{Discussion}
-This chapter discusses the results
+
+The experiments conducted in this thesis demonstrate that incorporating textual information into surface-based GNN architectures can substantially improve the detection of FCD type II. At the same time, the results highlight important trade-offs that need to be considered when designing multimodal models.
+
+First, connecting MELD feature stages to the GNN block revealed that deeper integration (6 stages) maximizes sensitivity: Dice, IoU, and the number of detected lesions were highest in this setting. However, precision decreased, as reflected in lower PPV scores. In contrast, fewer connected stages (e.g., 3 or 5) provided better cluster precision, but missed a larger number of lesions. This confirms that multi-stage integration increases lesion coverage, but at the expense of more false positives.
+
+Second, experiments with RadBERT confirmed that full fine-tuning of the language model does not improve segmentation. In fact, the best results were obtained with a frozen text encoder, suggesting that limited training data leads to overfitting when the entire model is updated. Interestingly, partial unfreezing (3–9 layers) improved PPV, i.e. reduced false positives, but consistently lowered Dice and IoU. This indicates that textual guidance can help stabilize localization but does not directly boost lesion sensitivity.
+
+Third, experiments with different forms of textual input demonstrated that even coarse labels (hemisphere or lobe only) meaningfully improved segmentation compared to purely vision-based baselines. Full atlas descriptions increased sensitivity further but produced unstable predictions, generating many false positive clusters. Thus, reduced-text settings may provide the best balance for clinical application.
+
+Several limitations must be acknowledged. The dataset size remains modest compared to other medical imaging benchmarks, and domain shifts across scanners and sites may limit generalizability. Furthermore, the analysis was restricted to type II FCD, and it remains unclear whether the same conclusions extend to other subtypes. Finally, the model relies on atlas-based text generated automatically; the integration of free-form radiology reports may further improve results.
+
+Overall, the discussion of results highlights that textual guidance is a promising direction for FCD detection. However, the balance between sensitivity and precision remains a key design choice that must be adapted depending on whether the clinical task prioritizes coverage or specificity.
+
 \end{document}

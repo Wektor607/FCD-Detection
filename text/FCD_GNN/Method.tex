@@ -32,9 +32,9 @@ seven hierarchical levels. Each level is represented as a tensor of shape $(H, N
     \item $C$ – number of features per vertex.
 \end{itemize}
 
-To aggregate higher-order geometric information, we process the \textbf{five top feature layers} individually through a dedicated \textbf{GNN Block}.  
+To aggregate higher-order geometric information, we process the \textbf{6 feature layers} individually through a dedicated \textbf{GNN Block}.  
 This choice is motivated by empirical findings (see Chapter~\ref{chapter:Experiments}), where including the lowest two layers led to oversmoothing and diluted 
-discriminative information, while the top five layers yielded the best trade-off between expressivity and stability.  
+discriminative information, while the top 6 layers yielded the best trade-off between expressivity and stability.  
 
 \section{GNN Block}
 
@@ -80,10 +80,14 @@ After passing through the GNN Block, the feature dimensionality remains unchange
 
 \section{Textual Feature Extraction}
 
-The text branch of our architecture leverages the pretrained \textbf{RadBERT} model~\cite{Park2022AIforNeuro}, which is specifically designed for radiology reports.   
-Prior studies have demonstrated that selectively unfreezing the last few layers of transformer models can improve downstream performance compared to freezing the entire model~\cite{Peters2019ToTune}.  
-Motivated by this insight, we unfreeze the last 3 hidden layers of RadBERT—this specific choice is justified in Chapter~\ref{chapter:Experiments}.  
-The output of the (now trainable) final hidden layer is then forwarded to each GuideDecoder for multimodal fusion, except for the topmost three layers.
+The text branch of our architecture leverages the pretrained \textbf{RadBERT} model~\cite{Park2022AIforNeuro}, 
+which is specifically designed for radiology reports. 
+Prior studies have suggested that selectively unfreezing the last few layers of transformer models 
+can improve downstream performance compared to freezing the entire model~\cite{Peters2019ToTune}. 
+In our implementation, RadBERT is primarily used in a frozen setting, while the potential effect of 
+layer unfreezing is further examined in Chapter~\ref{chapter:Experiments}. 
+The output of the final hidden layer is forwarded to each GuideDecoder for multimodal fusion, 
+except for the topmost three layers.
 
 \section{GuideDecoder}
 We adopt the GuideDecoder architecture proposed by Zhong et al.~\cite{Zhong2023Ariadne}, 
@@ -95,11 +99,11 @@ Finally, the fused features are upsampled and combined with skip connections
 from the visual encoder at the same resolution before the final prediction.
 
 In our implementation, the overall design of the GuideDecoder is preserved, 
-but we introduce two modifications to adapt the architecture to surface–based representations. 
+but we introduce two modifications to adapt the architecture to surface--based representations. 
 First, we replace the standard 2D upsampling with the \texttt{HexUnpool} operator 
 (see Appendix~\nameref{sec:hexunpool}), which performs mean unpooling on the icosphere mesh. 
-Second, after upsampling and fusion with skip connections, the features are processed by a convolutional 
-block based on \texttt{DynUNetBlock} (\href{https://docs.monai.io/en/0.3.0/_modules/monai/networks/blocks/dynunet_block.html}{Code link}) from the MONAI framework, which applies a sequence of convolution, normalization, 
-and activation layers. In our architecture, we replace this module with a custom \texttt{SpiralConv-based block} 
-that operates on the surface mesh representation of the cortex. 
+Second, instead of the original \texttt{DynUNetBlock}\footnote{\url{https://docs.monai.io/en/0.3.0/_modules/monai/networks/blocks/dynunet_block.html}} 
+from the MONAI framework, which consists of convolution, normalization, and activation layers, 
+we employ a custom \texttt{SpiralConv}-based block that directly operates on the cortical surface mesh 
+after upsampling and fusion with skip connections.
 \end{document}

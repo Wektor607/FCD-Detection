@@ -4,7 +4,8 @@
 
 \chapter{Appendix}
 
-\paragraph{HexUnpool} \label{sec:hexunpool}
+\paragraph*{HexUnpool} \label{sec:hexunpool}
+
 We implement surface upsampling with a custom \texttt{HexUnpool} operator.
 Given features $X \in \mathbb{R}^{B \times H \times N_{\text{from}} \times C}$ on a coarse icosphere
 with $N_{\text{from}}$ vertices, \texttt{HexUnpool} produces
@@ -21,5 +22,48 @@ X'_v \;=\; \frac{1}{|\mathcal{I}(v)|} \sum_{u \in \mathcal{I}(v)} X_u.
 \]
 % This corresponds to mean unpooling on the icosphere mesh, similar in spirit
 % to unpooling in CNNs, but adapted to the hexagonal topology of spherical meshes.
+
+\paragraph*{Experiment results}
+
+The full results with confidence intervals:
+\begin{table}[ht]
+\centering
+\scriptsize
+\caption{Median performance on the main cohort (95\% CI in brackets).}
+\label{tab:main_full}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Type experiments} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+MELD & \makecell{0.232 \\ {[0.119--0.317]}} & \makecell{0.156 \\ {[0.089--0.221]}} & 0.707 & \makecell{0.131 \\ {[0.063--0.189]}} & 162 / 259 \\
+Exp1 & \makecell{0.100 \\ {[0.000--0.261]}} & \makecell{0.070 \\ {[0.000--0.187]}} & \textbf{0.755} & \makecell{0.053 \\ {[0.000--0.150]}} & 139 / 259 \\
+Exp2 & \makecell{0.250 \\ {[0.150--0.333]}} & \makecell{0.223 \\ {[0.164--0.352]}} & 0.645 & \makecell{0.143 \\ {[0.081--0.200]}} & 166 / 259 \\
+Exp3\_hemi+lobe & \makecell{0.260 \\ {[0.138--0.336]}} & \makecell{0.242 \\ {[0.142--0.401]}} & 0.685 & \makecell{0.149 \\ {[0.074--0.202]}} & 163 / 259 \\
+Exp3\_full & \makecell{0.260 \\ {[0.197--0.355]}} & \makecell{0.215 \\ {[0.129--0.278]}} & 0.457 & \makecell{0.149 \\ {[0.109--0.216]}} & \textbf{175 / 259} \\
+Test2\_hemi+lobe & \makecell{\textbf{0.266} \\ {[0.183--0.334]}} & \makecell{0.206 \\ {[0.154--0.287]}} & 0.558 & \makecell{\textbf{0.154} \\ {[0.101--0.201]}} & 172 / 259 \\
+Test3\_hemi+lobe & \makecell{0.181 \\ {[0.090--0.305]}} & \makecell{\textbf{0.271} \\ {[0.147--0.366]}} & 0.624 & \makecell{0.100 \\ {[0.047--0.180]}} & 163 / 259 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\scriptsize
+\caption{Median performance on the independent cohort (Bonn Dataset, 95\% CI in brackets).}
+\label{tab:bonn_full}
+\begin{tabular}{lccccc}
+\hline
+\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+\hline
+MELD & \makecell{0.350 \\ {[0.159--0.463]}} & \makecell{0.253 \\ {[0.093--0.427]}} & 0.709 & \makecell{0.212 \\ {[0.086--0.301]}} & 54 / 82 \\
+Exp1 & \makecell{0.338 \\ {[0.000--0.490]}} & \makecell{0.232 \\ {[0.000--0.460]}} & \textbf{0.778} & \makecell{0.203 \\ {[0.000--0.325]}} & 46 / 82 \\
+Exp2 & \makecell{0.387 \\ {[0.092--0.533]}} & \makecell{\textbf{0.449} \\ {[0.142--0.630]}} & 0.704 & \makecell{0.240 \\ {[0.048--0.364]}} & 51 / 82 \\
+Exp3\_hemi+lobe & \makecell{0.396 \\ {[0.048--0.532]}} & \makecell{0.438 \\ {[0.111--0.686]}} & 0.761 & \makecell{0.247 \\ {[0.024--0.363]}} & 51 / 82 \\
+Test2\_hemi+lobe & \makecell{0.394 \\ {[0.209--0.520]}} & \makecell{0.339 \\ {[0.155--0.468]}} & 0.590 & \makecell{0.245 \\ {[0.117--0.352]}} & 53 / 82 \\
+Test3\_hemi+lobe & \makecell{0.385 \\ {[0.002--0.503]}} & \makecell{0.452 \\ {[0.002--0.766]}} & 0.747 & \makecell{0.238 \\ {[0.001--0.336]}} & 50 / 82 \\
+Exp3\_full & \makecell{\textbf{0.423} \\ {[0.301--0.537]}} & \makecell{0.370 \\ {[0.215--0.492]}} & 0.415 & \makecell{\textbf{0.268} \\ {[0.177--0.367]}} & \textbf{57 / 82} \\
+\hline
+\end{tabular}
+\end{table}
 
 \end{document}
