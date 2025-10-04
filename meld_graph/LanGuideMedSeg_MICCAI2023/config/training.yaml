@@ -1,0 +1,54 @@
+TRAIN:
+  train_batch_size: 8
+  lr              : 0.0003 # 0.003
+
+  valid_batch_size: 4
+
+  feature_dim     : [32, 32, 64, 64, 128, 128, 256]
+  text_lens       : [128, 64, 64, 32, 32, 16, 16]
+  max_len         : 256 # max text len
+
+  # without GNN 200000 157765
+  # Layer stage1 — shape: torch.Size([bs, 2, 163842, 32]) 157764
+  # Layer stage2 — shape: torch.Size([bs, 2, 40962, 32]) 157763
+  # Layer stage3 — shape: torch.Size([bs, 2, 10242, 64]) 157711
+  # Layer stage4 — shape: torch.Size([bs, 2, 2562, 64]) 157716
+  # Layer stage5 — shape: torch.Size([bs, 2, 642, 128]) 157727
+  # Layer stage6 — shape: torch.Size([bs, 2, 162, 128]) 157728
+  # Layer stage7 — shape: torch.Size([bs, 2, 42, 256]) 157759
+
+  # all 158136
+  # <= 40962 158015
+  # <= 10242 158036
+  # <= 2562 158039
+  # <= 642 158040
+  # <= 162 158041
+  # <= 42 158044
+
+  # gnn_min_verts   : 162
+  gnn_min_verts   : 200000000
+  num_unfreeze_layers: 0
+
+  min_epochs      : 20
+  max_epochs      : 100
+  patience        : 20
+  device          : 0
+
+  model_save_path     : ./save_model
+  model_save_filename : medseg
+
+  project_name: FCD_detection
+  run_name    : FCD_finetuning
+
+MODEL:
+  bert_type   : StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
+  project_dim : 768
+
+  meld_script_path: ../meldgraph.sh
+  feature_path    : ../data
+  output_dir      : ../data/input
+
+DATA:
+  csv_path  : ../data/preprocessed/MELD_BONN_full.csv # MELD_dataset_without_text.csv # H101_reports_fullhemisphere_lobe.csv
+  split_path      : ../data/preprocessed/MELD_splits.csv 
+  # split_path      : ../data/preprocessed/BONN_splits_full_test.csv
