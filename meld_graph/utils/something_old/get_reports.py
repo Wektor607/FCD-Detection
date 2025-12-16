@@ -59,9 +59,9 @@ def save_pred_reports_raw(report_map, out_path):
             writer.writerow([subj, clean])
 
 # point this to your JSON
-PRED_JSON = "/home/s17gmikh/FCD-Detection/meld_graph/data/pred_report.json"
-PRED_REPORTS = load_pred_reports(PRED_JSON)
-save_pred_reports_raw(PRED_REPORTS, "/home/s17gmikh/FCD-Detection/meld_graph/data/pred_reports_summary.csv")
+# PRED_JSON = "/home/s17gmikh/FCD-Detection/meld_graph/data/pred_report.json"
+# PRED_REPORTS = load_pred_reports(PRED_JSON)
+# save_pred_reports_raw(PRED_REPORTS, "/home/s17gmikh/FCD-Detection/meld_graph/data/pred_reports_summary.csv")
 
 # ────────────────────────────────────────────────────────────────
 

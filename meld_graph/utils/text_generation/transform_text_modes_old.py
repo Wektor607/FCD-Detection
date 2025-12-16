@@ -149,13 +149,11 @@ REGION_TO_LOBE = {
 
 def pick_dominant_lobe_from_percentages(text: str) -> str:
     """
-    Получает строку формата:
+    Takes a string of the form:
         "30% Temporal lobe; 40% Temporal lobe; 30% Parietal lobe"
-    Складывает проценты по лобам и возвращает ДОМАНИРУЮЩУЮ долю:
+    Aggregates percentages by lobe and returns the DOMINANT lobe:
         "Temporal lobe"
     """
-    if not isinstance(text, str):
-        return text
 
     parts = [p.strip() for p in text.split(";") if p.strip()]
     lobe_totals = {}
@@ -176,9 +174,10 @@ def pick_dominant_lobe_from_percentages(text: str) -> str:
     if not lobe_totals:
         return "No lesion detected"
 
-    # выбираем лоб с максимальным процентом
+    # Select the lobe with the highest aggregated percentage
     dominant = max(lobe_totals, key=lobe_totals.get)
     return dominant
+
 
 def extract_lobe_percentages(text: str) -> str:
     """
