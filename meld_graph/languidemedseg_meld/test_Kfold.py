@@ -1,5 +1,3 @@
-import os
-import sys
 from typing import List, Tuple
 
 from tqdm import tqdm
@@ -22,7 +20,6 @@ from utils.data import EpilepDataset
 from engine.loss_meld import dice_coeff, tp_fp_fn_tn
 from engine.wrapper import LanGuideMedSegWrapper
 import utils.config as config
-from utils.utils import convert_preds_to_nifti
 # Keep reproducibility settings at top
 SEED = 42
 pl.seed_everything(SEED, workers=True)

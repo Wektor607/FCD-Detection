@@ -1,9 +1,5 @@
 import os
 import sys
-# Ensure repository root is on sys.path so imports like `meld_graph` resolve
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if REPO_ROOT not in sys.path:
-    sys.path.insert(0, REPO_ROOT)
 
 from tqdm import tqdm
 import torch
@@ -17,7 +13,6 @@ from utils.utils import summarize_ci
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from meld_graph.meld_cohort import MeldCohort
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 # from pytorch_lightning.loggers import WandbLogger
 from transformers import AutoTokenizer
@@ -29,6 +24,11 @@ from meld_graph.paths import MELD_DATA_PATH
 import utils.config as config
 from utils.utils import convert_preds_to_nifti
 
+# Ensure repository root is on sys.path so imports like `meld_graph` resolve
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+    
 # теперь можно вызвать
 torch.multiprocessing.set_sharing_strategy("file_system")
 

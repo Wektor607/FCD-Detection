@@ -1,13 +1,10 @@
 import os
 import sys
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-# Ensure repository root is on sys.path so imports like `meld_graph` resolve when running scripts
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if REPO_ROOT not in sys.path:
-    sys.path.insert(0, REPO_ROOT)
+
 import argparse
 import random
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -23,13 +20,15 @@ from sklearn.model_selection import KFold
 from transformers import AutoTokenizer
 
 import utils.config as config
+
+from utils.data import EpilepDataset
+from utils.utils import LesionOversampleSampler
+from engine.wrapper import LanGuideMedSegWrapper
+
 # Ensure repository root is on sys.path so imports like `meld_graph` resolve
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
-from utils.data import EpilepDataset
-from utils.utils import LesionOversampleSampler
-from engine.wrapper import LanGuideMedSegWrapper
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
