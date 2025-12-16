@@ -3,6 +3,7 @@
 #SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
+#SBATCH -w node-06
 #SBATCH --cpus-per-task=1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -31,8 +32,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg_MICCAI2023
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
-WANDB_MODE=disabled python3 test_Kfold.py --ckpt_prefix exp3_no_gnn_hemi_lobe
-# --ckpt_path ./save_model/exp1_gnn_full_aug_fold1.ckpt
+WANDB_MODE=disabled python3 test_Kfold.py --ckpt_prefix exp3_mixed_3_gnn_aug
+# exp3_no_gnn_mixed_freeeze
+# WANDB_MODE=disabled python3 test.py  --meld_check
 # --meld_check
-# --ckpt_path ./save_model/exp1_gnn_full_aug_fold1.ckpt
-# --ckpt_path ./save_model/exp1_gnn_full_aug_fold1.ckpt

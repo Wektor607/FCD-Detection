@@ -4,18 +4,25 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-Numerous methods have been developed for the detection of tumors in internal organs such as the lungs, brain, kidneys, and breast. 
-However, detecting epileptogenic lesions remains significantly more challenging. 
-Unlike tumors, these lesions do not typically increase in size over time, and there is a severe shortage of publicly available annotated datasets. 
-As a result, researchers often need to contact hospitals and clinical centers directly to obtain even a minimal number of scans. 
-Although recent studies have demonstrated that deep learning models can detect epileptogenic lesions, their performance remains limited, highlighting the 
-ongoing difficulty of this task.
+Numerous methods have been developed for the detection of tumors in internal organs, demonstrating the effectiveness of deep learning in a wide range of diagnostic tasks.
+However, detecting epileptogenic lesions remains significantly more challenging: unlike tumors, these lesions do not typically grow over time, rarely exhibit clear visual boundaries, and publicly available annotated datasets are extremely limited.
 
-At the same time, recent work on tumor detection using text-guided approaches has shown promising results, demonstrating that incorporating textual 
-descriptions can significantly improve segmentation accuracy. 
-Inspired by these advances, this study proposes a new method that combines visual and textual features to enhance \ac{fcd} detection 
-under limited data conditions. 
-We further present a systematic comparison of multiple types of textual annotations and analyze their influence on model performance.
+To address these limitations, this thesis proposes a new multimodal segmentation framework that combines surface-based visual features with language-guided embeddings.
+In extensive experiments, the proposed approach improves both accuracy and sensitivity compared to the MELD baseline and reveals that even coarse textual annotations (e.g., hemisphere or lobe labels) can provide a measurable performance gain.
+To further illustrate the practical utility of the proposed method, a web interface was implemented, providing access to all model variants and their corresponding predictions.
+
+% Numerous methods have been developed for the detection of tumors in internal organs such as the lungs, brain, kidneys, and breast. 
+% However, detecting epileptogenic lesions remains significantly more challenging. 
+% Unlike tumors, these lesions do not typically increase in size over time, and there is a severe shortage of publicly available annotated datasets. 
+% As a result, researchers often need to contact hospitals and clinical centers directly to obtain even a minimal number of scans. 
+% Although recent studies have demonstrated that deep learning models can detect epileptogenic lesions, their performance remains limited, highlighting the 
+% ongoing difficulty of this task.
+
+% At the same time, recent work on tumor detection using text-guided approaches has shown promising results, demonstrating that incorporating textual 
+% descriptions can significantly improve segmentation accuracy. 
+% Inspired by these advances, this study proposes a new method that combines visual and textual features to enhance \ac{fcd} detection 
+% under limited data conditions. 
+% We further present a systematic comparison of multiple types of textual annotations and analyze their influence on model performance.
 
 % \thispagestyle{empty}
 \end{document}

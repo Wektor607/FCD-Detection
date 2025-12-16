@@ -2,17 +2,21 @@
 
 \begin{document}
 \chapter{Conclusion}
+\label{chapter:Conclusion}
 
-This thesis presented a novel multimodal segmentation framework for the detection of focal cortical dysplasia type II, combining surface-based visual features with textual information derived from anatomical atlases. The main findings can be summarized as follows:
+This thesis introduced a novel multimodal segmentation framework for detecting focal cortical dysplasia type II, combining surface-based visual representations with textual priors derived from anatomical atlases. The main findings are summarized below:
 
 \begin{itemize}
-    \item Incorporating textual features consistently improved segmentation performance compared to vision-only baselines, confirming the added value of multimodal integration.
-    \item Connecting six MELD feature stages to the GNN block achieved the highest Dice and IoU scores and maximized the number of detected lesions, although at the cost of reduced precision.
-    \item Frozen RadBERT provided the best overall sensitivity, while partial unfreezing improved PPV and reduced false positives, demonstrating a trade-off between recall and precision.
-    \item Even coarse textual labels such as hemisphere or lobe information yielded substantial improvements, indicating that fine-grained region descriptions are not strictly necessary for performance gains.
+    \item Incorporating textual features consistently improved segmentation performance over vision-only baselines, demonstrating the value of multimodal fusion in low-data medical imaging scenarios.
+
+    \item Aggregating MELD features using a GNN block increased the number of detected lesions but also introduced a higher rate of false positives. While this indicates that additional message passing can enhance sensitivity, it also shows that the current aggregation strategy requires further refinement to avoid degrading overall quality.
+
+    \item Even coarse textual labels such as hemisphere- or lobe-level descriptions yielded substantial improvements. This suggests that fine-grained region names are not strictly necessary, and that lightweight, structured prompts may offer a more robust and generalizable alternative to detailed atlas-style descriptions.
 \end{itemize}
 
-Taken together, these results show that multimodal architectures are feasible and beneficial for epileptogenic lesion detection under limited-data conditions. The work establishes a first step toward integrating language and vision for this task. Future research should investigate larger and more heterogeneous datasets, the integration of clinical radiology reports, and alternative fusion strategies to further enhance robustness and generalizability.
+Overall, the results demonstrate that multimodal architectures integrating language and surface-based vision are both feasible and beneficial for epileptogenic lesion detection under limited-data conditions. This work represents an initial step toward leveraging anatomical language priors in surface-based segmentation models.
+
+Future research should explore training on larger and more heterogeneous cohorts, incorporating clinical radiology reports as richer textual supervision, and investigating alternative fusion strategies or graph-based aggregation mechanisms to improve robustness, reduce false positives, and enhance generalizability across clinical centers.
 
 \end{document}
 

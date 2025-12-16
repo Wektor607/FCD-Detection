@@ -4,66 +4,203 @@
 
 \chapter{Appendix}
 
-\paragraph*{HexUnpool} \label{sec:hexunpool}
+\section*{HexUnpool} \label{sec:hexunpool}
 
 We implement surface upsampling with a custom \texttt{HexUnpool} operator.
-Given features $X \in \mathbb{R}^{B \times H \times N_{\text{from}} \times C}$ on a coarse icosphere
-with $N_{\text{from}}$ vertices, \texttt{HexUnpool} produces
-$X' \in \mathbb{R}^{B \times H \times N_{\text{to}} \times C}$ on a denser icosphere ($N_{\text{to}} > N_{\text{from}}$).
-The operation works in two steps:
+Given features 
+$X \in \mathbb{R}^{B \times H \times N_{\text{from}} \times C}$ 
+defined on a coarse icosphere with $N_{\text{from}}$ vertices, the operator 
+produces an upsampled tensor 
+$X' \in \mathbb{R}^{B \times H \times N_{\text{to}} \times C}$ 
+on a denser icosphere ($N_{\text{to}} > N_{\text{from}}$).
+
+The icosphere hierarchy used in MELD is generated in a deterministic manner:
+each refinement step subdivides the triangular mesh, creating new vertices at 
+midpoints of edges while preserving the spherical topology.
+For every fine-level vertex, the MELD preprocessing pipeline provides a
+precomputed list of its \emph{parent} vertices on the coarser level.
+These mappings are stored in the accompanying icosphere files 
+(e.g., \texttt{coords}, \texttt{neighbours}, \texttt{spirals}, 
+\texttt{t\_edges}) and define how features should be propagated across 
+resolutions. We directly use these mappings to ensure geometrically consistent
+upsampling.
+
+During upsampling, two types of vertices must be handled:
+
 \begin{enumerate}
-  \item Existing vertices are copied to the corresponding positions in $X'$.
-  \item Each new vertex is assigned the mean of its parent vertices from the coarse level,
-  according to predefined upsampling indices $\mathcal{I}$.
+  \item \textbf{Vertices inherited from the coarse mesh.}  
+        Their features are copied directly to the corresponding positions in 
+        $X'$.
+
+  \item \textbf{Newly introduced vertices.}  
+        Each fine-level vertex $v$ corresponds to one or more coarse-level
+        \emph{parent} vertices.  
+        Let $\mathcal{I}(v)$ denote the (predefined) set of indices of parent
+        vertices from which $v$ was generated during mesh refinement.
+        These are not geometric neighbors on the fine mesh but a fixed
+        upsampling correspondence determined by the icosphere construction.
+        The feature of $v$ is computed as the mean of its parents:
 \end{enumerate}
-Formally, for each new vertex $v$, we compute
+
 \[
-X'_v \;=\; \frac{1}{|\mathcal{I}(v)|} \sum_{u \in \mathcal{I}(v)} X_u.
+X'_v \;=\; \frac{1}{|\mathcal{I}(v)|} 
+            \sum_{u \in \mathcal{I}(v)} X_u.
 \]
-% This corresponds to mean unpooling on the icosphere mesh, similar in spirit
-% to unpooling in CNNs, but adapted to the hexagonal topology of spherical meshes.
 
-\paragraph*{Experiment results}
+This yields a smooth and topology-consistent interpolation of features from the
+coarse surface to the finer one. Since the mapping $\mathcal{I}(v)$ is 
+deterministically defined by the MELD icosphere hierarchy, 
+\texttt{HexUnpool} performs no learnable interpolation and does not introduce 
+artifacts or distortions into the surface structure.
 
-The full results with confidence intervals:
-\begin{table}[ht]
+\section*{Semantic similarity analysis} \label{sec:semantic_analysis}
+
+Table~\ref{tab:cosine_similarity_models} reports cosine similarities between
+the term ``frontal lobe'' and several related or distinct brain-region terms
+across multiple biomedical language models. In general, models pretrained on
+large biomedical or radiological corpora (e.g., BioClinicalBERT, PubMedBERT,
+RadBERT-RoBERTa) show more coherent behaviour across semantically related
+regions.
+
+\begin{table}[h!]
 \centering
-\scriptsize
-\caption{Median performance on the main cohort (95\% CI in brackets).}
-\label{tab:main_full}
-\begin{tabular}{lccccc}
-\hline
-\textbf{Type experiments} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
-\hline
-MELD & \makecell{0.232 \\ {[0.119--0.317]}} & \makecell{0.156 \\ {[0.089--0.221]}} & 0.707 & \makecell{0.131 \\ {[0.063--0.189]}} & 162 / 259 \\
-Exp1 & \makecell{0.100 \\ {[0.000--0.261]}} & \makecell{0.070 \\ {[0.000--0.187]}} & \textbf{0.755} & \makecell{0.053 \\ {[0.000--0.150]}} & 139 / 259 \\
-Exp2 & \makecell{0.250 \\ {[0.150--0.333]}} & \makecell{0.223 \\ {[0.164--0.352]}} & 0.645 & \makecell{0.143 \\ {[0.081--0.200]}} & 166 / 259 \\
-Exp3\_hemi+lobe & \makecell{0.260 \\ {[0.138--0.336]}} & \makecell{0.242 \\ {[0.142--0.401]}} & 0.685 & \makecell{0.149 \\ {[0.074--0.202]}} & 163 / 259 \\
-Exp3\_full & \makecell{0.260 \\ {[0.197--0.355]}} & \makecell{0.215 \\ {[0.129--0.278]}} & 0.457 & \makecell{0.149 \\ {[0.109--0.216]}} & \textbf{175 / 259} \\
-Test2\_hemi+lobe & \makecell{\textbf{0.266} \\ {[0.183--0.334]}} & \makecell{0.206 \\ {[0.154--0.287]}} & 0.558 & \makecell{\textbf{0.154} \\ {[0.101--0.201]}} & 172 / 259 \\
-Test3\_hemi+lobe & \makecell{0.181 \\ {[0.090--0.305]}} & \makecell{\textbf{0.271} \\ {[0.147--0.366]}} & 0.624 & \makecell{0.100 \\ {[0.047--0.180]}} & 163 / 259 \\
-\hline
+\caption{Cosine similarity between ``frontal lobe'' and related region terms across different biomedical language models.}
+\label{tab:cosine_similarity_models}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Model} & \textbf{Prefrontal cortex} & \textbf{Inferior frontal gyrus} & \textbf{Right} & \textbf{Right frontal} & \textbf{Temporal lobe} & \textbf{Parietal lobe} \\
+\midrule
+bionlp/bluebert\_pubmed\_mimic\_uncased\_L-12\_H-768\_A-12 & 0.882 & 0.812 & 0.792 & 0.904 & 0.968 & 0.892 \\
+emilyalsentzer/Bio\_ClinicalBERT                            & 0.909 & 0.877 & 0.781 & 0.941 & 0.982 & 0.932 \\
+microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext & 0.974 & 0.972 & 0.931 & 0.971 & 0.985 & 0.987 \\
+StanfordAIMI/RadBERT                                         & 0.504 & 0.431 & 0.369 & 0.654 & 0.816 & 0.599 \\
+zzxslp/RadBERT-RoBERTa-4m                                   & 0.971 & 0.946 & 0.921 & 0.960 & 0.971 & 0.976 \\
+microsoft/BiomedVLP-CXR-BERT-general                        & 0.489 & 0.623 & 0.572 & 0.680 & 0.770 & 0.810 \\
+cambridgeltl/SapBERT-from-PubMedBERT-fulltext               & 0.762 & 0.587 & 0.360 & 0.689 & 0.577 & 0.703 \\
+allenai/scibert\_scivocab\_uncased                          & 0.903 & 0.923 & 0.748 & 0.917 & 0.946 & 0.976 \\
+intfloat/e5-base                                             & 0.893 & 0.899 & 0.771 & 0.892 & 0.892 & 0.889 \\
+\bottomrule
 \end{tabular}
+}
 \end{table}
 
-\begin{table}[ht]
-\centering
-\scriptsize
-\caption{Median performance on the independent cohort (Bonn Dataset, 95\% CI in brackets).}
-\label{tab:bonn_full}
-\begin{tabular}{lccccc}
-\hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
-\hline
-MELD & \makecell{0.350 \\ {[0.159--0.463]}} & \makecell{0.253 \\ {[0.093--0.427]}} & 0.709 & \makecell{0.212 \\ {[0.086--0.301]}} & 54 / 82 \\
-Exp1 & \makecell{0.338 \\ {[0.000--0.490]}} & \makecell{0.232 \\ {[0.000--0.460]}} & \textbf{0.778} & \makecell{0.203 \\ {[0.000--0.325]}} & 46 / 82 \\
-Exp2 & \makecell{0.387 \\ {[0.092--0.533]}} & \makecell{\textbf{0.449} \\ {[0.142--0.630]}} & 0.704 & \makecell{0.240 \\ {[0.048--0.364]}} & 51 / 82 \\
-Exp3\_hemi+lobe & \makecell{0.396 \\ {[0.048--0.532]}} & \makecell{0.438 \\ {[0.111--0.686]}} & 0.761 & \makecell{0.247 \\ {[0.024--0.363]}} & 51 / 82 \\
-Test2\_hemi+lobe & \makecell{0.394 \\ {[0.209--0.520]}} & \makecell{0.339 \\ {[0.155--0.468]}} & 0.590 & \makecell{0.245 \\ {[0.117--0.352]}} & 53 / 82 \\
-Test3\_hemi+lobe & \makecell{0.385 \\ {[0.002--0.503]}} & \makecell{0.452 \\ {[0.002--0.766]}} & 0.747 & \makecell{0.238 \\ {[0.001--0.336]}} & 50 / 82 \\
-Exp3\_full & \makecell{\textbf{0.423} \\ {[0.301--0.537]}} & \makecell{0.370 \\ {[0.215--0.492]}} & 0.415 & \makecell{\textbf{0.268} \\ {[0.177--0.367]}} & \textbf{57 / 82} \\
-\hline
-\end{tabular}
-\end{table}
+When comparing regions that are subsets of the frontal lobe (``prefrontal
+cortex'', ``inferior frontal gyrus'') with lateral or orientation-only terms
+(``right'', ``right frontal''), we observe the following pattern:
+\begin{itemize}
+    \item frontal-lobe subsets show high similarity to ``frontal lobe''
+          (average 0.81 for ``prefrontal cortex'' and 0.79 for ``inferior 
+          frontal gyrus'');
+    \item the direction-only term ``right'' is consistently lower (around 0.69);
+    \item the compound term ``right frontal''---which shares the lexical
+          component ``frontal''---shows higher similarity (around 0.85).
+\end{itemize}
+
+These results indicate that biomedical language models primarily capture lexical overlap and contextual co-occurrence rather than true anatomical relationships. 
+Terms that share components or frequently appear in similar scientific contexts tend to form closely clustered embeddings, even when they refer to distinct anatomical regions. 
+For example, any expression containing ``frontal'' is placed near ``frontal lobe'' due to shared vocabulary and usage patterns. 
+Similarly, other major cortical lobes (e.g., temporal, parietal) also show relatively high similarity to ``frontal lobe'', reflecting a tendency of biomedical transformers to group broadly defined cortical structures. 
+This behaviour is typical across models and should not be interpreted as anatomical grounding.
+
+When selecting a model for our experiments, our aim is not to recover the underlying anatomical hierarchy but to identify a model that handles domain terminology in a stable and predictable manner. 
+In particular, we prioritise models that capture semantic relatedness between terms that occur in similar linguistic contexts and that distinguish compound expressions from more general ones. Such stability in semantic patterns is sufficient for our downstream pipeline.
+
+Based on these observations, \textbf{PubMedBERT}, \textbf{BioClinicalBERT} and \textbf{BlueBERT} demonstrate the most consistent and task-relevant behaviour and are therefore suitable for generating text embeddings in our framework. In contrast, \textbf{StanfordAIMI/RadBERT}, \textbf{BiomedVLP-CXR-BERT-general}, and \textbf{SapBERT} exhibit lower or less stable similarities among related terms and are consequently less suitable for our purposes.
+
+\clearpage
+\section*{Text distribution} \label{sec:text_distribution}
+
+To characterise potential sources of bias, we analyse the distribution of text-derived region labels at three anatomical levels: hemispheres, lobes, and lobe-regions. This reveals whether particular regions or hemispheres are overrepresented, which could drive overfitting or induce a preference for frequent anatomical terms during training. 
+
+Unless stated otherwise, all statistics are computed on the \emph{entire} dataset (train, validation, and test). The label \emph{No lesion detected} denotes healthy controls and is excluded from validation and test to avoid artificially inflating evaluation metrics. After this exclusion its effective frequency is roughly halved, although the overall imbalance across regions persists.
+
+\textbf{Hemisphere.}
+The distribution of hemisphere labels is shown in Figure~\ref{fig:hemi_dist}. In the table \textit{"No lesion detected"} means these are healthy patients.
+
+In the tables, \textit{“No lesion detected”} denotes \textbf{healthy control} scans with no radiologically/annotationally confirmed FCD.
+
+The number of cases for the left and right hemispheres is approximately equal, with only a small, statistically insignificant difference. This indicates that the \textit{entire dataset} is well balanced across hemispheres. 
+Consequently, a model trained on these data is unlikely to learn a systematic bias towards either hemisphere, which would otherwise reduce its ability to generalise.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{pictures/hemi.png}
+    \caption{Hemisphere distribution}
+    \label{fig:hemi_dist}
+\end{figure}
+
+\textbf{Lobes.}
+The lobe-level distribution, presented in Figure~\ref{fig:lobe_dist}, demonstrates a moderate imbalance. 
+The \emph{frontal}, \emph{limbic}, and \emph{parietal} lobes occur much more frequently than the \emph{occipital}, \emph{insular}, \emph{subcallosal}, and especially the \emph{brainstem}, which are relatively rare. 
+Such imbalance may cause the model to ``memorise'' common patterns such as \emph{frontal lobe} while underperforming on underrepresented categories like \emph{brainstem} or \emph{insula}. 
+However, compared to the following plot, the lobe regons imbalance can be considered moderate and still suitable for training, especially if loss weighting or other balancing techniques are used.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{pictures/lobe.png}
+    \caption{Lobe distribution}
+    \label{fig:lobe_dist}
+\end{figure}
+
+\textbf{Lobe regions.}
+The third plot (Figure~\ref{fig:lobe_regions_dist}) provides the distribution for specific anatomical regions within the lobes. 
+Here, the imbalance becomes much more pronounced. 
+The label \emph{No lesion detected} dominates the dataset, with a frequency exceeding 400, whereas many regions appear only one to three times. 
+This extremely long-tailed distribution suggests a risk of overfitting to the most frequent labels.
+As a result, the model may bias its \emph{spatial} predictions toward regions whose textual labels are frequent in the training data (e.g., the \emph{frontal gyrus}), assigning higher lesion probabilities there. This imbalance poses a risk for models relying on textual embeddings, since they may learn frequency-driven rather than semantically meaningful representations.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{pictures/lobe_regions.png}
+    \caption{Lobe–region distribution}
+    \label{fig:lobe_regions_dist}
+\end{figure}
+
+\textbf{Discussion.}
+From these findings, we conclude that using fine-grained region names directly as text input would likely lead to model overfitting, given the strong imbalance and the large number of rare categories. 
+The extreme class skew among fine-grained lobe–region labels makes direct use of their verbatim names as text inputs ill-suited: models tend to memorise frequent terms and underfit rare ones, which harms generalisation.
+To further mitigate imbalance, one could consider data augmentation or class-weighted loss functions, at the cost of longer training and increased computational complexity. 
+Nonetheless, such strategies would likely improve model robustness and generalisation performance.
+
+% \clearpage
+% \section*{Semantic similarity analysis} \label{sec:semantic_analysis}
+
+% Table~\ref{tab:cosine_similarity_models} reports cosine similarities between the term ``frontal lobe'' and several related or distinct brain regions across multiple biomedical language models. In general, models that have been pretrained on large-scale biomedical or radiological corpora (e.g., BioClinicalBERT, PubMedBERT, RadBERT-RoBERTa) achieve higher coherence among semantically related regions.
+
+% \begin{table}[h!]
+% \centering
+% \caption{Cosine similarity between ``frontal lobe'' and related region terms across different biomedical language models.}
+% \label{tab:cosine_similarity_models}
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{lcccccc}
+% \toprule
+% \textbf{Model} & \textbf{Prefrontal cortex} & \textbf{Inferior frontal gyrus} & \textbf{Right} & \textbf{Right frontal} & \textbf{Temporal lobe} & \textbf{Parietal lobe} \\
+% \midrule
+% bionlp/bluebert\_pubmed\_mimic\_uncased\_L-12\_H-768\_A-12 & 0.882 & 0.812 & 0.792 & 0.904 & 0.968 & 0.892 \\
+% emilyalsentzer/Bio\_ClinicalBERT                            & 0.909 & 0.877 & 0.781 & 0.941 & 0.982 & 0.932 \\
+% microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext & 0.974 & 0.972 & 0.931 & 0.971 & 0.985 & 0.987 \\
+% StanfordAIMI/RadBERT                                         & 0.504 & 0.431 & 0.369 & 0.654 & 0.816 & 0.599 \\
+% zzxslp/RadBERT-RoBERTa-4m                                   & 0.971 & 0.946 & 0.921 & 0.960 & 0.971 & 0.976 \\
+% microsoft/BiomedVLP-CXR-BERT-general                        & 0.489 & 0.623 & 0.572 & 0.680 & 0.770 & 0.810 \\
+% cambridgeltl/SapBERT-from-PubMedBERT-fulltext               & 0.762 & 0.587 & 0.360 & 0.689 & 0.577 & 0.703 \\
+% allenai/scibert\_scivocab\_uncased                          & 0.903 & 0.923 & 0.748 & 0.917 & 0.946 & 0.976 \\
+% intfloat/e5-base                                             & 0.893 & 0.899 & 0.771 & 0.892 & 0.892 & 0.889 \\
+% \bottomrule
+% \end{tabular}
+% }
+% \end{table}
+
+% When comparing regions that are subsets of the frontal lobe (``prefrontal cortex'', ``inferior frontal gyrus'') to lateral or distinct terms (``right'', ``right frontal''), we observe the following pattern:
+% \begin{itemize}
+%     \item The average cosine similarity with ``frontal lobe'' is approximately 0.81 for ``prefrontal cortex'' and 0.79 for ``inferior frontal gyrus'';
+%     \item The similarity for the direction-only term ``right'' is notably lower (around 0.69);
+%     \item The compound term ``right frontal''—which shares the lexical component ``frontal''
+%     -- achieves higher similarity (around 0.85).
+% \end{itemize}
+
+% This indicates that biomedical embeddings primarily capture lexical and contextual overlap rather than strict anatomical hierarchy. Consequently, regions explicitly containing the token \textit{frontal} are closer to ``frontal lobe'', even if they represent distinct subareas or orientations. Moreover, unrelated lobes such as the temporal and parietal lobes still show relatively high similarity (average 0.88 and 0.86), suggesting that model semantics cluster general cortical regions together.
+
+% Based on Table~\ref{tab:cosine_similarity_models}, we prefer models that assign high, consistent similarity to frontal-lobe subsets (``prefrontal cortex'', ``inferior frontal gyrus'') and rank the compound term ``right frontal'' above the direction-only term ``right''. The most reliable performance is observed for \textbf{PubMedBERT}, \textbf{RadBERT-RoBERTa-4m}, \textbf{BioClinicalBERT}, \textbf{BlueBERT}, and \textbf{SciBERT}; these models can be used for generating text embeddings. By contrast, \textbf{StanfordAIMI/RadBERT}, \textbf{BiomedVLP-CXR-BERT-general}, and \textbf{SapBERT} yield low subset similarities and inconsistent rankings; therefore, we should not use them, as they fail to capture fine-grained semantic relations between closely related brain regions.
 
 \end{document}

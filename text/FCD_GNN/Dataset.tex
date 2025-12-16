@@ -20,23 +20,83 @@ For each participant, the following data are available:
     \item A set of \textbf{clinical and demographic variables} (including age, sex, lesion laterality and location, histopathological subtype IIa/IIb, MRI-negative status, and postoperative outcome according to Engel classification).
 \end{itemize}
 
-\subsection*{Dataset Organization}
-The dataset follows the BIDS standard. Each subject folder contains an \texttt{anat} subfolder with NIfTI files and corresponding JSON metadata. 
-For participants with FCD, lesion ROI masks are also provided. Sequence acquisition parameters are documented in the JSON sidecar files.  
+\subsection*{Dataset Structure}
+The dataset follows the BIDS (Brain Imaging Data Structure) convention, with each
+participant stored in an individual directory. A typical subject folder has the 
+following structure:
+
+\begin{verbatim}
+sub-00001/
+    anat/
+        sub-00001_XXX-XXXXX_T1w.nii.gz
+        sub-00001_XXX-XXXXX_T1w.json
+        sub-00001_XXX-XXXXX_FLAIR.nii.gz
+        sub-00001_XXX-XXXXX_FLAIR.json
+        sub-00001_XXX-XXXXX_FLAIR_roi.nii.gz     (patients only)
+\end{verbatim}
+
+Each NIfTI image is accompanied by a corresponding JSON sidecar file containing 
+DICOM-derived metadata, including voxel size, TR/TE/TI parameters, image 
+orientation, and scanner information.
+
+At the dataset root, several metadata files are provided:
+
+\begin{verbatim}
+participants.tsv
+participants.json
+participants_with_scanner.tsv
+dataset_description.json
+meld_bids_config.json
+\end{verbatim}
+
+The file \texttt{participants.tsv} contains demographic and clinical information 
+(e.g., age, sex, diagnosis, lesion laterality, histopathological subtype), 
+while \texttt{participants.json} provides descriptions of these variables. 
+The file \texttt{participants\_with\_scanner.tsv} includes additional scanner-related 
+metadata such as field strength and vendor. 
+The standard BIDS file \\ \texttt{dataset\_description.json} documents the dataset-level 
+metadata, and \texttt{meld\_bids\_config.json} contains configuration parameters 
+required for MELD preprocessing and quality control.
+
+Manually delineated lesion masks (\texttt{*\_roi.nii.gz}) are available only for 
+patients and are spatially aligned with the anatomical T1-weighted MRI.
 
 \section{MELD Dataset}
-The \textbf{\ac{meld} Project} provides a large-scale neuroimaging dataset comprising \ac{mri} scans and clinical data of patients with FCD, as well as healthy controls. 
-In total, the dataset includes \textbf{1185 participants} from \textbf{23 international epilepsy surgery centers}. 
-Due to missing or corrupted files in the obtained release, we used a subset of \textbf{960 participants} in our experiments. 
+The \textbf{\ac{meld} Project} provides a large-scale neuroimaging dataset comprising \ac{mri} scans 
+and clinical data of patients with FCD, as well as healthy controls. 
+In total, the dataset includes \textbf{1185 participants} from \textbf{23 international epilepsy 
+surgery centers}, including the Bonn datasets described earlier. 
+Due to missing or corrupted files in the obtained release, we used a subset of 
+\textbf{1130 participants} in our experiments. 
 The dataset is not publicly available; access must be requested directly from the study authors~\cite{Ripart2025MELD}.
+
 
 For each participant, the dataset includes:
 \begin{itemize}
-    \item Structural \ac{mri}: \textbf{3D T1-weighted} (all participants) and, when available, \textbf{3D FLAIR};
+    \item Structural \ac{mri}: \textbf{3D T1-weighted} (acquired for all participants) and \textbf{3D FLAIR}, which was included only 
+    for participants for whom this sequence was available;
     \item Lesion annotations: \textbf{manually delineated \ac{roi}} identifying FCD lesions (patients only). For MRI-negative cases, \textbf{postsurgical resection cavities} were used to guide ROI definition;
     \item Demographic and clinical metadata;
     \item Predefined splits for training, validation, and test cohorts.
 \end{itemize}
+
+\subsection*{Dataset Structure}
+
+The provided ComBat-harmonized \texttt{.hdf5} files do not contain the multiscale
+representations used in the MELD pipeline. Instead, they store only per-vertex
+cortical attributes extracted by FreeSurfer (e.g., cortical thickness,
+curvature, sulcal depth, and T1/FLAIR intensity features), together with their
+asymmetry maps and the corresponding lesion masks.
+
+Clinical and demographic metadata are distributed separately in CSV/TSV files. 
+The available metadata fields include: \textit{participant ID, scanning site, diagnostic group, age of onset,
+epilepsy duration, age at presurgical MRI, sex, MRI-negative status, Engel
+outcome, histopathology, lesion hemisphere and lobe, presence of FLAIR
+hyperintensity, seizure outcome,} and scanner information.
+
+The dataset release also includes predefined train/validation/test splits, which
+we follow to ensure comparability with prior MELD studies.
+
 
 \section{FreeSurfer Processing}
 Each image was processed with the FreeSurfer framework~\cite{Fischl2012FreeSurfer}, from which \textbf{11 core surface-based features} were extracted:
@@ -63,14 +123,15 @@ since converting a single image to surface space is computationally expensive: a
 \section{Data Augmentation}
 In the original study MELD authors applied augmentations in three stages: 
 \begin{itemize}
-    \item \textbf{Lesion augmentation} — modifying the lesion mask to create new training samples;
-    \item \textbf{Mesh--space transforms} — applying geometric transformations to the cortical surface mesh;
-    \item \textbf{Intensity transforms} — modifying the intensity features at each vertex.
+    \item \textbf{Lesion--mask augmentation}: deforming the lesion region together with its mask and 
+    surface-based features to produce anatomically coherent augmented samples;
+    \item \textbf{Mesh--space transforms}: applying geometric transformations to the cortical surface mesh;
+    \item \textbf{Intensity transforms}: modifying the intensity features at each vertex.
 \end{itemize}
 Each transform is applied independently with probability $p$ defined in the experiment configuration. 
-The order is fixed: lesion augmentation $\rightarrow$ mesh transforms $\rightarrow$ intensity transforms.
+The order is fixed: lesion--mask augmentation $\rightarrow$ mesh transforms $\rightarrow$ intensity transforms.
 
-\paragraph{Lesion--mask augmentation.}
+\subsection*{Lesion--mask augmentation}
 Given a geodesic distance map $D$ on the cortical surface (negative inside the lesion),
 we first normalise it by $|\min D|$ and add low–frequency noise, which is generated on a low–resolution icosphere (level~2) and then upsampled to the target resolution using the predefined unpool operators:
 \[
@@ -89,16 +150,17 @@ D'=\texttt{fast\_geodesics}(L'),
 This procedure is applied only if the lesion mask is non–empty.  
 In our configurations, however, the recomputed distances and smoothed labels were not used further.
 
-\paragraph{Mesh--space transforms (icosphere re–indexing).}
+\subsection*{Mesh--space transforms (icosphere re–indexing)}
 We use precomputed index maps (provided by the MELD authors in their \href{https://github.com/MELDProject/meld_graph/tree/main/data}{GitHub repository}) and apply them once per sample to all vertex–wise tensors (features, labels, distances, etc.). 
 The MELD framework defines three types of such maps:
 \begin{itemize}
   \item \textbf{Spinning} — index remapping that corresponds to a rigid rotation of the icosphere.
   \item \textbf{Warping} — smooth non-rigid remapping that locally compresses or stretches the mesh.
-  \item \textbf{Flipping} — mirror reflection of the mesh, e.g.\ exchanging left and right hemispheres. \emph{Note:} because SpiralConv is order–sensitive, flipping requires reversing the spiral neighbour order; in our final experiments we set $p(\text{flip}){=}0$ to avoid this mismatch.
+  \item \textbf{Flipping} — mirror reflection of the mesh, e.g.\ exchanging left and right hemispheres. 
+%   \emph{Note:} because SpiralConv is order–sensitive, flipping requires reversing the spiral neighbour order; in our final experiments we set $p(\text{flip}){=}0$ to avoid this mismatch.
 \end{itemize}
 
-\paragraph{Per–vertex intensity transforms.}
+\subsection*{Per–vertex intensity transforms}
 All intensity transforms act channel–wise on \texttt{features}:
 \begin{itemize}
 \item \textbf{Gaussian noise}: add $\epsilon\sim\mathcal{N}(0,\sigma^2)$ with $\sigma^2 \sim \mathcal{U}(0,0.1)$.
@@ -128,19 +190,34 @@ x'' \;\leftarrow\; \frac{x' - \mu}{\sigma + \varepsilon},
 We also use an \emph{inverted} variant by applying the same operation to $-x$ and negating back.
 \end{itemize}
 
-\paragraph{Disabled/placeholder transforms.}
+\subsection*{Disabled/placeholder transforms}
 The current implementation contains placeholders for \texttt{Gaussian blur} and \texttt{low–resolution downsampling}.
 These operations are not implemented in the original authors’ code and were not used in our reported results.
 
 \section{Types of Atlas Descriptions}
 
-We generated textual descriptions using \texttt{AtlasReader} ~\cite{notter2019atlasreader}, which registers the 
-input (statistical) MRI map to a template and, for user-specified atlases, produces region names and coordinate tables. 
-In this work we used the Harvard--Oxford (cortical and subcortical) probabilistic atlas ~\cite{harvardoxford_rrid} and the AAL atlas ~\cite{tzourio2002aal}. 
+We generated textual descriptions with \texttt{AtlasReader}~\cite{notter2019atlasreader}. 
+Given each ROI, we first register it to the template space and then overlay anatomical atlases to quantify its anatomical context. 
+For every atlas region, we compute the percentage of the ROI volume that overlaps that region and report the resulting region–percentage table. 
+In this work, we used the Harvard--Oxford (cortical and subcortical) probabilistic atlas~\cite{harvardoxford_rrid}.
+% and the AAL atlas~\cite{tzourio2002aal}.
 
-However, even strong validation results with full descriptions do not guarantee robustness in real-world settings: 
-in practice, exact overlap percentages and full region names are rarely available. Therefore, in 
-chapter \ref{chapter:Experiments} we additionally evaluate reduced-text settings: (i) hemisphere only (Left/Right), 
-(ii) gross lobar labels only (e.g., \emph{Frontal Lobe}, \emph{Temporal Lobe}, \emph{Parietal lobe} \dots), and (iii) their combination.
+However, strong validation scores obtained using full anatomical descriptions do not guarantee 
+robustness at deployment: in real-world scenarios, neither precise overlap percentages nor complete 
+region names are typically available. Therefore, in Chapter~\ref{chapter:Experiments} we also evaluate 
+several reduced-text settings:
+
+\begin{enumerate}[label=\Roman*.]
+    \item \emph{hemisphere only} (Left / Right);
+    \item \emph{fine-grained lobe regions} (e.g., Precentral Gyrus, Frontal Pole, Subcallosal Cortex);
+    \item \emph{coarse lobe labels} (e.g., Frontal, Temporal, Parietal, Occipital, Insular);
+    \item \emph{hemisphere + lobe / lobe regions};
+    \item \emph{mixed} (randomly sampling one of 
+    \{hemisphere only, lobe region only, hemisphere + lobe, full text, no text\}; 
+    this scheme is described in more detail in the next chapter).
+\end{enumerate}
+
+The anatomical names of lobes and their respective regions are taken from
+\href{https://www.sciencedirect.com/science/article/pii/S1053811901909784}{\textit{Automated Anatomical Labeling of Activations in SPM Using a Macroscopic Anatomical Parcellation of the MNI MRI Single-Subject Brain}}.
 
 \end{document}

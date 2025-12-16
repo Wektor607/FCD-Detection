@@ -170,7 +170,7 @@ class GuideDecoder(nn.Module):
         txt: Optional[torch.Tensor],
         unpool: Callable[..., torch.Tensor],
         spiral_conv: List[Callable[..., torch.Tensor]],
-        chunk: bool,
+        chunk: bool = False,
     ) -> torch.Tensor:
         """
         vis:       [B, N, C]

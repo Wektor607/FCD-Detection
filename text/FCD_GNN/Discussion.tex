@@ -2,17 +2,51 @@
 
 \begin{document}
 \chapter{Discussion}
-
+\label{chapter:Discussion}
 The experiments conducted in this thesis demonstrate that incorporating textual information into surface-based GNN architectures can substantially improve the detection of FCD type II. At the same time, the results highlight important trade-offs that need to be considered when designing multimodal models.
 
-First, connecting MELD feature stages to the GNN block revealed that deeper integration (6 stages) maximizes sensitivity: Dice, IoU, and the number of detected lesions were highest in this setting. However, precision decreased, as reflected in lower PPV scores. In contrast, fewer connected stages (e.g., 3 or 5) provided better cluster precision, but missed a larger number of lesions. This confirms that multi-stage integration increases lesion coverage, but at the expense of more false positives.
+A more detailed analysis of the GNN experiments reveals a nuanced picture. 
+Integrating additional MELD feature stages into the GNN block does increase the model’s ability to detect lesions: 
+sensitivity and lesion-level coverage improved as more stages were incorporated, indicating that neighborhood aggregation 
+can amplify subtle abnormal patterns that may be missed by purely local representations. 
+This benefit, however, comes at the cost of reduced precision and a higher rate of false positives.
 
-Second, experiments with RadBERT confirmed that full fine-tuning of the language model does not improve segmentation. In fact, the best results were obtained with a frozen text encoder, suggesting that limited training data leads to overfitting when the entire model is updated. Interestingly, partial unfreezing (3–9 layers) improved PPV, i.e. reduced false positives, but consistently lowered Dice and IoU. This indicates that textual guidance can help stabilize localization but does not directly boost lesion sensitivity.
+Importantly, the results also show that adding more GNN layers does not monotonically improve performance. 
+The effectiveness of GNN propagation depends strongly on the structure of the underlying MELD features. 
+For high-dimensional stages, where the surface graph is relatively sparse, message passing helps stabilize features and enrich 
+contextual information, making GNN layers particularly beneficial. 
+In contrast, for low-dimensional stages (such as stages 6–7), where the graph becomes denser and the representations 
+more compressed, additional propagation tends to oversmooth node features. 
+This blurs spatial distinctions and can ultimately degrade performance rather than enhance it.
 
-Third, experiments with different forms of textual input demonstrated that even coarse labels (hemisphere or lobe only) meaningfully improved segmentation compared to purely vision-based baselines. Full atlas descriptions increased sensitivity further but produced unstable predictions, generating many false positive clusters. Thus, reduced-text settings may provide the best balance for clinical application.
+Experiments with different forms of textual input demonstrated that even coarse labels (hemisphere or lobe only) meaningfully improved segmentation compared to purely vision-based baselines. 
+Full atlas descriptions increased sensitivity further but produced unstable predictions, generating many false positive clusters. 
+Thus, reduced-text settings may provide the best balance for clinical application.
 
-Several limitations must be acknowledged. The dataset size remains modest compared to other medical imaging benchmarks, and domain shifts across scanners and sites may limit generalizability. Furthermore, the analysis was restricted to type II FCD, and it remains unclear whether the same conclusions extend to other subtypes. Finally, the model relies on atlas-based text generated automatically; the integration of free-form radiology reports may further improve results.
+Several limitations must be acknowledged. 
+The dataset size remains modest compared to other medical imaging benchmarks, and domain shifts across scanners and sites may limit generalizability. 
+Furthermore, the analysis was restricted to type II FCD, and it remains unclear whether the same conclusions extend to other subtypes. 
+Finally, the model relies on atlas-based text generated automatically; the integration of free-form radiology reports may further improve results.
 
-Overall, the discussion of results highlights that textual guidance is a promising direction for FCD detection. However, the balance between sensitivity and precision remains a key design choice that must be adapted depending on whether the clinical task prioritizes coverage or specificity.
+In this study, we did not explore the effect of unfreezing different numbers of LLM layers or varying the number of cross-modal connections to the GuideDecoder. However, previous work (Huemann et al., 2024 \cite{Huemann2024ConTEXTualNet}) shows that selectively unfreezing specific layers of a language model and fine-tuning them for a segmentation task can yield consistent performance gains. 
+Consequently, systematic experiments on partial LLM fine-tuning, on alternative strategies for connecting the text encoder to the GuideDecoder, and on increasing the architectural capacity of the GuideDecoder itself represent promising directions for future research.
 
+Another conceptual direction concerns the representation of anatomical descriptions. 
+In this thesis, atlas information was encoded via textual prompts and processed by a pretrained language model. 
+An alternative would be to express the same information as a numerical feature vector with one dimension per cortical region. 
+In such a vector, the percentages mentioned in the textual description (e.g., 52.34\% Right Frontal Orbital Cortex; 26.06\% Right Frontal Pole) would directly populate the corresponding entries, while all other regions would be set to zero. 
+For coarse labels such as lobe-only or hemisphere-only descriptions, the corresponding weight could be uniformly distributed across all constituent regions.
+
+While this vector-based formulation is simple, interpretable, and avoids the computational overhead of a pretrained LLM, it is also substantially less expressive. 
+A model trained solely on this numerical representation has no inherent knowledge of anatomical relationships: each vector dimension is treated as an independent feature, and the network does not know which regions belong to the same lobe or hemisphere, which ones are spatially adjacent, or how they relate hierarchically. 
+As a result, this representation reflects explicit numeric values, but does not reflect the underlying anatomical semantics.
+In contrast, language models encode prior knowledge about anatomical terminology, regional similarity, and hierarchical structure within the cortex, enabling them to generalise even when the textual descriptions are coarse or partially specified. 
+Thus, although a numerical vector representation is a possible baseline, it is not clear in advance whether it would perform better or even as well as the LLM-based approach used in this work, making it a useful direction for future research.
+
+Overall, the discussion of results highlights that textual guidance is a promising direction for FCD detection. 
+However, the balance between sensitivity and precision remains a key design choice that must be adapted depending on whether the clinical task prioritizes coverage or specificity.
+
+% \item How does fine-tuning different numbers of layers in a pre-trained \ac{llm} affect model performance?
+% \item Performed extensive experiments to evaluate different design choices, such as the number of connections in the \ac{gnn} blocks and the use of various textual branches in the GuideDecoder, to improve segmentation results.
+% Chapter~\ref{chapter:Experiments} details the experimental setup (losses, metrics, and implementation specifics) and reports the main results: baseline comparisons against MELD, the effect of linking different numbers of MELD feature stages to the \acs{gnn} block, the influence of (partially) unfreezing RadBERT and using text guidance in the decoder, and ablations on the number of text–GuideDecoder connections; where relevant, we also compare pre- and post-fine-tuning performance.
 \end{document}

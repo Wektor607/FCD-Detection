@@ -70,6 +70,7 @@ def create_inference_loader(subject_data: dict, description: str, tokenizer, coh
         description=description,
         tokenizer=tokenizer,
         cohort=cohort,
+        max_length=256,
     )
 
     dl_inference = DataLoader(
@@ -86,7 +87,8 @@ def create_inference_loader(subject_data: dict, description: str, tokenizer, coh
 
 def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.device) -> List[torch.nn.Module]:
     save_dir = Path("meld_graph") / "LanGuideMedSeg_MICCAI2023" / "save_model"
-    ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 5)]
+    # ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 5)]
+    ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 3)]
     att_mechanism = False
     text_emb = False
     for exp, flags in exp_flags.items():

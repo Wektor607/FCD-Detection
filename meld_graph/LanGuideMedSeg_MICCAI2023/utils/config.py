@@ -176,7 +176,9 @@ def inference_config():
     exp = Experiment.from_folder(experiment_path)
         
     #update experiment 
-    exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, dataset=tmp.name, data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats')
+    exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, 
+                            dataset=tmp.name, 
+                            data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats')
     exp.data_parameters["hdf5_file_root"] = hdf5_file_root
     exp.data_parameters["dataset"] = tmp.name
 

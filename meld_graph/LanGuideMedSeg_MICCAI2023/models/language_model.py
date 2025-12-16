@@ -9,15 +9,18 @@ from transformers import AutoModel
 
 
 class BERTModel(nn.Module):
-    def __init__(
-        self, bert_type: str, num_unfreeze_layers: int = 0, use_pooler: bool = True
+    def __init__(self, 
+        bert_type: str, 
+        num_unfreeze_layers: int = 0, 
+        use_pooler: bool = True
     ) -> None:
         super().__init__()
 
         self.model = AutoModel.from_pretrained(bert_type, output_hidden_states=True)
 
         # 1) freeze all parameters
-        self.model.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
         # 2) unfreeze_last_k слоёв BERT
         #    BertEncoder store them in .encoder.layer: list of 12 BertLayer

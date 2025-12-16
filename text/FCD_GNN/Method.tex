@@ -3,20 +3,24 @@
 \begin{document}
 \chapter{Method}
 \label{chapter:Method}
-As mentioned earlier, the design of our architecture was inspired by the work of~\cite{Zhong2023Ariadne}. 
-The key differences in our implementation are threefold: 
-(1) we increase the number of feature extraction layers, 
-(2) we introduce a GNN-based block to better aggregate visual features at the top layers, 
-and (3) we disable the text branch in the final decoder layers to reduce overfitting. 
-The overall architecture is illustrated in Figure~\ref{fig:architecture}, 
-and each component is described in more detail below.
+As mentioned earlier, the design of our architecture is inspired by the work of~\cite{Zhong2023Ariadne}. 
+Our implementation differs in two key aspects:
+\begin{itemize}
+\item we increased the depth of the feature extraction pathway, and 
+\item we introduced a GNN-based block to more effectively aggregate visual features at higher resolutions.
+\end{itemize}
+The overall architecture is shown in Figure~\ref{fig:architecture}, 
+and each component is described in detail below.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1.0\textwidth]{architecture.png}
-    \caption{Overview of the proposed multimodal segmentation architecture. 
-    Visual features extracted from FreeSurfer surface space are processed through hierarchical GNN layers, 
-    while textual embeddings from RadBERT guide the decoder via cross-attention.}
+    \includegraphics[width=0.8\textwidth]{Architecture.png}
+    \caption{Overview of the proposed multimodal segmentation architecture. The input to the MELD encoder is an MRI scan in NIfTI format, which is first transformed into FreeSurfer space.
+    The resulting surface-based visual features from each stage of the MELD encoder are then processed by their corresponding GNN block.
+    In parallel, the textual annotation is encoded by a pretrained language model, and the visual and textual representations are fused through the GuideDecoder blocks.
+    Each stage has its own GuideDecoder, which integrates the multimodal information and passes it to the next level via upsampling. 
+    Finally, the fused features are decoded into the predicted FCD mask, which is output in NIfTI format.
+    \textit{Note.} The number of GNN blocks shown is illustrative and does not reflect a fixed architectural requirement; it is included solely for visualization purposes.}
     \label{fig:architecture}
 \end{figure}
 
@@ -27,22 +31,29 @@ From the \ac{meld} preprocessing pipeline, we obtain a multi-resolution set of s
 seven hierarchical levels. Each level is represented as a tensor of shape $(H, N, C)$, where:  
 
 \begin{itemize}
-    \item $H$ – number of hemispheres (left/right),
+    \item $H$ – number of hemispheres, with $H = 2$ corresponding to the left and right hemispheres,
     \item $N$ – number of vertices on the cortical mesh per hemisphere,
     \item $C$ – number of features per vertex.
 \end{itemize}
 
-To aggregate higher-order geometric information, we process the \textbf{6 feature layers} individually through a dedicated \textbf{GNN Block}.  
-This choice is motivated by empirical findings (see Chapter~\ref{chapter:Experiments}), where including the lowest two layers led to oversmoothing and diluted 
-discriminative information, while the top 6 layers yielded the best trade-off between expressivity and stability.  
+To aggregate higher-order geometric information, we process the selected feature layers individually through a dedicated \textbf{GNN Block}.  
+This design choice is based on empirical findings (see Chapter~\ref{chapter:Experiments}), where incorporating the lowest-resolution layers led to oversmoothing and diluted discriminative information, while using only the higher-resolution layers provided the best trade-off between expressivity and stability.
+ 
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{GNN.jpg}
+    \caption{Structure of the GNN Block used in the MELD encoder. 
+    Each surface-based feature is normalized with GraphNorm, processed through a SAGEConv layer, and 
+    concatenated with the original feature via a skip connection. 
+    The result is passed through ReLU activation and another GraphNorm layer to produce the output 
+    representation.}
+    \label{fig:gnn_block}
+\end{figure}
 
 \section{GNN Block}
 
-Formally, let 
-\[
-\mathbf{X}^{(l)} \in \mathbb{R}^{(B \cdot H \cdot N_l) \times C_l}
-\]
-denote the input feature matrix at layer $l$, where 
+Formally, let $\mathbf{X}^{(l)} \in \mathbb{R}^{(B \cdot H \cdot N_l) \times C_l}$ denote the input feature matrix at layer $l$, where 
 $B$ is the batch size, 
 $H$ is the number of hemispheres, 
 $N_l$ is the number of vertices per hemisphere at layer $l$, 
@@ -62,7 +73,7 @@ Each \textit{GNN Block} then applies the following sequence of operations:
 
 \noindent\textbf{where:}
 \begin{itemize}
-    \item $\mathbf{X}^{(l)} \in \mathbb{R}^{(B \cdot H \cdot N_l)\times C_l}$ — input feature matrix at level $l$;
+    % \item $\mathbf{X}^{(l)} \in \mathbb{R}^{(B \cdot H \cdot N_l)\times C_l}$ — input feature matrix at level $l$;
     \item $\texttt{edge\_index}_l \in \mathbb{N}^{2\times |E_l|}$ — adjacency structure of the cortical surface graph;
     \item $\texttt{batch}$ — batch vector;
     \item $\mathbf{Z}^{(l)} \in \mathbb{R}^{(B \cdot H \cdot N_l)\times C_l}$ — resulting representation for level $l$;
@@ -73,30 +84,65 @@ Each \textit{GNN Block} then applies the following sequence of operations:
     where $\mathcal{N}(i)$ is the neighborhood of node $i$;
     \item $\operatorname{\textbf{GraphNorm}}(x) = \gamma \cdot \dfrac{x - \mu_g}{\sqrt{\sigma_g^2+\epsilon}} + \beta$, where $\mu_g, \sigma_g^2$ are mean and variance per graph, and $\gamma,\beta$ are learnable parameters;
     \item $\operatorname{\textbf{ReLU}}(x) = \max(0, x)$ — rectified linear activation function;
-    \item $\operatorname{\textbf{Dropout}}(x)$ randomly sets a subset of elements in $x$ to zero with probability $p$.
+    % \item $\operatorname{\textbf{Dropout}}(x)$ randomly sets a subset of elements in $x$ to zero with probability $p$.
 \end{itemize}
+
+The choice of \textbf{GraphNorm} is motivated by its ability to normalize node features on a per-graph basis. 
+In practice, individual graphs can vary substantially in size, topology, and feature distribution, 
+and normalizing across an entire batch may therefore yield unstable or inconsistent statistics. 
+By computing normalization statistics separately for each graph, GraphNorm preserves the overall 
+feature distribution within that graph and provides more stable activations, which is particularly 
+important when training on heterogeneous cortical graphs. 
+In addition, we adopt the pretrained \textbf{SAGEConv} operator as the main aggregation mechanism, since it is 
+widely used and has proven effective for combining information from neighboring nodes in graph-based models.
 
 After passing through the GNN Block, the feature dimensionality remains unchanged, ensuring consistency with subsequent blocks. The resulting features are then passed to the GuideDecoder for multimodal fusion.
 
 \section{Textual Feature Extraction}
 
 The text branch of our architecture leverages the pretrained \textbf{RadBERT} model~\cite{Park2022AIforNeuro}, 
-which is specifically designed for radiology reports. 
-Prior studies have suggested that selectively unfreezing the last few layers of transformer models 
-can improve downstream performance compared to freezing the entire model~\cite{Peters2019ToTune}. 
-In our implementation, RadBERT is primarily used in a frozen setting, while the potential effect of 
-layer unfreezing is further examined in Chapter~\ref{chapter:Experiments}. 
-The output of the final hidden layer is forwarded to each GuideDecoder for multimodal fusion, 
-except for the topmost three layers.
+which was selected as an initial choice due to its specialization in radiology reports.  
+In Chapter~\ref{chapter:Experiments}, we additionally evaluate alternative pretrained 
+text encoders to assess whether domain adaptation or model size affects segmentation performance.
+
+The output of RadBERT’s final hidden layer is passed to each GuideDecoder to enable multimodal fusion 
+with cortical graph features.
+
+Although previous studies suggest that selectively unfreezing the last transformer layers may 
+improve downstream performance~\cite{Peters2019ToTune}, we do not explore this direction in the present work 
+and leave it for future investigations.
+
 
 \section{GuideDecoder}
-We adopt the GuideDecoder architecture proposed by Zhong et al.~\cite{Zhong2023Ariadne}, 
-which fuses visual and textual features in a multi–modal fashion. 
-The decoder first projects the textual tokens to align their dimensionality with 
-that of the visual tokens, then applies \texttt{multi–head self–attention} and \texttt{cross–attention} 
-to exchange semantic information across modalities. 
-Finally, the fused features are upsampled and combined with skip connections 
-from the visual encoder at the same resolution before the final prediction.
+We adopt the GuideDecoder architecture (Figure~\ref{fig:guide_decoder_block}) 
+proposed by Zhong et al.~\cite{Zhong2023Ariadne}, 
+which fuses visual and textual features in a multimodal manner. 
+The decoder first receives the text embeddings produced by the pretrained language model and 
+projects them into the visual feature space so that their dimensionality matches that of the 
+image tokens. 
+Positional encodings are then added to both modalities to preserve their ordering and support the attention mechanisms operating within the decoder.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{pictures/GuideDecoder.png}
+    \caption{Structure of the GuideDecoder block. 
+    At each stage, the block receives image tokens from the visual encoder and text embeddings projected into the visual feature space. 
+    The visual tokens are refined through multi-head attention and fused with the projected text tokens via cross-attention. 
+    The fused multimodal features are then upsampled and combined with the skip connection before the final convolution produces the stage-specific output.}
+    \label{fig:guide_decoder_block}
+    
+\end{figure}
+
+
+The visual tokens are processed through a stack of \textit{multi-head attention layers}, which iteratively 
+refine their representations before interacting with the text stream. The projected text tokens 
+serve as keys and values in a \textit{cross-attention module}, allowing the decoder to incorporate 
+semantically relevant information from the textual description into the visual features. 
+
+The resulting multimodal representations are subsequently reshaped and upsampled to the spatial 
+resolution required by the decoder stage and fused with the corresponding skip connections from 
+the visual encoder. A final convolutional layer transforms the fused features into the output 
+prediction map.
 
 In our implementation, the overall design of the GuideDecoder is preserved, 
 but we introduce two modifications to adapt the architecture to surface--based representations. 
@@ -104,6 +150,137 @@ First, we replace the standard 2D upsampling with the \texttt{HexUnpool} operato
 (see Appendix~\nameref{sec:hexunpool}), which performs mean unpooling on the icosphere mesh. 
 Second, instead of the original \texttt{DynUNetBlock}\footnote{\url{https://docs.monai.io/en/0.3.0/_modules/monai/networks/blocks/dynunet_block.html}} 
 from the MONAI framework, which consists of convolution, normalization, and activation layers, 
-we employ a custom \texttt{SpiralConv}-based block that directly operates on the cortical surface mesh 
+we employ a custom \texttt{SpiralConv}-based block~\cite{gong2019spiralnet} that directly operates on the cortical surface mesh 
 after upsampling and fusion with skip connections.
+
+\section{Loss function}
+Following best practices for medical image segmentation and to ensure a fair comparison with the \ac{meld} model, we employed a composite loss. 
+The loss function is defined as
+\begin{equation}
+L = L_{ce} + L_{dice} + L_{dist} + L_{class} + \sum_{i \in I_{ds}} w^i_{ds} \cdot (L^i_{ce} + L^i_{dice} + L^i_{dist})\,
+\end{equation}
+\par\noindent
+The individual components are detailed below. 
+% Compared to the \ac{meld} formulation, we replaced the cross-entropy term with Focal Loss in order to mitigate class imbalance between lesional and non-lesional vertices.
+
+\subsection*{Cross-Entropy Loss}
+For the segmentation task, we employ the binary cross-entropy loss, which is commonly used in medical image segmentation. Here, $y_i$ denotes the ground-truth label, $\hat{y}_i$ the predicted probability, and $n$ the number of vertices:
+\begin{equation}
+L_{ce} = - \frac{1}{n} \sum_{i=1}^{n} 
+\left[ y_i \log(\hat{y}_i) + (1-y_i)\log(1-\hat{y}_i) \right].
+\end{equation}
+
+\subsection*{Dice Loss}
+The Dice Loss $L_{dice}$ directly optimizes for the overlap between predicted and ground-truth lesion masks. This loss is less sensitive to class imbalance and encourages the network to predict coherent lesion regions. It is defined as
+\begin{equation}
+L_{dice} = 1 - \frac{2 \sum_{i=1}^n y_i \hat{y}_i}{\sum_{i=1}^n y_i^2 + \sum_{i=1}^n \hat{y}_i^2 + \epsilon}
+\end{equation}
+
+It is important to note that we considered two different implementations of this loss. 
+In the \href{https://docs.monai.io/en/stable/losses.html}{MONAI library}, the Dice score is calculated for each sample and then averaged over the batch (macro-average), 
+whereas in the MELD implementation the aggregation is performed immediately over the entire batch (micro-average). 
+Under strong class imbalance between background and lesion voxels, the micro-averaged version shifts the loss contribution towards the background, 
+which reduces the gradient signal for rare lesions and leads to training instability. 
+For this reason, we used the MONAI implementation, which provided higher metric values and enabled the model to detect more \ac{fcd}s.
+
+\subsection*{Distance Loss}
+To provide the network with additional contextual information and reduce false positives, we include a distance regression loss $L_{dist}$. 
+The model is trained to predict the normalized geodesic distance \( d_i \) from each vertex to the lesion boundary. 
+Here, \( \hat{y}_{i,0} \) denotes the model’s output corresponding to the \emph{non-lesional} class for vertex \( i \). 
+We employ a mean absolute error loss weighted by $(d_i + 1)^{-1}$, which reduces the contribution of distant non-lesional vertices to the loss. Since the weight
+decreases with distance from the lesion boundary, the network focuses more on regions located closer to the lesion~\cite{Ripart2025MELD}:
+
+\begin{equation}
+L_{dist} = \frac{1}{n} \sum_{i=1}^{n} \frac{|d_i - \hat{y}_{i,0}|}{d_i + 1}.
+\end{equation}
+
+\subsection*{Classification Loss}
+And in the last case, we add a weakly-supervised classification head to mitigate the uncertainty between lesion masks and actual lesions. Each subject is labeled as positive if any vertex belongs to a lesion. The classification head aggregates features across the deepest level (level 1) and predicts a subject-level label $\hat{c}$. The classification loss is then computed as binary cross-entropy~\cite{Ripart2025MELD}:
+\begin{equation}
+L_{class} = - \sum_{i=1}^{n} c_i \log(\hat{c}_i) + (1-c_i)\log(1-\hat{c}_i).
+\end{equation}
+
+\subsection*{Deep Supervision}
+To encourage gradient flow and stabilize training, we adopt deep supervision at intermediate decoder levels $I_{ds} = \{6,5,4,3,2,1\}$. 
+At each level $i$, auxiliary predictions are generated and the same combination of cross-entropy, dice, and distance losses is applied. These auxiliary losses are weighted by $w^i_{ds}$ and added to the total objective~\cite{Ripart2025MELD}:
+\begin{equation}
+\sum_{i \in I_{ds}} w^i_{ds}(L^i_{ce} + L^i_{dice} + L^i_{dist}).
+\end{equation}
+% This strategy ensures that meaningful supervision is propagated to early layers of the network, improving convergence and overall segmentation accuracy.
+
+% \bigskip
+
+\section{Metrics}
+To evaluate the performance of our model, we follow the metrics used by the MELD 
+authors for convenient comparison: Dice score, \ac{ppv}, \ac{iou}, specificity, 
+and sensitivity. Below we briefly describe each of them.
+
+
+\subsection*{Dice score} 
+The Dice similarity coefficient (DSC) is defined as the harmonic mean between precision and recall. 
+For two sets of predicted positives $P$ and ground truth positives $G$, it is given by
+\begin{equation}
+\mathrm{Dice}(P,G) = \frac{2 \, |P \cap G|}{|P| + |G|} = \frac{2TP}{2TP + FP + FN},
+\end{equation}
+where $TP$, $FP$ and $FN$ denote true positives, false positives and false negatives, respectively.
+
+\subsection*{Positive Predictive Value} 
+Also known as precision, \ac{ppv} measures the proportion of correctly identified positive samples 
+among all predicted positives:
+\begin{equation}
+\mathrm{PPV} = \frac{TP}{TP + FP}.
+\end{equation}
+
+In this work, we report PPV at two granularities:
+
+\begin{itemize}
+\item \textbf{Pixel-level PPV} evaluates precision over individual vertices of the cortical surface and 
+therefore reflects how accurately the predicted mask matches the ground-truth lesion at a fine spatial scale.
+
+\item \textbf{Cluster-level PPV} treats each connected predicted region as a single detection and counts it as 
+a true positive only if it overlaps with the manual lesion mask (or, following the MELD protocol, lies within 
+20\,mm of it).
+\end{itemize}
+
+\subsection*{Intersection over Union} 
+The \ac{iou} (also called the Jaccard index) quantifies the overlap between predicted and ground truth labels:
+\begin{equation}
+\mathrm{IoU}(P,G) = \frac{|P \cap G|}{|P \cup G|} = \frac{TP}{TP + FP + FN}.
+\end{equation}
+
+\subsection*{Specificity}
+Specificity quantifies the model’s ability to avoid false-positive detections in healthy controls. 
+It is defined as the proportion of control subjects for whom the model predicts no lesion clusters. 
+Let $y_i = 0$ denote control subjects and $\hat{y}_i = 0$ indicate that the model produced no predictions 
+for subject $i$. Then specificity is given by
+\begin{equation}
+\mathrm{Specificity} = 
+\frac{\sum_{i=1}^{N} \mathbbm{1}(y_i = 0 \wedge \hat{y}_i = 0)}
+{\sum_{i=1}^{N} \mathbbm{1}(y_i = 0)}.
+\end{equation}
+Higher specificity indicates fewer false alarms in subjects without FCD.
+
+\subsection*{Sensitivity}
+Sensitivity measures the ability of the model to correctly detect lesions in patients with FCD. 
+Following the MELD evaluation protocol, a prediction is counted as correct if at least one predicted 
+cluster overlaps with the manual lesion mask or lies within a 20\,mm distance from it. 
+Formally, for a set of patients with ground-truth labels $y_i \in \{0,1\}$ indicating the presence of 
+FCD and binary prediction outcomes $\hat{y}_i \in \{0,1\}$, sensitivity is defined as
+\begin{equation}
+\mathrm{Sensitivity} = 
+\frac{\sum_{i=1}^{N} \mathbbm{1}(y_i = 1 \wedge \hat{y}_i = 1)}
+{\sum_{i=1}^{N} \mathbbm{1}(y_i = 1)}.
+\end{equation}
+A higher value indicates that the model successfully identifies a larger proportion of true FCD cases.
+
+\subsection*{Confidence Intervals}
+To quantify the uncertainty of the reported metrics, we compute 95\% confidence intervals following the procedure used by the MELD authors. 
+For each metric, we report the sample median together with a confidence interval estimated via a non-parametric percentile bootstrap.
+
+Given scores $x_1, \dots, x_N$, we draw $B = 10{,}000$ bootstrap resamples of size $N$ with replacement and compute the median for each resample, yielding the bootstrap distribution $\{\tilde{x}^{(b)}\}_{b=1}^{B}$. 
+The 2.5th and 97.5th percentiles of this distribution are taken as the lower and upper bounds of the 95\% interval.
+
+This method makes no assumptions about the underlying distribution; missing values (NaN) are removed prior to resampling. 
+When $N = 1$, the interval collapses to the observed value. A fixed random seed is used for reproducibility.
+
 \end{document}

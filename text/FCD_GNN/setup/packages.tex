@@ -8,6 +8,10 @@
 \usepackage{acro}
 
 \usepackage{graphicx} % enables loading of graphics
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth \linewidth \else \Gin@nat@width\fi}
+\makeatother
+
 \graphicspath{ {images/}{../images/}{guidelines/images/}}
 
 \usepackage[
@@ -26,11 +30,23 @@
 % Create nice tables in your document
 \usepackage{pdflscape} % Provides the landscape environment for landscape tables
 \usepackage{tabu}     % provides advanced tables
+\usepackage{float}
 \usepackage{array,multirow}
 \usepackage{booktabs} % enables reference bookstyle tables
 \usepackage{longtable} % Make multipage tables without creating a new table for every page
 \usepackage[table]{xcolor} % поддержка раскраски ячеек
-
+\usepackage{threeparttable}
+\usepackage[most]{tcolorbox}
+\tcbset{
+  myhighlight/.style={
+    colback=green!20,          % светло-зелёный фон
+    colframe=green!50!black,   % более тёмная рамка
+    boxrule=0pt,               % без рамки (0pt)
+    arc=2mm,                   % скруглённые углы
+    left=2mm, right=2mm, top=1mm, bottom=1mm
+  }
+}
+\usepackage{enumitem}
 \usepackage[format=plain, labelfont=bf]{caption} % один раз!
 \usepackage{subcaption} % для подфигур
 \captionsetup{compatibility=false}
@@ -66,3 +82,4 @@
 % Specify headers and footers in different file for better overview
 \input{setup/headfoot.tex}
 \usepackage{makecell} % в преамбуле
+\usepackage[a4paper,margin=2cm]{geometry}

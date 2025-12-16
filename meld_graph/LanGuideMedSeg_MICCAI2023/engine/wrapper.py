@@ -385,8 +385,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         # ---------- Save predictions as MGH and NIfTI ----------
         if stage == "test":
-            # final_nii = convert_preds_to_nifti(self.ckpt_path, subject_ids, all_preds, self.c)
-            return total_loss
+            final_nii = convert_preds_to_nifti(self.ckpt_path, subject_ids, all_preds, self.c)
         
         return total_loss
 

@@ -44,9 +44,13 @@ def save_gt_as_mgh(h5_path: str, hemi: str, out_dir: str, subjects_fs_dir: str):
     # shape (n_vertices, 1, 1)
     data = arr1d[:, np.newaxis, np.newaxis].astype(np.float32)
 
-    # make MGHImage with the same affinity as T1.mgz
-    t1_mgz = subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
-    affine = nb.load(t1_mgz).affine
+    # # make MGHImage with the same affinity as T1.mgz
+    # t1_mgz = subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
+    # affine = nb.load(t1_mgz).affine
+
+    # make MGHImage with the same affinity as FLAIR
+    flair_path = subjects_fs_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
+    affine = nb.load(flair_path).affine
 
     img = nb.MGHImage(data, affine)
 
@@ -67,7 +71,8 @@ def convert_gt_to_nii(
     nii_path = Path(base) / f"{hemi}.gt.nii.gz"
 
     fsavg = subjects_dir / "fsaverage_sym" / "mri"
-    T1 = fsavg / "T1.mgz"
+    # T1 = fsavg / "T1.mgz"
+    T1 = subjects_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
     orig = fsavg / "orig.mgz"
 
     # 1) surface → volume
@@ -111,7 +116,8 @@ def convert_prediction_mgh_to_nii(
     # 1) Surface→Volume
     vol_mgz = out_mgh.with_suffix(".mgz") #.replace(".mgh", ".mgz")
     mri_path = subjects_dir / "fsaverage_sym" / "mri"
-    T1_path = mri_path / "T1.mgz"
+    # T1_path = mri_path / "T1.mgz"
+    T1_path = subjects_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
     cmd1 = (
         f"SUBJECTS_DIR={subjects_dir} "
         f"mri_surf2vol --identity fsaverage_sym "

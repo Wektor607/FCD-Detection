@@ -16,6 +16,7 @@ import torch.multiprocessing
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+# from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 
 from sklearn.model_selection import KFold
@@ -109,13 +110,30 @@ def get_filename(args, ckpt_path: str, fold: int) -> str:
 
 
 def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fold_ids: List[str], fold_seed: int):
-    ds_train = EpilepDataset(csv_path=args.csv_path, tokenizer=tokenizer, feature_path=args.feature_path, subject_ids=train_fold_ids, cohort=cohort)
-    ds_valid = EpilepDataset(csv_path=args.csv_path, tokenizer=tokenizer, feature_path=args.feature_path, subject_ids=val_fold_ids, cohort=cohort)
+    print("INFO Dataset name: ", args.csv_path)
+    ds_train = EpilepDataset(csv_path=args.csv_path, 
+                tokenizer=tokenizer, 
+                feature_path=args.feature_path, 
+                subject_ids=train_fold_ids, 
+                cohort=cohort, 
+                max_length=args.max_len, 
+                text_emb=True,
+#!!!!!!!!!!!!!!!!!!!!!!! Make like a parameter!
+                text_prob_json="/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/mixed/train_prob.json")
+    ds_valid = EpilepDataset(csv_path=args.csv_path, 
+                tokenizer=tokenizer, 
+                feature_path=args.feature_path, 
+                subject_ids=val_fold_ids, 
+                cohort=cohort, 
+                max_length=args.max_len, 
+                text_emb=True,
+                text_prob_json="/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/mixed/train_prob.json")
     hc_set = set([sid for sid in train_fold_ids if sid.split("_")[3].startswith("C")])
     labels = [0 if sid in hc_set else 1 for sid in ds_train.subject_ids]
     sampler = LesionOversampleSampler(labels, seed=fold_seed)
     dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, sampler=sampler, num_workers=args.train_batch_size, pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
     dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size, pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
+    
     return dl_train, dl_valid
 
 if __name__ == "__main__":
@@ -125,14 +143,15 @@ if __name__ == "__main__":
     # wandb_logger = WandbLogger(project=args.project_name, log_model=True)
     
     df = pd.read_csv(args.split_path, sep=",")
+    # CHANGE BACK WITH HEALTHY CONTROLS #################################
     train_ids = df[df.split == "trainval"]["subject_id"].tolist()
-
+    # train_ids = df[(df.split == "trainval") & (df["subject_id"].str.contains("FCD"))]["subject_id"].tolist()
     n_splits = 5
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=SEED)
 
     for fold, (train_index, val_index) in enumerate(kf.split(train_ids)):
         # optional: process only specific folds (was earlier skipping folds < 4)
-        if fold < 4:
+        if fold < 3:
             continue
 
         print(f"Fold {fold + 1}/{n_splits}")
@@ -154,7 +173,6 @@ if __name__ == "__main__":
                 break
 
         tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True) if text_emb else None
-
         train_fold_ids = [train_ids[i] for i in train_index]
         val_fold_ids_full = [train_ids[i] for i in val_index]
         val_fold_ids = [sid for sid in val_fold_ids_full if "FCD" in sid]
@@ -197,7 +215,18 @@ if __name__ == "__main__":
         model_ckpt = ModelCheckpoint(dirpath=args.model_save_path, filename=filename, monitor="val_dice", save_top_k=1, mode="max", verbose=True)
         early_stopping = EarlyStopping(monitor="val_loss", patience=args.patience, mode="min")
 
-        trainer = pl.Trainer(min_epochs=args.min_epochs, max_epochs=args.max_epochs, accelerator=accelerator, devices=devices, callbacks=[model_ckpt, early_stopping], enable_progress_bar=True)
+        # FREEZE DECODER CALLBACK
+        freeze_cb = FreezeDecoderCallback(unfreeze_at_epoch=5)
+
+        trainer = pl.Trainer(min_epochs=args.min_epochs, 
+                            max_epochs=args.max_epochs, 
+                            accelerator=accelerator, 
+                            devices=devices, 
+                            callbacks=[model_ckpt, early_stopping, 
+                            # ],
+                            freeze_cb], 
+                            # logger=wandb_logger,
+                            enable_progress_bar=True)
 
         print("start training")
         trainer.fit(model, dl_train, dl_valid)

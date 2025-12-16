@@ -14,6 +14,9 @@ import sys
 import subprocess
 import json
 import numpy as np
+if not hasattr(np, "float"):
+    np.float = float
+
 import nibabel as nb
 import pandas as pd
 import argparse
@@ -30,9 +33,9 @@ from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
 import scripts.env_setup
-# from scripts.manage_results.register_back_to_xhemi import register_subject_to_xhemi
-# from scripts.manage_results.move_predictions_to_mgh import move_predictions_to_mgh
-# from scripts.manage_results.plot_prediction_report import generate_prediction_report
+from scripts.manage_results.register_back_to_xhemi import register_subject_to_xhemi
+from scripts.manage_results.move_predictions_to_mgh import move_predictions_to_mgh
+from scripts.manage_results.plot_prediction_report import generate_prediction_report
 from meld_graph.tools_pipeline import get_m, create_demographic_file, create_dataset_file
 
 import warnings
@@ -47,7 +50,7 @@ def save_surface_mgh(arr_1d, out_path: str):
 def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=False,
     experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT, aug_mode='test', return_results=False):       
     ''' function to predict on new subject using trained MELD classifier'''
-    
+
     hdf5_file_root = "{site_code}_{group}_featurematrix_combat.hdf5"
     # create dataset csv
     tmp = tempfile.NamedTemporaryFile(mode="w")
@@ -71,12 +74,17 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
                 dataset=exp.data_parameters["dataset"],
                 data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats'
             )
+    
+    subject_id = subject_ids[0]
+    subject_output_dir = os.path.join(output_dir, subject_id)
+    os.makedirs(subject_output_dir, exist_ok=True)
+
     eva = Evaluator(
         experiment=exp,
         checkpoint_path=experiment_path,
         cohort=cohort,
         subject_ids=subject_ids,
-        save_dir=output_dir,
+        save_dir=subject_output_dir,#output_dir,
         aug_mode=aug_mode,
         mode=aug_mode,#"test", Mode should be the same as aug_mode
         model_name="best_model",
@@ -86,11 +94,20 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         make_images=plot_images,
         
     )
+
     #predict for the dataset
     eva.load_predict_data(
         save_prediction=True,
         roc_curves_thresholds=None,
         )
+
+    # eva.load_predict_data(save_prediction=False)
+
+    # # вручную сохраняем predictions для каждого пациента
+    # for subject_id in subject_ids:
+    #     pred = eva.data_dictionary[subject_id]["result"]
+    #     eva.save_prediction_for_subject(subject_id, pred, dataset_str="prediction_clustered")
+
 
     results_dict = {}
     for subject_id in subject_ids:  
@@ -184,17 +201,17 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
 
     if return_results:
         return results_dict
-    # # #threshold predictions
+    #threshold predictions
     eva.threshold_and_cluster()
-    # # #write results in csv
+    #write results in csv
     eva.stat_subjects()
-    # #plot images 
+    #plot images 
     # if plot_images: 
     #     eva.plot_subjects_prediction()
-    # #compute saliency:
+    #compute saliency:
     # if saliency:
-        # eva.calculate_saliency()
-    return None
+    #     eva.calculate_saliency()
+    # return None
 
 def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test', return_results=False):
     harmo_code = str(harmo_code)
@@ -226,14 +243,14 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     classifier_output_dir = opj(MELD_DATA_PATH,'output','classifier_outputs', model_name)
     data_dir = opj(MELD_DATA_PATH,'input')
     predictions_output_dir = opj(MELD_DATA_PATH,'output','predictions_reports')
-    prediction_file = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
+    # prediction_file = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
     
     subject_ids_failed=[]
 
     # Skip data augmentation for test samples to ensure deterministic evaluation
     # (do not modify predictions with training-time transforms)
-    meld_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'BONN_splits_full_test.csv'))
-    bonn_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'MELD_splits.csv'))
+    meld_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'MELD_splits.csv'))
+    bonn_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'BONN_splits_full_test.csv'))
 
     meld_test_split = meld_list[meld_list['split'] == 'test']['subject_id'].tolist()
     bonn_test_split = bonn_list[bonn_list['split'] == 'test']['subject_id'].tolist()
@@ -242,7 +259,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     results = {}
     if not skip_prediction:
         print(get_m(f'Run predictions', subject_ids, 'STEP 1'))
-        for subject_id in subject_ids[::-1]:
+        for subject_id in subject_ids:
             if subject_id in [
                 # Missing controls (no HDF5 file found)
                 "MELD_H3_3T_C_0007",
@@ -307,23 +324,35 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
 
                 # Zero mask after converting to Nifti
                 "MELD_H9_3T_FCD_0003",
-            ]:
-            # or subject_id.startswith("MELD_H101_3T_C_"):
+
+                # Missed by me <- move from here later
+                "MELD_H101_3T_FCD_00062",
+            ]: #or "_C_" in subject_id:
+            # or subject_id.startswith("MELD_H101_"):
                 continue
             
+            ########################################################################################################################
             # Убрать для инференса, иначе объект не создается
             # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
-            # preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
-            # if os.path.isdir(preproc_root):
-            #     print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
-            #     continue
+            # --- пропуск, если это тест ---
+            # if subject_id in meld_test_split or subject_id in bonn_test_split:
+            if subject_id in bonn_test_split:
+                print(f"[SKIP TEST] {subject_id} принадлежит test split → пропуск.")
+                continue
+
+            preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
+            if os.path.isdir(preproc_root):
+                print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
+                continue
             # -----------------------------------------------
+            ########################################################################################################################
             if subject_id in meld_test_split or subject_id in bonn_test_split:
                 aug_mode = 'test'
                 print(f"[TEST SPLIT] {subject_id} in test split, aug_mode set to 'test'")
             else:
                 aug_mode = 'train'
                 print(f"[TRAIN SPLIT] {subject_id} in train split, aug_mode set to 'train'")
+
             result = predict_subjects(subject_ids=np.array([subject_id]), 
                             output_dir=classifier_output_dir,  
                             plot_images=True, 
@@ -333,17 +362,38 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
                             aug_mode=aug_mode,
                             return_results=return_results)
             if result is not None:
-                results.update(result) 
+                results.update(result)   
+            
+            # if subject_id == "MELD_H10_3T_FCD_0014":
+            #     print(get_m(f'Create pdf report', subject_id, 'STEP 4'))
+            #     generate_prediction_report(
+            #         subject_ids = np.array([subject_id]),
+            #         data_dir = data_dir,
+            #         prediction_path=classifier_output_dir,
+            #         experiment_path=experiment_path, 
+            #         output_dir = predictions_output_dir,
+            #         harmo_code = harmo_code,
+            #         hdf5_file_root = DEFAULT_HDF5_FILE_ROOT
+            #     )
+            #     sys.exit(0)
     else:
         print(get_m(f'Skip predictions', subject_ids, 'STEP 1'))
+    
     # if not no_prediction_nifti:        
     #     #Register predictions to native space
     #     for i, subject_id in enumerate(subject_ids):
     #         print(get_m(f'Move predictions into volume', subject_id, 'STEP 2'))
+    #         if subject_id != "MELD_H101_3T_C_00005":
+    #             continue
+
+    #         prediction_file = opj(classifier_output_dir, subject_id,'results_best_model', 'predictions.hdf5')
+    #         # print(subjects_dir)
+    #         # sys.exit(0)
     #         result = move_predictions_to_mgh(subject_id=subject_id, 
     #                             subjects_dir=subjects_dir, 
     #                             prediction_file=prediction_file,
     #                             verbose=verbose)
+
     #         if result == False:
     #             print(get_m(f'One step of the pipeline has failed. Process has been aborted for this subject', subject_id, 'ERROR'))
     #             subject_ids_failed.append(subject_id)
@@ -359,19 +409,25 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     #             print(get_m(f'One step of the pipeline has failed. Process has been aborted for this subject', subject_id, 'ERROR'))
     #             subject_ids_failed.append(subject_id)
     #             continue
+
+    #         break
             
-        # if not no_report:
-        #     # Create individual reports of each identified cluster
-        #     print(get_m(f'Create pdf report', subject_ids, 'STEP 4'))
-        #     generate_prediction_report(
-        #         subject_ids = subject_ids,
-        #         data_dir = data_dir,
-        #         prediction_path=classifier_output_dir,
-        #         experiment_path=experiment_path, 
-        #         output_dir = predictions_output_dir,
-        #         harmo_code = harmo_code,
-        #         hdf5_file_root = DEFAULT_HDF5_FILE_ROOT
-        #     )
+    # if not no_report:
+    #     # Create individual reports of each identified cluster
+    #     print(subject_ids[0])
+    #     if subject_ids[0] == "MELD_H2_3T_FCD_0001":
+    #         print(get_m(f'Create pdf report', subject_ids, 'STEP 4'))
+    #         generate_prediction_report(
+    #             subject_ids = subject_ids,
+    #             data_dir = data_dir,
+    #             prediction_path=classifier_output_dir,
+    #             experiment_path=experiment_path, 
+    #             output_dir = predictions_output_dir,
+    #             harmo_code = harmo_code,
+    #             hdf5_file_root = DEFAULT_HDF5_FILE_ROOT
+    #         )
+    #     sys.exit(0)
+    
         
     if len(subject_ids_failed)>0:
         print(get_m(f'One step of the pipeline has failed and process has been aborted for subjects {subject_ids_failed}', None, 'ERROR'))

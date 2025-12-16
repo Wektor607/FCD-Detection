@@ -1,15 +1,32 @@
+import json
 import sys, os
+import shutil
 from typing import Tuple
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import torch
 from torch.utils.data import Sampler
 import numpy as np
+from PIL import Image
 import random
 from pathlib import Path
 from scipy import ndimage
 from LanGuideMedSeg_MICCAI2023.engine.converter_mgh_to_nifti import *
 from meld_graph.paths import MELD_DATA_PATH
+import nibabel as nib
+import matplotlib.pyplot as plt
+
+import meld_graph.mesh_tools as mt
+from meld_graph.paths import MELD_PARAMS_PATH, SURFACE_PARTIAL
+
+from scripts.manage_results.plot_prediction_report import create_surface_plots
+from meld_graph.meld_cohort import MeldCohort
+from meld_graph.paths import (
+    MELD_PARAMS_PATH,
+    MELD_DATA_PATH,
+    SURFACE_PARTIAL, 
+    DEFAULT_HDF5_FILE_ROOT,
+)
 
 SEED = 42
 
@@ -63,11 +80,18 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
     subjects_fs_dir = Path(MELD_DATA_PATH) / "input" / "data4sharing"
     predictions_output_root = Path(MELD_DATA_PATH) / "output" / "predictions_reports" / ckpt_path
     os.makedirs(predictions_output_root, exist_ok=True)
+
+    results = {}   # <---- копим результаты по пациентам
+
     for (sid, pred) in zip(subject_ids, probs_bin):
-        if hasattr(pred, "detach"):
-            predictions = pred.detach().cpu().numpy()
-        else:
-            predictions = np.asarray(pred)
+
+        # Skip-list
+        # if sid in ["MELD_H3_3T_FCD_0018", "MELD_H4_15T_FCD_0021", "MELD_H6_3T_FCD_0017"]:
+        #     print(f"Skipping {sid} as per request")
+        #     continue   
+
+        # Convert prediction tensor → numpy
+        predictions = pred.detach().cpu().numpy() if hasattr(pred, "detach") else np.asarray(pred)
 
         classifier_dir = subjects_fs_dir / sid / "xhemi" / "classifier"
         predictions_dir = predictions_output_root / sid / "predictions"
@@ -75,34 +99,39 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
         os.makedirs(predictions_dir, exist_ok=True)
 
         combat_path = subjects_fs_dir / "meld_combats"
-        if "_C_" in sid:
-            group = "control"
-        else:
-            group = "patient"
-
+        group = "control" if "_C_" in sid else "patient"
         h5_path = combat_path / f"{sid}_{group}_featurematrix_combat.hdf5"
+
+        # ============================================================
+        # (1) Save each hemisphere prediction as MGH → NIfTI
+        # ============================================================
         for idx, hemi in enumerate(["lh", "rh"]):
-            # Prediction overlay
+
             overlay = np.zeros_like(c.cortex_mask, dtype=np.float32)
             overlay[c.cortex_mask] = predictions[idx]
 
-            # Read template thickness to get shape/affine
+            if predictions[idx].shape[0] != np.sum(c.cortex_mask):
+                print(f"[WARN] {sid}: mismatch cortex_mask vs prediction size")
+                continue
+
             combat_file = get_combat_feature_path(combat_path, sid)
+
             with h5py.File(combat_file, "r") as f:
                 key = ".combat.on_lh.thickness.sm3.mgh"
                 if key not in f[hemi]:
-                    raise KeyError(f"No dataset {key!r} in group {hemi}")
+                    raise KeyError(f"No dataset {key} in HDF5 for {hemi}")
                 base_arr = f[hemi][key][:]
 
-            mgh_img = nb.MGHImage(
-                base_arr[np.newaxis, :, np.newaxis],
-                affine=nb.load(subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz").affine,
-            )
+            # MGH template
+            affine = nb.load(
+                subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
+            ).affine
 
-            # Save prediction MGH → NIfTI
+            mgh_img = nb.MGHImage(base_arr[np.newaxis, :, np.newaxis], affine)
+
             out_mgh_pred = classifier_dir / f"{hemi}.prediction.mgh"
             save_mgh(out_mgh_pred, overlay, mgh_img)
-            print(f"Saved PRED MGH: {out_mgh_pred}")
+
             convert_prediction_mgh_to_nii(
                 subjects_fs_dir,
                 out_mgh_pred,
@@ -110,122 +139,119 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
                 predictions_dir,
                 verbose=True,
             )
-            # Check NIfTI after conversion
-            nii_path = predictions_dir / f"{hemi}.prediction.nii.gz"
-            if nii_path.exists():
-                import nibabel as nib
-                arr = nib.load(str(nii_path)).get_fdata()
-                print(f"DEBUG {sid} {hemi} NIfTI unique:", np.unique(arr))
 
-            if mode == "test":
-                mgh_gt = save_gt_as_mgh(
-                    h5_path, hemi, predictions_dir, subjects_fs_dir
-                )
-                if mgh_gt:
-                    convert_gt_to_nii(subjects_fs_dir, mgh_gt, hemi, verbose=True)
+            surf_vis_path = predictions_dir / f"{hemi}_surface_visualisation.png"
+            volume_3d_visualisation(
+                prediction_surf=overlay, # maybe add np.squeeze
+                hemi_name=hemi,
+                save_path=surf_vis_path
+            )
+            print(f"✓ Saved surface visualisation: {surf_vis_path}")
 
-        # Combine both hemispheres for prediction
-        # First, ensure hemi NIfTIs contain only binary values (0/1).
+
+        # ============================================================
+        # (2) Combine LH + RH into final_nii
+        # ============================================================
         lh_nii = predictions_dir / "lh.prediction.nii.gz"
         rh_nii = predictions_dir / "rh.prediction.nii.gz"
         final_nii = predictions_dir / f"prediction_{sid}.nii.gz"
 
-        try:
-            import nibabel as nib
+        def _binarize_nii(path):
+            if not path.exists():
+                return None
+            img = nib.load(str(path))
+            arr = img.get_fdata()
+            arr_bin = (arr > 0).astype(np.uint8)
+            nib.save(nib.Nifti1Image(arr_bin, img.affine, img.header), str(path))
+            return path
 
-            def _binarize_nii(path):
-                if not path.exists():
-                    return None
-                img = nib.load(str(path))
-                arr = img.get_fdata()
-                # if there are unexpected values (>1), binarize them (any positive -> 1)
-                if np.any(arr > 1) or not np.array_equal(np.unique(arr), np.array([0])) and np.any(arr != 0):
-                    arr_bin = (arr > 0).astype(np.uint8)
-                    new_img = nib.Nifti1Image(arr_bin, img.affine, img.header)
-                    nib.save(new_img, str(path))
-                    print(f"🔧 Binarized NIfTI: {path} (unique: {np.unique(arr_bin)})")
-                else:
-                    # still make sure dtype is reasonable
-                    if arr.dtype != np.uint8 and arr.dtype != np.int8 and arr.dtype != np.int16:
-                        arr_bin = (arr > 0).astype(np.uint8)
-                        new_img = nib.Nifti1Image(arr_bin, img.affine, img.header)
-                        nib.save(new_img, str(path))
-                        print(f"🔧 Normalized dtype and binarized NIfTI: {path}")
-                return path
+        lh_p = _binarize_nii(lh_nii)
+        rh_p = _binarize_nii(rh_nii)
 
-            lh_p = _binarize_nii(lh_nii)
-            rh_p = _binarize_nii(rh_nii)
-
-            # If both hemispheres exist, combine voxel-wise using numpy.maximum (keepmax behaviour)
-            if lh_p and rh_p:
-                lh_img = nib.load(str(lh_p))
-                rh_img = nib.load(str(rh_p))
-                lh_arr = lh_img.get_fdata()
-                rh_arr = rh_img.get_fdata()
-
-                # Ensure shapes match; if not, try to broadcast sensibly or raise
-                if lh_arr.shape != rh_arr.shape:
-                    raise RuntimeError(f"Shape mismatch between LH and RH NIfTIs: {lh_arr.shape} vs {rh_arr.shape}")
-
-                combined = np.maximum(lh_arr, rh_arr)
-                combined = (combined > 0).astype(np.uint8)
-                combined_img = nib.Nifti1Image(combined, lh_img.affine, lh_img.header)
-                nib.save(combined_img, str(final_nii))
-                print(f"🎉 Final combined PRED NIfTI (max): {final_nii}")
-            else:
-                # fallback: if only one hemisphere exists, copy it
-                src = lh_p or rh_p
-                if src:
-                    import shutil
-
-                    shutil.copy2(str(src), str(final_nii))
-                    print(f"⚠️ Only one hemisphere NIfTI found, copied to {final_nii}")
-                else:
-                    raise FileNotFoundError(f"No hemisphere prediction NIfTIs found for {sid}")
-
-        except Exception as e:
-            # If nibabel approach fails for any reason, fall back to previous external command
-            print(f"⚠️ Python combine failed ({e}), falling back to mri_concat command")
-            cmd = f"mri_concat --i {lh_nii} --i {rh_nii} --o {final_nii} --combine --keepmax"
-            run_command(cmd, verbose=True)
+        if lh_p and rh_p:
+            lh_img = nib.load(str(lh_p))
+            rh_img = nib.load(str(rh_p))
+            combined = np.maximum(lh_img.get_fdata(), rh_img.get_fdata())
+            combined = (combined > 0).astype(np.uint8)
+            nib.save(nib.Nifti1Image(combined, lh_img.affine, lh_img.header), str(final_nii))
             print(f"🎉 Final combined PRED NIfTI: {final_nii}")
-    
-        if mode == "test":
-            # Combine both hemispheres for ground‐truth using the same python approach
-            gt_lh_nii = predictions_dir / "lh.gt.nii.gz"
-            gt_rh_nii = predictions_dir / "rh.gt.nii.gz"
-            gt_final = predictions_dir / f"ground_truth_{sid}.nii.gz"
-            try:
-                import nibabel as nib
+        else:
+            src = lh_p or rh_p
+            if src:
+                shutil.copy2(str(src), str(final_nii))
+            else:
+                raise FileNotFoundError("No hemi predictions found")
 
-                def _combine_max(lhs, rhs, outp):
-                    if not lhs.exists() and not rhs.exists():
-                        raise FileNotFoundError("No GT hemisphere NIfTIs found")
-                    if lhs.exists() and rhs.exists():
-                        l_img = nib.load(str(lhs))
-                        r_img = nib.load(str(rhs))
-                        l_arr = l_img.get_fdata()
-                        r_arr = r_img.get_fdata()
-                        if l_arr.shape != r_arr.shape:
-                            raise RuntimeError("Shape mismatch between GT LH and RH NIfTIs")
-                        combined = np.maximum(l_arr, r_arr)
-                        combined = (combined > 0).astype(np.uint8)
-                        nib.save(nib.Nifti1Image(combined, l_img.affine, l_img.header), str(outp))
-                    else:
-                        src = lhs if lhs.exists() else rhs
-                        import shutil
+        # =============================================
+        # (3) Combine LH + RH visualisations
+        # =============================================
 
-                        shutil.copy2(str(src), str(outp))
+        lh_png = predictions_dir / "lh_surface_visualisation.png"
+        rh_png = predictions_dir / "rh_surface_visualisation.png"
+        combined_png = predictions_dir / f"{sid}_surface_combined.png"
 
-                _combine_max(gt_lh_nii, gt_rh_nii, gt_final)
-                print(f"🎉 Final combined GT   NIfTI: {gt_final}")
-            except Exception as e:
-                print(f"⚠️ Python GT combine failed ({e}), falling back to mri_concat")
-                cmd_gt = f"mri_concat --i {gt_lh_nii} --i {gt_rh_nii} --o {gt_final} --combine"
-                run_command(cmd_gt, verbose=False)
-                print(f"🎉 Final combined GT   NIfTI: {gt_final}")
+        if lh_png.exists() and rh_png.exists():
+            concat_side_by_side(lh_png, rh_png, combined_png)
+        else:
+            print(f"[WARN] Missing hemisphere PNGs for subject {sid}")
 
-        return final_nii
+        results[sid] = final_nii   # <---- save result for this subject
+
+    # ============================================================
+    # RETURN ONLY AFTER PROCESSING ALL SUBJECTS
+    # ============================================================
+    return results
+
+def volume_3d_visualisation(prediction_surf, hemi_name, save_path):
+    """
+    Creates MELD-style lateral + medial hemisphere render and saves as PNG.
+    """
+    if not hasattr(np, "float"):
+        np.float = float
+    if not hasattr(np, "int"):
+        np.int = int
+    if not hasattr(np, "bool"):
+        np.bool = bool
+
+    c = MeldCohort(hdf5_file_root=DEFAULT_HDF5_FILE_ROOT, dataset=None)
+    surf = mt.load_mesh_geometry(os.path.join(MELD_PARAMS_PATH, SURFACE_PARTIAL))
+
+    # Use MELD's native renderer (from plot_prediction_report)
+    im_lat, im_med = create_surface_plots(
+        surf,
+        prediction=prediction_surf,
+        c=c
+    )
+
+    fig = plt.figure(figsize=(10, 4))
+    plt.suptitle(f"{hemi_name.upper()} hemisphere", fontsize=16)
+
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax1.imshow(im_lat)
+    ax1.axis("off")
+
+    ax2 = fig.add_subplot(1, 2, 2)
+    ax2.imshow(im_med)
+    ax2.axis("off")
+
+    plt.tight_layout()
+    fig.savefig(save_path, dpi=150)
+    plt.close(fig)
+
+def concat_side_by_side(img1_path, img2_path, save_path):
+    im1 = Image.open(img1_path)
+    im2 = Image.open(img2_path)
+
+    # выравниваем по высоте
+    h = im1.height + im2.height
+    w = max(im1.width, im2.width)
+
+    new_im = Image.new("RGBA", (w, h), (255, 255, 255, 0))
+    new_im.paste(im1, (0, 0))
+    new_im.paste(im2, (0, im1.height))
+
+    new_im.save(save_path)
+    print(f"✓ Saved combined: {save_path}")
 
 def summarize_clusters(cluster_mask, hemi_names=["left", "right"]):
     summary = []
@@ -277,3 +303,21 @@ def move_to_device(obj, device: torch.device):
         seq = [move_to_device(v, device) for v in obj]
         return type(obj)(seq)
     return obj
+
+def random_from_distribution(dist: dict):
+    keys = list(dist.keys())
+    probs = list(dist.values())
+    return random.choices(keys, weights=probs, k=1)[0]
+
+def generate_random_text(text_probs: json):
+    """
+    Generate: <hemisphere> + <lobe>
+    Example: "Left Hemisphere; Temporal lobe"
+    """
+    # if not isinstance(text_probs, dict):
+    #     return "full brain"
+
+    hemi = random_from_distribution(text_probs.get("hemisphere_text", {}))
+    lobe = random_from_distribution(text_probs.get("lobe_text", {}))
+
+    return f"{hemi}; {lobe}"

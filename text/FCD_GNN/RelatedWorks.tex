@@ -4,9 +4,126 @@
 \chapter{Related Works}
 \label{chapter:Related_works}
 
-This section reviews existing approaches to \ac{fcd} detection and text-guided medical image segmentation for tumor detection 
-tasks, focusing on their architecture, fusion strategies, and limitations.
+This section firstly reviews the Transformer architecture, which is a fundamental component of modern vision models and large language models (LLMs).
+Then it introduces graph neural networks (GNNs) and LLMs, followed by an overview of existing approaches to \ac{fcd} detection and text-guided medical image segmentation for tumor detection tasks, with a focus on their fusion strategies, and limitations.
 
+\section{Transformer Architecture}
+The transformer architecture, introduced in the seminal work by Vaswani et al.~\cite{Vaswani2017Attention}, is based entirely on attention mechanisms and does not rely on recurrence or convolution. 
+Its core component is the \textbf{\textit{self-attention layer}}, which models long-range interactions between elements of a sequence. 
+Given input embeddings $X$, the model computes query, key, and value matrices $Q = XW^Q$, $K = XW^K$, and $V = XW^V$, where $W^Q$, $W^K$, and $W^V$ are learnable projections respectively. 
+The self-attention operation is defined as:
+\begin{equation}
+    \mathrm{Attention}(Q, K, V) = 
+    \mathrm{softmax}\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V,
+\end{equation}
+where $d_k$ is the dimensionality of the key vectors.
+
+To enhance representational capacity, transformers employ 
+\textbf{\textit{multi-head attention}}, which performs several attention operations
+in parallel:
+\begin{equation}
+    \mathrm{MultiHead}(Q,K,V) = 
+    \mathrm{Concat}(\mathrm{head}_1,\dots,\mathrm{head}_h)\, W^O,
+\end{equation}
+where each head computes self-attention using its own learnable
+projections:
+\begin{equation}
+    \mathrm{head}_i = 
+    \mathrm{Attention}(QW_i^{Q},\, KW_i^{K},\, VW_i^{V}),
+\end{equation}
+with parameter matrices 
+$W_i^{Q} \in \mathbb{R}^{d_{\text{model}} \times d_k}$,
+$W_i^{K} \in \mathbb{R}^{d_{\text{model}} \times d_k}$, and 
+$W_i^{V} \in \mathbb{R}^{d_{\text{model}} \times d_v}$.
+The output projection 
+\begin{equation}
+    W^O \in \mathbb{R}^{h d_v \times d_{\text{model}}},
+\end{equation}
+mixes information across all $h$ heads and restores the dimensionality back to 
+$d_{\text{model}}$.
+
+
+Originally developed for natural language processing, transformer-based models have since been adapted to computer vision (e.g., ViT~\cite{Dosovitskiy2020ViT}, Swin Transformer~\cite{Liu2021Swin}) and to a variety of multimodal learning settings.
+In text-guided medical image segmentation, transformers are commonly used either as text encoders or as fusion modules, where cross-attention integrates semantic cues from textual descriptions with spatial image representations.
+This capacity to incorporate global contextual information makes transformers particularly suitable for multimodal medical tasks, although their performance often depends on the availability of sufficiently large and diverse training datasets.
+
+\section{Graph Neural Networks}
+Graph Neural Networks (GNNs)~\cite{Scarselli2008GNN} provide a principled framework for learning on
+non-Euclidean data such as meshes, surfaces, and general irregular structures.
+In contrast to convolutional architectures that operate on grids, GNNs propagate
+information along graph edges, enabling feature integration across anatomically
+or structurally meaningful neighborhoods. Most modern GNNs follow the 
+\textit{message-passing} formulation~\cite{Gilmer2017MessagePassing}, where node 
+representations are iteratively updated by aggregating features from adjacent 
+nodes. For a node $v$ with neighborhood $\mathcal{N}(v)$ and current features 
+$h_v$, the generic message-passing layer is expressed as:
+\begin{equation}
+    m_v = \mathrm{AGG}\bigl(\{\, \phi(h_v, h_u, e_{uv}) 
+    : u \in \mathcal{N}(v) \,\}\bigr),
+\end{equation}
+\begin{equation}
+    h_v' = \gamma(h_v, m_v),
+\end{equation}
+where $\phi$ computes messages from neighbors, 
+$\mathrm{AGG}$ is a permutation-invariant aggregation function 
+(e.g., mean, sum, max), and $\gamma$ is an update function 
+(often implemented as an MLP). 
+Different GNN architectures instantiate these components in distinct ways. 
+For example, Graph Convolutional Networks (GCN)~\cite{Kipf2017GCN} use a 
+normalized mean aggregator,
+while GraphSAGE~\cite{Hamilton2017GraphSAGE} generalizes aggregation through 
+mean, pooling, or LSTM-based operators, enabling inductive learning on unseen 
+graphs.
+
+Hierarchical GNN architectures extend this idea to multi-resolution settings,
+analogous to U-Net models~\cite{Ronneberger2015UNet} in Euclidean domains. 
+They downsample and upsample graphs using pooling/unpooling operators, which
+enables coarse-to-fine feature extraction on complex surfaces. 
+This paradigm is particularly relevant for cortical-surface analysis, where the 
+brain can be represented as a multi-resolution mesh.  
+Notably, the MELD Graph model~\cite{Ripart2025MELD} employs a GNN-U-Net 
+architecture built on multi-resolution cortical graphs and has demonstrated that
+graph-based convolutions are effective for detecting subtle morphological 
+abnormalities associated with focal cortical dysplasia (FCD). 
+In this thesis, we build upon these principles to integrate cortical surface 
+features with textual clinical information, enabling multimodal segmentation 
+within a unified GNN-based framework.
+
+\section{Large Language Models}
+Large Language Models (LLMs) are transformer-based architectures trained on 
+large text corpora to learn contextual semantic representations. 
+Given a sequence of token embeddings $X = (x_1,\dots,x_T)$, an LLM encoder 
+produces hidden states
+\begin{equation}
+    H = (h_1, \dots, h_T),
+\end{equation}
+where each vector $h_i$ is a context-dependent representation of token $x_i$.
+This means that $h_i$ is computed not only from the embedding of $x_i$ itself 
+but also from information coming from other tokens in the sequence, which is 
+achieved by the self-attention mechanism.
+
+LLMs are typically trained using one of two objectives.
+In \textit{causal} language modeling (used in GPT-style models), the model 
+predicts the next token based on the previously observed ones:
+\begin{equation}
+    p(x_{i+1} \mid x_1,\dots,x_i) = \mathrm{softmax}(W^O h_i).
+\end{equation}
+In \textit{masked} language modeling (MLM), employed by BERT-style encoders, 
+randomly selected tokens are masked and reconstructed from the surrounding 
+context:
+\begin{equation}
+    p(x_i \mid X_{\setminus i}) = \mathrm{softmax}(W^O h_i),
+\end{equation}
+where $X_{\setminus i}$ denotes the input sequence with token $x_i$ masked.
+
+LLMs trained with these objectives produce rich, high-level semantic embeddings 
+that capture lexical, syntactic, and domain-specific patterns in text. 
+In medical imaging, domain-adapted LLMs such as BioBERT~\cite{Lee2019BioBERT} 
+provide contextual text embeddings that can guide segmentation models through 
+cross-attention or contrastive alignment, improving robustness and interpretability 
+in multimodal medical applications.
+
+\section{State-of-the-Art Methods}
 Early work on \ac{fcd} detection focused exclusively on vision-based methods~\cite{Durgam2025LungCancer, Abdusalomov2023BrainTumor, Sharma2025KidneyCT, Mehmood2025BreastCancer}. 
 It is noteworthy that one of the newest models, the \ac{meld} Graph~\cite{Ripart2025MELD}, represents the surface of the cerebral cortex as a graph with multiple resolutions and applies a \ac{gnn}-U-Net to segment lesions. It provides high 
 sensitivity and specificity by identifying characteristic peaks (more than 20\% in saliency) and determining calibration reliability using the expected 
@@ -20,7 +137,7 @@ More recent approaches~\cite{Lee2023TextGuided, Zhong2023Ariadne} employ deep pr
 In~\cite{Li2024LGMSeg}, the authors introduce two novel modules: the Target-sensitive Semantic Distance Module (TSDM), 
 which computes contrastive distances between segmentation masks to focus on disease-related regions, 
 and the Language-guided Target Enhancement Module (LTEM), which applies cross-attention to reinforce critical image areas. 
-A bi-directional contrastive loss (averaged cross-entropy in both image $\rightarrow$ text and text $\rightarrow$ image directions) yields more fine-grained guidance 
+A bi-directional contrastive loss (averaged cross-entropy in both ``image $\rightarrow$ text'' and ``text $\rightarrow$ image'' directions) yields more fine-grained guidance 
 and enables models trained on 25\% of the data to outperform single-modal baselines trained on full datasets. 
 However, these improvements come at the cost of higher architectural complexity and a strong reliance on high-quality textual annotations, 
 which may limit robustness and generalizability in real-world clinical settings.
@@ -52,15 +169,9 @@ highlighting the potential of multimodal prompting in low-data regimes. For our 
 Graph model as a pretrained backbone, since it was trained on the largest dataset among the methods surveyed, 
 providing a robust basis for feature extraction and downstream adaptation.
 
-To the best of our knowledge, no prior study has applied text-guided segmentation methods to the \ac{fcd} detection 
-task, underscoring the novelty of our approach. In summary, while graph-based GNNs excel at modeling cortical 
-geometry and text-guided methods enrich segmentation with semantic context, no existing approach simultaneously 
-addresses surface-space lesion detection, integration of fine-grained clinical narratives, robustness to scanner-induced 
-domain shifts, and zero-shot generalization to unseen FCD subtypes. In this work, we aim to demonstrate that incorporating 
-textual information is also beneficial for the \ac{fcd} detection task. To this end, we integrate different types of text 
-descriptions derived from anatomical atlases with vision-based features into a multi-resolution GNN framework, using 
-cross-attention fusion and contrastive alignment to enhance robustness and detection accuracy across heterogeneous datasets.
-
+As far as we know, no prior work has applied text-guided segmentation to the \ac{fcd} detection task, underscoring the novelty of our approach. 
+In this work, we demonstrate that incorporating textual information benefits \ac{fcd} detection. 
+To this end, we integrate atlas-derived textual descriptions with visual features in a multi-resolution GNN framework, using cross-attention fusion and contrastive alignment to improve robustness and detection accuracy across heterogeneous datasets.
 
 \end{document}
 

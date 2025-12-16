@@ -4,111 +4,17 @@
 \chapter{Experiments}
 \label{chapter:Experiments}
 
-We investigate three factors: (i) how many \ac{meld} feature \emph{stages} are fed into the GNN block; (ii) how many hidden layers from the text encoder are injected into the GuideDecoder; and (iii) the effect of including textual descriptions. 
+This chapter consists of several components. We begin by outlining key implementation 
+details of the proposed model, followed by a description of the web interface developed 
+to facilitate interaction with the different model variants. Finally, we present a series 
+of experiments, including systematic ablation studies and an analysis of how various design 
+choices influence model performance on both the main training cohort and an independent 
+validation dataset.
 
-% We freeze the \ac{meld} backbone. In all variants, we \emph{train} the same geometry-based upsampling path
-% (HexUnpool + SpiralConv) and the segmentation head. The variants differ only in whether and how
-% the GuideDecoder is used before upsampling:
-
-% \begin{enumerate}
-%   \item \textbf{Unpool+Spiral (no text).} No GuideDecoder is used; features are fed directly into the
-%         upsampling path (HexUnpool + SpiralConv) and the segmentation head; no textual input.
-%   \item \textbf{GuideDecoder (self-attention only).} A GuideDecoder layer is inserted before upsampling,
-%         but the text branch is disabled, so only self-attention operates; the same Unpool+Spiral path and
-%         segmentation head are trained.
-%   \item \textbf{GuideDecoder + Text (full).} The full GuideDecoder is used (self-attention plus
-%         cross-attention to the text encoder); textual descriptions are provided, while the same
-%         Unpool+Spiral path and segmentation head are trained.
-% \end{enumerate}
-
-\section{Loss function}
-Following best practices for medical image segmentation and to ensure a fair comparison with the \ac{meld} model, we employed a composite loss. The loss function is defined as
-\begin{equation}
-L = L_{ce} + L_{dice} + L_{dist} + L_{class} + \sum_{i \in I_{ds}} w^i_{ds} \cdot (L^i_{ce} + L^i_{dice} + L^i_{dist})\,
-\end{equation}
-\par\noindent
-The individual components are detailed below. Compared to the \ac{meld} formulation, we replaced the cross-entropy term with Focal Loss in order to mitigate class imbalance between lesional and non-lesional vertices.
-
-\subsection{Cross-Entropy Loss}
-For the segmentation task, we employ the binary cross-entropy loss, which is commonly used in medical image segmentation. Here, $y_i$ denotes the ground-truth label, $\hat{y}_i$ the predicted probability, and $n$ the number of vertices:
-\[
-L_{ce} = - \frac{1}{n} \sum_{i=1}^{n} 
-\left[ y_i \log(\hat{y}_i) + (1-y_i)\log(1-\hat{y}_i) \right].
-\]
-
-% \subsection{Focal Loss}
-% The Focal Loss $L_{foc}$ introduces a modulating factor $(1-\hat{y}_i)^\gamma$ to down-weight easy examples and focus training on harder or misclassified samples. Formally, for ground-truth label $y_i \in \{0,1\}$ and predicted probability $\hat{y}_i$, the focal loss is:
-% \[
-% L_{foc} = - \frac{1}{n} \sum_{i=1}^{n} \alpha \, (1-\hat{y}_i)^\gamma \, y_i \log(\hat{y}_i) + (1-\alpha) \, \hat{y}_i^\gamma \, (1-y_i) \log(1-\hat{y}_i),
-% \]
-
-\subsection{Dice Loss}
-The Dice Loss $L_{dice}$ directly optimizes for the overlap between predicted and ground-truth lesion masks. This loss is less sensitive to class imbalance and encourages the network to predict coherent lesion regions. It is defined as
-\[
-L_{dice} = 1 - \frac{2 \sum_{i=1}^n y_i \hat{y}_i}{\sum_{i=1}^n y_i^2 + \sum_{i=1}^n \hat{y}_i^2 + \epsilon}
-\]
-
-It is important to note that we considered two different implementations of this loss. 
-In the \href{https://docs.monai.io/en/stable/losses.html}{MONAI library}, the Dice score is calculated for each sample and then averaged over the batch (macro-average), 
-whereas in the MELD implementation the aggregation is performed immediately over the entire batch (micro-average). 
-Under strong class imbalance between background and lesion voxels, the micro-averaged version shifts the loss contribution towards the background, 
-which reduces the gradient signal for rare lesions and leads to training instability. 
-For this reason, we used the MONAI implementation, which provided higher metric values and enabled the model to detect more \ac{fcd}s.
-\subsection{Distance Loss}
-To provide the network with additional contextual information and reduce false positives, we include a distance regression loss $L_{dist}$. The model is trained to predict the normalized geodesic distance $d_i$ of each vertex to the lesion boundary. We use a mean absolute error weighted by $(d_i+1)^{-1}$, so that errors near the lesion boundary are penalized more strongly than errors in distant non-lesional regions:
-\[
-L_{dist} = \frac{1}{n} \sum_{i=1}^{n} \frac{|d_i - \hat{y}_{i,0}|}{d_i + 1}.
-\]
-
-\subsection{Classification Loss}
-And in the last case, we add a weakly-supervised classification head to mitigate the uncertainty between lesion masks and actual lesions. Each subject is labeled as positive if any vertex belongs to a lesion. The classification head aggregates features across the deepest level (level 1) and predicts a subject-level label $\hat{c}$. The classification loss is then computed as binary cross-entropy:
-\[
-L_{class} = - \sum_{i=1}^{n} c_i \log(\hat{c}_i) + (1-c_i)\log(1-\hat{c}_i).
-\]
-
-\subsection{Deep Supervision}
-To encourage gradient flow and stabilize training, we adopt deep supervision at intermediate decoder levels $I_{ds} = \{6,5,4,3,2,1\}$. At each level $i$, auxiliary predictions are generated and the same combination of focal, dice, and distance losses is applied. These auxiliary losses are weighted by $w^i_{ds}$ and added to the total objective:
-\[
-\sum_{i \in I_{ds}} w^i_{ds}(L^i_{foc} + L^i_{dice} + L^i_{dist}).
-\]
-% This strategy ensures that meaningful supervision is propagated to early layers of the network, improving convergence and overall segmentation accuracy.
-
-\bigskip
-% In summary, our loss function combines focal and dice terms for accurate and robust segmentation, a distance regression loss for boundary-awareness, a weakly-supervised classification loss for subject-level consistency, and deep supervision for effective optimization across the entire U-Net.
-
-\section{Metrics}
-For evaluating the performance of the model we used several commonly applied metrics in medical image 
-analysis: Dice score, \ac{ppv}, \ac{iou}, and Accuracy.  
-Below we briefly describe each of them.
-
-\subsection{Dice score} 
-The Dice similarity coefficient (DSC) is defined as the harmonic mean between precision and recall. 
-For two sets of predicted positives $P$ and ground truth positives $G$, it is given by
-\[
-\mathrm{Dice}(P,G) = \frac{2 \, |P \cap G|}{|P| + |G|} = \frac{2TP}{2TP + FP + FN},
-\]
-where $TP$, $FP$ and $FN$ denote true positives, false positives and false negatives, respectively.
-
-\subsection{Positive Predictive Value} 
-Also known as precision, \ac{ppv} measures the proportion of correctly identified positive samples among all predicted positives:
-\[
-\mathrm{PPV} = \frac{TP}{TP + FP}.
-\]
-
-\subsection{Intersection over Union} 
-The \ac{iou} (also called the Jaccard index) quantifies the overlap between predicted and ground truth labels:
-\[
-\mathrm{IoU}(P,G) = \frac{|P \cap G|}{|P \cup G|} = \frac{TP}{TP + FP + FN}.
-\]
-
-% \subsection{Accuracy} 
-% Accuracy measures the proportion of correctly classified samples among all samples:
-% \[
-% \mathrm{ACC} = \frac{TP + TN}{TP + TN + FP + FN},
-% \]
-% where $TN$ denotes the number of true negatives.
 
 \section{Implementation Details}
+In this work, we aimed to use the same training parameters as the MELD authors 
+to ensure a fair and consistent comparison.
 The proporsed framework was trained with the following hyperparameters. 
 The training batch size was fixed at 8 and the validation batch size at 4. 
 The initial learning rate was set to $3 \times 10^{-4}$ and optimized using 
@@ -121,557 +27,2061 @@ For evaluation, we trained an ensemble of five independently initialized models 
 At test time, we averaged their per-vertex predictions to form the final output.  
 
 The model integrated surface-based graph features and contextual text embeddings. 
-Feature channel dimensions across the encoder stages were \\
+Feature channel dimensions across the encoder stages were
 $[32,32,64,64,128,128,256]$, 
-with corresponding text sequence lengths \\
+with corresponding text sequence lengths
 $[128,64,64,32,32,16,16]$, 
 and a maximum text length of 256~tokens. 
 Deep supervision was employed with levels 
 $I_{ds} = [6,5,4,3,2,1]$ 
 and associated weights \\
-$w_{ds} = [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.0150765]$. 
+$w_{ds} = [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.0150765]$~\cite{Ripart2025MELD}. 
 The text encoder was initialized from RadBERT, 
 with a projection dimension of 768.  
 
 To address class imbalances, non-lesional hemispheres were undersampled, 
 ensuring that approximately one third of training examples contained a lesion. 
-Data augmentation strategies included random flipping ($p=0.5$), 
-Gaussian blur ($p=0.2$), spinning and warping ($p=0.2$ each), 
-brightness, contrast, gamma correction and Gaussian noise ($p=0.15$ each), 
-and low-resolution simulation ($p=0.25$).
-
-\subsection{Hardware} 
+Data augmentation strategies included: 
+% random flipping ($p=0.5$), 
+% Gaussian blur ($p=0.2$), spinning and warping ($p=0.2$ each), 
+% brightness, contrast, gamma correction and Gaussian noise ($p=0.15$ each), 
+% and low-resolution simulation ($p=0.25$).
+\begin{table}[H]
+\centering
+\caption{Data augmentation strategies applied during training~\cite{Ripart2025MELD}.}
+\begin{tabular}{ll}
+    \toprule
+    \textbf{Transformation} & \textbf{Probability} \\
+    \midrule
+    Random flipping & 0.5 \\
+    Gaussian blur & 0.2 \\
+    Spinning & 0.2 \\
+    Warping & 0.2 \\
+    Brightness/contrast/gamma & 0.15 each \\
+    Gaussian noise & 0.15 \\
+    Low-resolution simulation & 0.25 \\
+    \bottomrule
+\end{tabular}
+\end{table}
+    
+\subsection*{Hardware} 
 All experiments were performed on the \emph{Bender} high-performance computing cluster at the University of Bonn, 
 equipped with NVIDIA A100 GPUs (80~GiB each) and AMD EPYC CPUs. 
 A detailed description of the system can be found in the official documentation\footnote{\url{https://www.hpc.uni-bonn.de/en/systems/bender}}. 
 Our implementation used PyTorch~2.1.0+cu121, TorchVision~0.16.0+cu121, TorchAudio~2.1.0+cu121, Torch Geometric~2.5.3, Torch Scatter~2.1.2, 
 TorchMetrics~0.11.4, and Python~3.9.18.  
 
-\section{Basic Experiments}
-Before tuning various hyperparameters such as the number of text connections in the GuideDecoder or the number of unfrozen layers in the LLM, it is essential to first determine the best-performing base model for further experiments. This step saves time and resources by first identifying the most promising model.
-  
+\section{Web Interface}
+To make it easier to use different pretrained models, we developed a web interface that offers an accessible and intuitive way for users to interact with the lesion detection system.
 
-We freeze the \ac{meld} backbone and unfreeze the last three layers of RadBERT.
-In all variants, we \emph{train} the same geometry-based upsampling path
-(HexUnpool + SpiralConv) and the segmentation head. The experiments differ only in whether and how the GuideDecoder is used before upsampling, and whether textual features are included.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/photo_1.png}
+    \caption{Main page of the web interface with a brief project description and navigation buttons.}
+\end{figure}
+
+The main page presents a brief overview of the project and includes navigation controls that let users explore the documentation or move on to the prediction page for processing a specific patient.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/photo_2.png}
+    \caption{Upload page where the user selects a model, adds a description, and uploads an HDF5 file for analysis. 
+    \textit{Note: the current prototype accepts only a single HDF5 file.}}
+
+\end{figure}
+
+The workflow begins on the upload page, where the user selects one of the trained models, optionally adds a short textual description, and uploads an HDF5 file for analysis. The current prototype supports the upload of a single HDF5 file at a time.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{pictures/photo_3.png}
+    \caption{Dropdown menu for selecting among trained models.}
+
+\end{figure}
+
+To support different use cases and experimental settings, the interface includes a model selection menu listing all available trained variants. 
+These include the baseline MELD model, two vision-only architectures (Exp1 and Exp2) with minor architectural differences, and the multimodal Exp3 model trained on various textual inputs. 
+Each option is accompanied by a short explanation—similar in style to modern LLM model pickers -- helping users choose between faster or more accurate configurations.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{pictures/photo_4.png}
+    \caption{Example of a successfully uploaded file ready for processing.}
+\end{figure}
+
+Once a file is uploaded successfully, the interface confirms that the case is ready for processing and allows the user to initiate inference. After the prediction is complete, the results page displays the detected lesion regions and provides two export formats: PNG images for quick visual inspection and NIfTI volumes for more advanced analysis in 3D medical imaging software. This enables both general users and developers to efficiently inspect, validate, and further process the model outputs.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{pictures/photo_5.png}
+    \caption{Prediction result with detected lesion regions, with download options for PNG (for general users) and NIfTI (for developers; viewable in 3D medical imaging tools for further analysis).}
+
+\end{figure}
+
+\section{Basic Experiments}
+To systematically assess the contribution of each component of the proposed multimodal architecture, we gradually enabled individual modules of the decoder — geometry-based upsampling, self-attention, and finally text-conditioned cross-attention.
+This stepwise experimental design allows isolating the effect of textual guidance and ensuring that any improvement in lesion detection quality can be attributed to a specific architectural modification rather than confounding changes.
+% Before tuning various hyperparameters such as the number of text connections in the GuideDecoder, the number of unfrozen layers in the LLM (left for future experiments), and the number of connections to the GNN block, it is essential to first identify the best-performing base model to avoid unnecessary experiments and save time.
+
+In all options, we freezed both encoders: the visual encoder (the \textbf{MELD} backbone) and the text encoder. 
+Although \textbf{RadBERT} was used as the initial language model during the early stages of this work, simply because it was the first domain-specific model that integrated well into the pipeline, the choice of text encoder was later examined more systematically. 
+After observing that textual signals substantially influence lesion detection quality, we conducted an additional study comparing several biomedical and radiology-oriented language models (e.g., BlueBERT, PubMedBERT). 
+This analysis (see Appendix~\nameref{sec:semantic_analysis}) motivated the inclusion of multiple text-encoder variants in the experimental section.
+
+Across all variants, the geometry-based upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and the final segmentation head are always trained, while the encoders remain frozen (Fig.~\ref{fig:basic_model}). 
+The experimental variants differ only in (i) whether the \texttt{GuideDecoder} is inserted before the upsampling path and (ii) which textual features are incorporated. 
+The pretrained \texttt{Exp1} model (described below) is used to initialize the decoder for all variants except the MELD-only baseline, which is trained from scratch.
+
 
 We consider the following configurations:
 
 \begin{itemize}
-\item \textbf{MELD} serves as the baseline.
-\item \textbf{Exp1 (Unpool+Spiral, no text).} No GuideDecoder is used; features are fed directly into the upsampling path (HexUnpool + SpiralConv) and the segmentation head; no textual input.
-\item \textbf{Exp2 (GuideDecoder, self-attention only).} A GuideDecoder layer is inserted before upsampling, but the text branch is disabled, so only self-attention operates; the same Unpool+Spiral path and segmentation head are trained.
-\item \textbf{Exp3\_full (GuideDecoder + Text).} The full GuideDecoder is used (self-attention plus cross-attention to the text encoder); textual descriptions are provided using complete Atlas annotations.
-\item \textbf{Exp3\_hemi+lobe (GuideDecoder + Text).} Same as Exp3\_full, but Atlas descriptions are reduced to hemisphere and lobe names.
-\item \textbf{Test2 (GuideDecoder + Text).} Same as Exp3\_hemi+lobe, but the decoder is initialized from Exp1 and unfrozen from the first epoch.
-\item \textbf{Test3 (GuideDecoder + Text).} Same as Exp3\_hemi+lobe, but the decoder is initialized from Exp1 and unfrozen only after 10 epochs.
+    \item \textbf{MELD.} Serves as the baseline model.
+
+    \item \textbf{Exp1 (Unpool + Spiral, no text).}
+    In this setting, the self- and cross-attention mechanisms of the \texttt{GuideDecoder} are disabled,
+    while the remaining reshaping and upsampling components are kept (see Fig.~\ref{fig:exp1_arch}).
+    The vision features from the MELD encoder are reshaped and passed directly into the geometry-based
+    upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and then to the segmentation head.
+    No textual input is used in this variant, so the model relies purely on image-derived features.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\textwidth]{pictures/BasicModelExp1.png}
+        \caption{Architecture of Exp1: the text branch and the self-/cross-attention modules in the \texttt{GuideDecoder} are disabled, and MELD vision features are fed directly into the geometry-based upsampling path and segmentation head.}
+        \label{fig:exp1_arch}
+    \end{figure}
+
+    \item \textbf{Exp2 (GuideDecoder: self-attention only).} 
+
+    A stack of \texttt{GuideDecoder} blocks is inserted into the decoder before each upsampling stage. 
+    Since the MELD U-Net decoder has a depth of 7 (i.e., 6 upsampling levels), we include 
+    six \texttt{GuideDecoder} blocks at stages D6–D1, from the coarsest to the finest resolution. 
+    The upsampling path and segmentation head remain identical to Exp1. 
+    In this experiment the text branch is disabled, so each \texttt{GuideDecoder} performs only 
+    self-attention–based refinement of the visual features before they are upsampled 
+    (see Fig.~\ref{fig:exp2_arch}).
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\textwidth]{pictures/BasicModelExp2.png}
+        \caption{Architecture of Exp2: each \texttt{GuideDecoder} block contains a self-attention head, while the text branch remains disabled.}
+        \label{fig:exp2_arch}
+    \end{figure}
+    
+    \item \textbf{Exp3 (GuideDecoder + Text).} 
+    The full \texttt{GuideDecoder}, incorporating self-attention on image tokens and cross-modal attention between image and text embeddings, is used (see Fig.~\ref{fig:basic_model}). The only difference across variants is the textual conditioning:
+    \begin{itemize}
+        \item \emph{full} (complete Atlas annotations): \textit{48.86\% Left Middle Frontal Gyrus; 30.63\% Left Precentral Gyrus; 20.51\% Left Superior Frontal Gyrus}
+    \item \emph{hemi} (hemisphere only): \textit{Left Hemisphere} ; 
+    \item \emph{lobe\_regions} (lobe regions only): \textit{Left Middle Frontal Gyrus; Precentral Gyrus; Superior Frontal Gyrus};
+    % \emph{lobe} (general lobe name only),
+    \item \emph{hemi+lobe\_regions} (hemisphere + lobe regions): \textit{Left Hemisphere; Middle Frontal Gyrus; Precentral Gyrus; Superior Frontal Gyrus} ;
+    \item \emph{hemi+lobe} (hemisphere + lobe): \textit{Left Hemisphere; Frontal lobe}.
+    \end{itemize}
+    
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=\textwidth]{pictures/BasicModelExp3.png}
+        \caption{Architecture of Exp3: the full \texttt{GuideDecoder} is used, incorporating both self-attention on visual tokens and cross-attention between visual features and text embeddings.}
+        \label{fig:basic_model}
+    \end{figure}
+
+    \item \textbf{Exp3\_mixed (GuideDecoder + Text).} 
+    Same as \textbf{Exp3}, but Atlas descriptions were randomly sampled from one of 
+\{\emph{hemisphere only}, \emph{lobe\_regions only}, \emph{hemisphere + lobe\_regions}, \emph{full text}, \emph{no text}\}.
+
+For each subject, we first generated a full Atlas-based description and then derived all partial textual variants. 
+During training, a single variant was randomly selected at every data loading step, 
+so that the same subject could appear with different textual inputs across epochs, 
+while the visual augmentations remained fixed.
 \end{itemize}
 
-The last two variants were introduced to investigate the impact of using a pre-trained decoder on overall performance. They were applied to the \texttt{Exp3\_hemi+lobe} model, since later analysis will demonstrate that this variant provides the most consistent balance across metrics.
+\subsection*{Main cohort}
 
-It is important to note that all experiments in this section were conducted \textbf{without} lesion–mask augmentation, flipping, warping, or spinning. Since some augmentations were found to substantially degrade performance, results with augmentation will be presented in the following chapters.
-  
-In both tables, the best results are highlighted in green, the second-best in blue, and the third-best in orange.
+Table~\ref{tab:main_cohort} presents the median performance on the main cohort (i.e., data from the same distribution as used during training).
 
-\paragraph{Main cohort}
+In the RadBERT group, defined as all variants using the default RadBERT language encoder 
+(without alternative LLMs such as BlueBERT or PubMedBERT), the prompt combining 
+\textit{hemisphere and lobe-region} terms detected the most lesions, though with only slightly higher Dice, PPV$_\text{pixels}$, and IoU.
+Across all models, the PubMedBERT variant achieved the highest number of detected lesions, likely due 
+to better domain-context understanding (see Table~\ref{tab:cosine_similarity_models} in the Appendix). 
+This clearly demonstrates that selecting an appropriate language model can materially improve 
+performance, underscoring the substantial impact of the language encoder.
 
-\begin{table}[ht]
+\begin{table}[H]
+    \tiny
+    \centering
+    \begin{threeparttable}
+    \caption{Median performance on the main cohort (with 95\% confidence intervals).}
+    \label{tab:main_cohort}
+    \begin{tabular}{lccccccc}
+    \textbf{Model} &
+    \textbf{Dice} &
+    \makecell{\textbf{PPV}\\\textbf{pixels}} &
+    \makecell{\textbf{(mean)} \\\textbf{PPV} \\\textbf{clusters}} & \makecell{\textbf{(median)} \\\textbf{PPV} \\\textbf{clusters}} & 
+    \textbf{IoU} & 
+    \textbf{\makecell{Specificity, \% \\ (N = 193)}} &
+    \textbf{\makecell{Sensitivity, \% \\ (N = 259)}} \\
+    \midrule
+    MELD &
+    \makecell{0.230\\(0.107--0.320)} &
+    \makecell{0.166\\(0.086--0.220)} &
+    \colorbox{green!15}{0.515} &
+    \makecell{1.000 \\ (1.000-1.000)} &
+    \makecell{0.130\\(0.057--0.190)} &
+    \makecell{58 (n=112) \\ (51.3--64.8)}&
+    \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
+    \hline
+    Exp1 &
+    \makecell{0.238\\(0.125--0.313)} &
+    \makecell{0.198\\(0.130--0.318)} &
+    0.361 &
+    \makecell{1.000 \\ (0.500-1.000)} &
+    \makecell{0.135\\(0.066--0.186)} &
+    \makecell{31.1 (n=60) \\ (24.9--37.8)} &
+    \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
+    \hline
+    Exp2 &
+    \makecell{\colorbox{cyan!15}{0.256} \\ (0.125--0.326)} &
+    \makecell{0.204\\ (0.122--0.322)} &
+    0.333 &
+    \makecell{1.000 \\ (0.500-1.000)} &
+    \makecell{\colorbox{cyan!15}{0.147}\\ (0.067--0.195)} &
+    \makecell{24.9 (n=48) \\ (19.2--31.1)} &
+    \makecell{70.7 (n=183) \\ (65.3--76.1)} \\
+    \hline
+    Exp3: hemi &
+    \makecell{0.231\\(0.148--0.285)} &
+    \makecell{0.188\\(0.131--0.298)} &
+    \colorbox{cyan!15}{0.483} &
+    \makecell{0.667 \\ (0.500-1.000)} &
+    \makecell{0.131\\(0.080--0.166)} &
+    \makecell{\colorbox{green!15}{100.0 (n=193)} \\ (100.0--100.0)} &
+    \makecell{71.0 (n=184) \\ (65.6--76.4)} \\
+    \hline
+    Exp3: lobe\_regions &
+    \makecell{\colorbox{orange!15}{0.254}\\(0.159--0.332)} &
+    \makecell{0.231\\(0.168--0.320)} &
+    0.404 &
+    \makecell{0.667 \\ (0.500-1.000)} &
+    \makecell{\colorbox{orange!15}{0.145}\\(0.086--0.199)} &
+    \makecell{\colorbox{green!15}{100.0 (n=193)} \\ (100.0--100.0)} &
+    \makecell{\colorbox{orange!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
+    \hline
+    Exp3: \makecell{hemi +\\ lobe\_regions} &
+    \makecell{\colorbox{green!15}{0.264}\\(0.180--0.342)} &
+    \makecell{\colorbox{orange!15}{0.238}\\(0.160--0.327)} &
+    0.333 &
+    \makecell{0.500 \\ (0.500-1.000)} &
+    \makecell{\colorbox{green!15}{0.152}\\(0.099--0.206)} &
+    \makecell{\colorbox{cyan!15}{99.5 (n=192)} \\ (98.4--100.0)} & 
+    \makecell{\colorbox{cyan!15}{74.5 (n=193)} \\ (69.1--79.9) } \\
+    \hline
+    Exp3: hemi + lobe &
+    \makecell{0.239\\(0.113--0.302)} &
+    \makecell{\colorbox{cyan!15}{0.242}\\(0.166--0.353)} &
+    0.456 &
+    \makecell{0.667 \\ (0.500-1.000)} &
+    \makecell{0.136\\(0.060--0.178)} &
+    \makecell{\colorbox{cyan!15}{99.5 (n=192)} \\ (98.4--100.0)} & 
+    \makecell{71.4 (n=185) \\ (66.0--76.8)} \\
+    \hline
+    Exp3: \makecell{hemi + lobe + \\ BlueBERT} &
+    \makecell{0.230\\(0.125--0.305)} &
+    \makecell{0.231\\(0.146--0.330)} &
+    0.443 &
+    \makecell{0.667 \\ (0.500-1.000)} &
+    \makecell{0.130\\(0.067--0.180)} &
+    \makecell{\colorbox{orange!15}{99.0 (n=191)} \\ (97.4--100.0)} &
+    \makecell{71.8 (n=186) \\ (66.4--77.2)} \\
+    \hline
+    Exp3: \makecell{hemi + lobe + \\ PubmedBERT} &
+    \makecell{0.233\\(0.139--0.330)} &
+    \makecell{\colorbox{cyan!15}{0.242}\\(0.153--0.342)} &
+    0.334 &
+    \makecell{0.500 \\ (0.500-0.667)} &
+    \makecell{0.132\\(0.074--0.198)} &
+    \makecell{\colorbox{green!15}{100.0 (n=193)} \\ (100.0--100.0)} &
+    \makecell{\colorbox{green!15}{76.4 (n=198)} \\ (71.4--81.5)} \\
+    \hline
+    Exp3: full\_desc &
+    \makecell{0.246\\(0.145--0.330)} &
+    \makecell{\colorbox{green!15}{0.259}\\(0.178--0.360)} &
+    \colorbox{orange!15}{0.478} &
+    \makecell{0.667 \\ (0.500-1.000)} &
+    \makecell{0.141\\(0.078--0.197)} &
+    \makecell{94.3 (n=182) \\ (90.7--97.4)} &
+    \makecell{\colorbox{orange!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
+    
+    \bottomrule
+    \end{tabular}
+    
+    \begin{tablenotes}[flushleft]
+    \footnotesize
+    \item \textit{Note.} Colors denote rank within each column:
+    \colorbox{green!15}{best}, \colorbox{cyan!15}{second}, \colorbox{orange!15}{third}.
+    \item \textit{Exp labels.} \textbf{Exp3: hemi} -- hemisphere conditioning; 
+    \textbf{lobe\_regions} -- lobe- and region-level prompts; 
+    \textbf{hemi+lobe} -- hemisphere + coarse lobe name; 
+    \textbf{hemi+lobe+BlueBERT} -- same as previous but with BlueBERT instead of RadBERT; 
+    \textbf{full\_desc} -- full free-text description; 
+    \textbf{Exp1} and \textbf{Exp2} are ablation baselines.
+    \end{tablenotes}
+    
+    \end{threeparttable}
+    
+\end{table}
+
+In real-world settings, detailed subregion information may be unavailable. 
+We therefore evaluated prompts with only general \textit{lobe names} (e.g., \textit{Frontal lobe}, \textit{Temporal lobe}, \textit{Insular lobe}). 
+For the RadBERT-based models, performance was very close to the \textit{hemi + lobe\_regions} setup: Dice decreased by $\sim$2.5\%, PPV\_{pixels} by $\sim$0.4\%, IoU by $\sim$1.6\%, and only \textbf{8} fewer lesions were detected. 
+Likewise, using only \textit{hemisphere} descriptions yielded results close to \textit{hemi + lobe}, indicating that even a minimal textual prompt can help identify additional lesion regions.
+
+Also, when using the full textual description (e.g., ``52.34\% Right Frontal Orbital Cortex; 26.06\% Right Frontal Pole; 15.50\% Right Subcallosal Cortex''), the model performed worse than \textit{hemi + lobe\_regions}. 
+One possible reason is the presence of redundant information, such as percentage overlaps of regions, which may not contribute to the prediction task. 
+Since RadBERT was trained on radiology reports, it may not benefit from such structured numeric content. 
+For comparison, we also tested PubMedBERT, which was trained on a larger corpus of brain scan–related 
+reports. Although its quality metrics were slightly lower than those of the \textit{hemi + lobe} 
+configuration with RadBERT, it nevertheless detected \textbf{13 additional lesion clusters}.
+    
+We also report specificity, defined as the proportion of healthy patients with no predicted clusters. 
+Across all \textit{Exp3 models}, specificity was $\sim$36--42\% higher than that of MELD. 
+This indicates that the text-conditioned models distinguish healthy from non-healthy cases substantially better.
+
+% Throughout this section, we did not focus on PPV$_{\text{clusters}}$, the primary metric in the original MELD study. 
+% As Table~\ref{tab:main_cohort} shows, MELD attains the highest mean PPV$_{\text{clusters}}$, with only a small margin of approximately 2--3\,\% over the next two models and a much larger gap to the remaining ones. 
+% However, this mean value is strongly influenced by a small number of very large false-positive clusters, which limits its usefulness for comparing architectures. 
+% Switching to the median PPV$_{\text{clusters}}$ does not resolve this issue, as the median is equal to 1.0 for nearly all models and therefore provides no discrimination. 
+% For these reasons, PPV$_{\text{clusters}}$ was not used as a primary evaluation metric in this study.
+
+Throughout this section, we did not focus on the median PPV$_{\text{clusters}}$, the primary metric used in the original MELD study.
+In our experiments, the median PPV$_{\text{clusters}}$ is equal to 1.0 for nearly all models and therefore provides no discrimination; as a result, it is not informative and does not help us interpret the results.
+The mean PPV$_{\text{clusters}}$, in contrast, reveals more structure. 
+As shown in Table~\ref{tab:main_cohort}, MELD achieves the highest mean PPV$_{\text{clusters}}$ on the main cohort, with a small margin of approximately 2--3\% over the next two models and a much larger gap to the remaining ones. 
+On the independent cohort Table~\ref{tab:independent_cohort}, however, the situation is reversed: the proposed architecture shows improvements of 2--8\% compared with the two best-performing baselines. 
+These results are more informative and reflect model differences more reliably.
+For these reasons, in the following experiments we report only the mean PPV$_{\text{clusters}}$, as it allows us to distinguish between models in this study, whereas the median version does not.
+
+\subsection*{Independent cohort}
+\begin{table}[H]
+    \tiny
+    \begin{threeparttable}
+    \centering
+    \caption{Median performance on the independent cohort (with 95\% confidence intervals).} 
+    \label{tab:independent_cohort}
+    \begin{tabular}{lccccccc}
+    \textbf{Model} &
+    \textbf{Dice} &
+    \makecell{\textbf{PPV}\\\textbf{pixels}} &
+    \makecell{\textbf{(mean)} \\\textbf{PPV}\\\textbf{clusters}} & \makecell{\textbf{(median)}\\\textbf{PPV}\\\textbf{clusters}} & 
+    \textbf{IoU} & 
+    \textbf{\makecell{Specificity, \% \\ (N = 83)}} &
+    \textbf{\makecell{Sensitivity, \% \\ (N = 82)}} \\
+    \midrule
+    MELD &
+    \makecell{0.358\\(0.209--0.465)} &
+    \makecell{0.261\\(0.142--0.428)} &
+    \colorbox{orange!15}{0.464} &
+    \makecell{1.000\\(1.000--1.000)} &
+    \makecell{0.218\\(0.117--0.303)} &
+    \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
+    \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
+    \hline
+    Exp1 &
+    \makecell{\colorbox{cyan!15}{0.376}\\(0.238--0.529)} &
+    \makecell{0.443\\(0.243--0.619)} &
+    0.350 &
+    \makecell{1.000\\(1.000--1.000)} &
+    \makecell{\colorbox{cyan!15}{0.232}\\(0.138--0.359)} &
+    \makecell{39.8 (n=33) \\ (28.9--50.6)} &
+    \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
+    \hline
+    Exp2  &
+    \makecell{0.342\\ (0.155--0.494)} &
+    \makecell{0.381\\ (0.177--0.651)} &
+    0.379 &
+    \makecell{1.000\\(0.667--1.000)} &
+    \makecell{0.206\\ (0.084--0.328)} &
+    \makecell{37.3 (n=31) \\ (27.7--48.2)} &
+    \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
+    \hline
+    Exp3: hemi  &
+    \makecell{0.372\\(0.261--0.515)} &
+    \makecell{0.380\\(0.181--0.601)} &
+    \colorbox{cyan!15}{0.468} &
+    \makecell{1.000\\(1.000--1.000)} &
+    \makecell{0.228\\(0.150--0.347)} &
+    \makecell{\colorbox{green!15}{100.0 (n=83)} \\ (100.0--100.0)} &
+    \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
+    \hline
+    Exp3: lobe\_regions  &
+    \makecell{\colorbox{orange!15}{0.373}\\(0.283--0.507)} &
+    \makecell{0.407\\(0.233--0.589)} &
+    0.257 &
+    \makecell{1.000\\(0.667--1.000)} &
+    \makecell{\colorbox{orange!15}{0.229}\\(0.165--0.340)} &
+    \makecell{\colorbox{green!15}{100.0 (n=83)} \\ (100.0--100.0)} &
+    \makecell{\colorbox{cyan!15}{78.0 (n=64)} \\ (68.3--86.6)} \\
+    \hline
+    Exp3: \makecell{hemi+\\lobe\_regions}  &
+    \makecell{0.363\\(0.190--0.513)} &
+    \makecell{0.434\\(0.209--0.657)} &
+    0.359 &
+    \makecell{1.000\\(0.500--1.000)} &
+    \makecell{0.222\\(0.105--0.345)} &
+    \makecell{\colorbox{orange!15}{97.6 (n=81)} \\ (94.0--100.0)} &
+    \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
+    \hline
+    Exp3: hemi+lobe  &
+    \makecell{0.327\\(0.164--0.512)} &
+    \makecell{0.411\\(0.236--0.667)} &
+    \colorbox{green!15}{0.545} &
+    \makecell{1.000\\(0.667--1.000)} &
+    \makecell{0.196\\(0.090--0.344)} &
+    \makecell{\colorbox{cyan!15}{98.8 (n=82)} \\ (96.4--100.0)} &
+    \makecell{72.0 (n=59) \\ (62.2--81.7)} \\
+    \hline
+    Exp3: \makecell{hemi+lobe+\\BlueBERT} &
+    \makecell{0.362\\(0.260--0.498)} &
+    \makecell{\colorbox{cyan!15}{0.469}\\(0.267--0.620)} &
+    0.356 &
+    \makecell{1.000\\(0.750--1.000)} &
+    \makecell{0.221\\(0.150--0.331)} &
+    \makecell{96.4 (n=80) \\ (91.6--100.0)} &
+    \makecell{\colorbox{orange!15}{76.8 (n=63)} \\ (67.1--85.4)} \\
+    \hline
+    Exp3: \makecell{hemi+lobe+ \\ PubmedBERT} &
+    \makecell{0.347\\(0.195--0.529)} &
+    \makecell{\colorbox{orange!15}{0.457}\\(0.202--0.730)} &
+    0.258 &
+    \makecell{1.000 \\ (0.500--1.000)} &
+    \makecell{0.210\\(0.109--0.360)} &
+    \makecell{\colorbox{green!15}{100.0 (n=83)} \\ (100.0--100.0)} &
+    \makecell{\colorbox{green!15}{80.5 (n=66)} \\ (72.0--89.0)} \\
+    \hline
+    Exp3: full\_desc  &
+    \makecell{\colorbox{green!15}{0.423}\\(0.267--0.506)} &
+    \makecell{\colorbox{green!15}{0.484}\\(0.315-0.693)} &
+    0.460 &
+    \makecell{1.000 \\ (1.000--1.000)} &
+    \makecell{\colorbox{green!15}{0.268}\\(0.154-0.339)} &
+    \makecell{90.4 (n=75) \\ (83.1--96.4)} &
+    \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
+    
+    \bottomrule
+    \end{tabular}
+    
+    \begin{tablenotes}[flushleft]
+    \footnotesize
+    \item \textit{Note.} Colors denote rank within each column:
+    \colorbox{green!15}{best}, \colorbox{cyan!15}{second}, \colorbox{orange!15}{third}.
+    \item \textit{Exp labels.} \textbf{Exp3: hemi} -- hemisphere conditioning; 
+    \textbf{lobe\_regions} -- lobe- and region-level prompts; 
+    \textbf{hemi+lobe} -- hemisphere + coarse lobe name; 
+    \textbf{hemi+lobe+BlueBERT} -- same as previous but with BlueBERT instead of RadBERT; 
+    \textbf{full\_desc} -- full free-text description; 
+    \textbf{Exp1} and \textbf{Exp2} are ablation baselines.
+    \end{tablenotes}
+    \end{threeparttable}
+    
+\end{table}
+Following the MELD paper, we used the dataset obtained from Bonn as an independent test cohort. 
+This evaluation allows assessing the generalization capability of the models to unseen data from a different site and acquisition setting.
+
+The models that detected the largest number of lesion clusters were those trained with 
+\textit{lobe\_regions} prompts in the RadBERT group, and the \textit{hemi + lobe + PubMedBERT} 
+variant across all architectures. When PubMedBERT was used instead of RadBERT in the 
+\textit{hemi + lobe} configuration, the model detected more lesions (sensitivity: 
+80.5\% vs.\ 76.8\%), indicating improved lesion–-level recall. However, this came at 
+the cost of slightly lower segmentation quality, as reflected by slightly decreases in Dice 
+(–1.5\%), PPV$_{\text{pixels}}$ (–1.2\%), and IoU (–1.1\%). This trade-off is consistent 
+with PubMedBERT’s pretraining on a substantially larger corpus of biomedical and 
+brain-related clinical text, which enhances its ability to recognize lesion-related 
+terminology but does not necessarily improve spatial localization. Overall, the 
+\textit{hemi + lobe + PubMedBERT} model provides the strongest sensitivity ($66/82$), a 
+key objective in this study, while maintaining acceptable segmentation quality.
+
+\clearpage
+\section{Mixed Text}
+We investigated how different types of textual descriptions affect segmentation quality (\textbf{Exp3 mixed}). During training, one available description was randomly sampled for each patient, whereas evaluation used a fixed prompt type. We also assessed robustness to \emph{incorrect} prompts. All experiments employed \textbf{RadBERT} as the text encoder.
+
+
+We compared two model options:
+\begin{enumerate}
+  \item \textbf{Decoder open from the start}: the GuideDecoder is initialized with pre-trained weights from \textit{Exp1} and trained from the first epoch.
+  \item \textbf{Decoder warm-up (5 epochs)}: during the first five epochs, only the GuideDecoder is trained. The choice of five epochs is pragmatic: each experiment uses an ensemble of models, a single model trains for roughly 8 hours, and typical runs span 20--30 epochs; therefore, five warm-up epochs were considered sufficient.
+
+\end{enumerate}
+
+Based on Tables \ref{tab:main_cohort_mixed_correct} and \ref{tab:main_cohort_mixed_5_epochs_correct}, introducing a 5-epoch warm-up improves Specificity on average by approximately 13.6\% and Sensitivity by about 4\%, while Dice, PPV, and IoU decrease slightly by 1–2\%.
+We interpret this as evidence that the warm-up phase allows the decoder to initially focus on learning the structure of the textual descriptions and forming stable cross-attention links to the visual embeddings, instead of immediately altering the MELD-derived visual features. This helps make the early training more stable and causes the model to predict more cautiously, which reduces over-segmentation and therefore increases Specificity. 
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{subfigure}[b]{0.48\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{pictures/Train_Loss.png}
+%         \caption{Training loss.}
+%         \label{fig:loss_mixed_train}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[b]{0.48\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{pictures/ValLoss.png}
+%         \caption{Validation loss.}
+%         \label{fig:loss_mixed_val}
+%     \end{subfigure}
+%     \caption{Training and validation loss for the mixed cohort with and without a 5-epoch warm-up. 
+%     The warm-up schedule reduces early spikes and yields a smoother optimization trajectory, 
+%     indicating that the model is indeed learning during the warm-up phase.}
+%     \label{fig:loss_mixed_warmup}
+% \end{figure}
+
+
+% This, in turn, reduces early-stage instability (especially under random prompt selection) and mitigates the typical effect of severe class imbalance, where the model suppresses activations to avoid false positives and produces near-empty masks. Consistently, the training and validation loss curves in Fig.~\ref{fig:loss_mixed_warmup} show that, compared to training from scratch, the warm-up schedule moderates large early loss spikes and keeps the optimization trajectory more controlled during the first epochs, indicating that the model continues to learn in this phase. After the warm-up, attention 
+% is more focused, \textbf{Sensitivity} increases, and \textbf{IoU} is maintained.
+
+
+\begin{table}[H]
 \centering
-\footnotesize
-\caption{Median performance on the main cohort.}
-\begin{tabular}{lccccc}
+\tiny
+\caption{Different text types for \textbf{Exp3\_mixed} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder open from the start} — GuideDecoder trained from the first epoch. Main cohort — correct descriptions.}
+
+\label{tab:main_cohort_mixed_correct}
+\begin{tabular}{lccccccc}
+\textbf{Model} &
+\textbf{Text type} &
+\textbf{Dice} &
+\makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean)} \\\textbf{PPV} \\\textbf{clusters}} & 
+% \makecell{\textbf{(median)} \\\textbf{PPV} \\\textbf{clusters}} & 
+\textbf{IoU} & 
+\makecell{\textbf{Specificity, \%} \\ (N = 193)}&
+\makecell{\textbf{Sensitivity, \%} \\ (N = 259)}\\
 \hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+MELD & -- &
+\makecell{0.230\\(0.107--0.320)} &
+\makecell{0.166\\(0.086--0.220)} &
+\colorbox{green!15}{0.515} &
+% \makecell{1.000 \\ (1.000-1.000)} &
+\makecell{0.130\\(0.057--0.190)} &
+\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
-MELD & 0.232 & 0.156 & \colorbox{green!20}{0.707} & 0.131 & 162 / 259 \\
-Exp1 & 0.178 & \colorbox{blue!20}{0.242} & \colorbox{blue!20}{0.685} & 0.098 & 157 / 259 \\
-Exp2 & \colorbox{orange!20}{0.250} & \colorbox{orange!20}{0.223} & \colorbox{orange!20}{0.645} & \colorbox{orange!20}{0.143} & \colorbox{orange!20}{166 / 259} \\
-Exp3\_hemi+lobe & \colorbox{blue!20}{0.260} & \colorbox{blue!20}{0.242} & \colorbox{blue!20}{0.685} & \colorbox{blue!20}{0.149} & 163 / 259 \\
-Test2\_hemi+lobe & \colorbox{green!20}{0.266} & 0.206 & 0.558 & \colorbox{green!20}{0.154} & \colorbox{blue!20}{172 / 259} \\
-Test3\_hemi+lobe & 0.181 & \colorbox{green!20}{0.271} & 0.624 & 0.100 & 163 / 259 \\
-Exp3\_full & \colorbox{blue!20}{0.260} & 0.215 & 0.457 & \colorbox{blue!20}{0.149} & \colorbox{green!20}{175 / 259} \\
+Exp3\_mixed & 
+hemi &  
+\makecell{0.235 \\ (0.107--0.294)} &
+\makecell{0.222 \\ (0.144--0.303)} &
+\colorbox{cyan!15}{0.511} &
+% \makecell{1.000 \\ (0.500 -- 1.000)}&
+\makecell{0.133 \\ (0.057--0.172)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{\colorbox{cyan!15}{69.1 (n=179)} \\ (63.3--74.9)} \\
+\hline
+Exp3\_mixed &
+lobe\_regions &
+\makecell{\colorbox{cyan!15}{0.243} \\ (0.081--0.323)} &
+\makecell{\colorbox{cyan!15}{0.246} \\ (0.151--0.345)} &
+0.491 &
+% \makecell{1.000 \\ (0.500 -- 1.000)}&
+\makecell{\colorbox{cyan!15}{0.138} \\ (0.042--0.193)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{66.4 (n=172) \\ (60.6--72.2)} \\
+\hline
+Exp3\_mixed &
+\makecell{hemi+ \\ lobe\_regions} &
+\makecell{\colorbox{orange!15}{0.241} \\ (0.097--0.312)} &
+\makecell{\colorbox{orange!15}{0.235} \\ (0.152--0.346)} &
+0.492 &
+% \makecell{1.000 \\ (0.500 -- 1.000)}&
+\makecell{\colorbox{orange!15}{0.137} \\ (0.051--0.185)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{\colorbox{orange!15}{68.7 (n=178)} \\ (62.9--74.1)} \\
+\hline
+Exp3\_mixed &
+hemi+lobe & 
+\makecell{\colorbox{orange!15}{0.241} \\ (0.095--0.321)} &
+\makecell{0.233 \\ (0.145--0.335)} &
+\colorbox{orange!15}{0.505} &
+% \makecell{1.000 \\ (0.500 -- 1.000)}&
+\makecell{\colorbox{orange!15}{0.137} \\ (0.050--0.191)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{67.2 (n=174) \\ (61.4--73.0)} \\
+\hline
+Exp3\_mixed &
+full\_desc &
+\makecell{\colorbox{green!15}{0.251} \\ (0.124--0.300)} &
+\makecell{\colorbox{green!15}{0.256} \\ (0.167--0.351)} &
+0.479 &
+% \makecell{1.000 \\ (0.667 -- 1.000)}&
+\makecell{\colorbox{green!15}{0.144} \\ (0.066--0.177)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{\colorbox{green!15}{69.9 (n=181)} \\ (64.1--75.3)} \\
 \hline
 \end{tabular}
 \end{table}
 
-% Среди всех моделей Exp3_hemi+lobe показала средний результаты по Dice, PPV pixels и IoU. При этому хоть результа по PPV clusters хуже чему MELD, тем не менее разница около 1.5 %.
-% MELD лишь заняла второе место по PPV clusters, но по все остальным метрикам базовая модель уступает. Наибольший разрыв в качестве заметен по PPV pixels между MELD и Test3_hemi+lobe которы составляет около 12%.
-% По количеству найденных новых очагов лучшее качество показала Exp3_full, найдя на 13 очагов больше, чем MELD, однако по PPV clusters данная модель показывает худшее качество, т.е. она очень много покрывает пикселей положительными,
-% что говорит о сильной чувстивтельности модели.
-% Также интересно, что Test2_hemi+lobe хоть и показало качество хуже по PPV_clusters чем Exp3_hemi+lobe, однак данная модель использовала те же самые текстовые описания и смола найти на 9 очагов больше, т.е.
-% можем сделать вывод, что предобученный декодер может улучшить количество найденных очагов, но при это с проигрышем в качестве предсказний
-
-Among all models, \texttt{Exp3\_hemi+lobe} exhibits the most stable performance: mid-range Dice, PPV\_pixels, and IoU, while its cluster PPV is only about 1.5\% lower than MELD. This indicates that hemisphere- and lobe-level textual input provides a balanced trade-off between sensitivity and precision.  
-
-The \texttt{MELD baseline} takes first place in cluster PPV (0.707) but performs worse on all other metrics. The biggest gap is in PPV\_pixels, where MELD is about 12\% lower than \texttt{Test3\_hemi+lobe}, showing weaker pixel-level localization even though cluster detection is fairly consistent.  
-
-By contrast, \texttt{Exp3\_full} achieves the highest lesion detection count (175 vs.\ 162 for MELD), but at the cost of the lowest cluster PPV (0.457). This shows unstable behavior: the model is very sensitive and segments widely, but also produces many false clusters, reducing precision.  
-
-\texttt{Test2\_hemi+lobe} finds 172 lesions, which is 9 more than \texttt{Exp3\_hemi+lobe}, but its cluster PPV decreases from 0.685 to 0.558. This shows that immediate fine tuning of the pretrained decoder helps to detect more lesions but lowers precision.
-
-\begin{table}[ht]
+\begin{table}[H]
 \centering
-\footnotesize
-\caption{Median performance on the independent cohort (Bonn Dataset).}
-\begin{tabular}{lccccc}
+\tiny
+\caption{Different text types for \textbf{Exp3\_mixed freeze 5 epochs} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder warm-up for 5 epochs} — GuideDecoder unfrozen after epoch 5. Main cohort — correct descriptions.}
+
+\label{tab:main_cohort_mixed_5_epochs_correct}
+\begin{tabular}{lccccccc}
+\textbf{Model} &
+\textbf{Text type} &
+\textbf{Dice} &
+\makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean)} \\\textbf{PPV} \\\textbf{clusters}} & 
+% \makecell{\textbf{(median)} \\\textbf{PPV} \\\textbf{clusters}} & 
+\textbf{IoU} & 
+\makecell{\textbf{Specificity, \%} \\ (N = 193)}&
+\makecell{\textbf{Sensitivity, \%} \\ (N = 259)}\\
 \hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+MELD & -- &
+\makecell{\colorbox{green!15}{0.230}\\(0.107--0.320)} &
+\makecell{0.166\\(0.086--0.220)} &
+\colorbox{green!15}{0.515} &
+% \makecell{1.000 \\ (1.000-1.000)} &
+\makecell{\colorbox{green!15}{0.130}\\(0.057--0.190)} &
+\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
-MELD & 0.350 & 0.253 & 0.709 & 0.212 & \colorbox{blue!20}{54 / 82} \\
-Exp1 & 0.354 & \colorbox{orange!20}{0.448} & \colorbox{green!20}{0.802} & 0.215 & 49 / 82 \\
-Exp2 & 0.387 & \colorbox{blue!20}{0.449} & 0.704 & 0.240 & 51 / 82 \\
-Exp3\_hemi+lobe & \colorbox{blue!20}{0.396} & 0.438 & \colorbox{blue!20}{0.761} & \colorbox{blue!20}{0.247} & 51 / 82 \\
-Test2\_hemi+lobe & \colorbox{orange!20}{0.394} & 0.339 & 0.590 & \colorbox{orange!20}{0.245} & \colorbox{orange!20}{53 / 82} \\
-Test3\_hemi+lobe & 0.385 & \colorbox{green!20}{0.452} & \colorbox{orange!20}{0.747} & 0.238 & 50 / 82 \\
-Exp3\_full & \colorbox{green!20}{0.423} & 0.370 & 0.415 & \colorbox{green!20}{0.268} & \colorbox{green!20}{57 / 82} \\
+Exp3\_mixed & 
+hemi &
+\makecell{\colorbox{orange!15}{0.225} \\ (0.131--0.294)} &
+\makecell{0.215 \\ (0.137--0.325)} &
+0.401 &
+% \makecell{0.667 \\ (0.500 -- 1.000)}&
+\makecell{\colorbox{orange!15}{0.127} \\ (0.070--0.172)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{\colorbox{cyan!15}{73.7 (n=191)} \\ (68.3--79.2)} \\
+\hline
+Exp3\_mixed & 
+lobe\_regions &
+\makecell{0.207 \\ (0.123--0.330)} &
+\makecell{\colorbox{cyan!15}{0.244} \\ (0.160--0.307)} &
+\colorbox{orange!15}{0.419} &
+% \makecell{0.667 \\ (0.500 -- 1.000)} &
+\makecell{0.116 \\ (0.065--0.197)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{71.8 (n=186) \\ (66.4--77.2)} \\
+\hline
+Exp3\_mixed & 
+\makecell{hemi+ \\lobe\_regions} &
+\makecell{0.219 \\ (0.148--0.323)} &
+\makecell{\colorbox{orange!15}{0.216} \\ (0.154--0.291)} &
+0.392 &
+% \makecell{0.667 \\ (0.500 -- 1.000)}&
+\makecell{0.123 \\ (0.080--0.192)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{\colorbox{orange!15}{73.0 (n=189)} \\ (67.6--78.4)} \\
+\hline
+Exp3\_mixed & 
+\makecell{hemi+ \\lobe} &
+\makecell{\colorbox{cyan!15}{0.228} \\ (0.129--0.321)} &
+\makecell{\colorbox{green!15}{0.247} \\ (0.180--0.330)} &
+\colorbox{cyan!15}{0.482} &
+% \makecell{0.750 \\ (0.500 -- 1.000)}&
+\makecell{\colorbox{cyan!15}{0.129} \\ (0.069--0.180)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{71.0 (n=184) \\ (65.6--76.4)} \\
+\hline
+Exp3\_mixed & 
+full\_desc &
+\makecell{\colorbox{green!15}{0.230} \\ (0.140--0.297)} &
+\makecell{0.204 \\ (0.141--0.275)} &
+0.342 &
+% \makecell{0.500 \\ (0.500 -- 1.000)}&
+\makecell{\colorbox{green!15}{0.130} \\ (0.075--0.175)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{\colorbox{green!15}{74.5 (n=193)} \\ (69.1--79.9)} \\
 \hline
 \end{tabular}
 \end{table}
+
+\subsection*{Wrong textual descriptions (Main cohort)}
+We now evaluate models with \emph{incorrect} prompts, including the \texttt{no\_text} setting (i.e., the model receives the placeholder string \textit{full\_brain} as input).
+
+Across both Tables~\ref{tab:wrong_main_cohort_mix_no_freeze} and~\ref{tab:wrong_main_cohort_mix_freeze}, models that were trained on correct 
+textual descriptions but tested with intentionally incorrect ones still follow a consistent trend. 
+While performance naturally decreases when the text contradicts the visual input, the extent of this drop varies across different types of ``wrong'' prompts. 
+In many cases the degradation is modest, and in some settings the results remain comparable to--or even slightly better than--those obtained with correct descriptions. 
+This behavior is plausible for several reasons:
+\begin{enumerate}
+  \item \textbf{Partial but useful signal.} Even an inexact prompt still contains structure (e.g., hemisphere or a coarse lobe). This partial cue narrows the search region and reduces the need to scan the whole cortex.
+  \item \textbf{Robustness of the decoder.} Thanks to pretraining, the decoder tolerates mild text--image mismatch. When the text is unhelpful, it relies more on visual embeddings and uses the prompt only as a weak guide for attention.
+  \item \textbf{Regularization effect.} Slightly noisy text prevents the model from memorizing specific wording and forces it to rely on more general text–image relations. This acts as mild regularization: predictions become more conservative, reducing false positives (FP). Consequently, precision metrics (e.g., PPV) tend to increase, while recall and Dice typically remain stable.
+    
+\end{enumerate}
+
+Removing the text encoder does not substantially degrade performance, 
+but the metrics do become consistently worse. Compared with models trained on 
+correct descriptions, \textbf{Specificity} drops by roughly 27\%. A similar pattern is observed for \textbf{Sensitivity}: the model without text detects 
+approximately 1--2\% fewer lesions relative to models using wrong prompts, 
+and about 6--7\% fewer relative to models using correct prompts.
+
+Without any linguistic prior, the attention becomes broad and less informative. 
+Under strong class imbalance, the model behaves more conservatively and fires only at very high confidence.
+
+
+\begin{table}[H]
+\centering
+\tiny
+\caption{Different text types with \emph{wrong} descriptions (without freezing). Main cohort — wrong descriptions}
+\label{tab:wrong_main_cohort_mix_no_freeze}
+\begin{tabular}{lccccccc}
+\textbf{Model} &
+\textbf{Text type} &
+\textbf{Dice} &
+\makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean)} \\\textbf{PPV} \\\textbf{clusters}} & 
+% \makecell{\textbf{(median)} \\\textbf{PPV} \\\textbf{clusters}} & 
+\textbf{IoU} & 
+\makecell{\textbf{Specificity, \%} \\ (N = 193)}&
+\makecell{\textbf{Sensitivity, \%} \\ (N = 259)}\\
+\hline
+MELD & -- &
+\makecell{0.230\\(0.107--0.320)} &
+\makecell{0.166\\(0.086--0.220)} &
+\colorbox{green!15}{0.515} &
+% \makecell{1.000 \\ (1.000-1.000)} &
+\makecell{0.130\\(0.057--0.190)} &
+\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{65.6 (n=170) \\ (59.8--71.4)} \\
+\hline
+Exp3\_mixed & wrong\_hemi &
+\makecell{0.234 \\ (0.109--0.304)} &
+\makecell{0.217 \\ (0.144--0.296)} &
+\colorbox{cyan!15}{0.509} &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{0.133 \\ (0.057--0.179)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{\colorbox{green!15}{69.5 (n=180)} \\ (63.7--74.9)} \\
+\hline
+Exp3\_mixed & 
+\makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
+\makecell{0.240 \\ (0.097--0.312)} &
+\makecell{\colorbox{green!15}{0.241} \\ (0.152--0.346)} &
+0.486 &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{0.136 \\ (0.051--0.185)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{\colorbox{orange!15}{67.6 (n=175)} \\ (61.8--73.4)} \\
+\hline
+Exp3\_mixed & 
+\makecell{wrong\_hemi + \\ correct\_lobe} &
+\makecell{0.239 \\ (0.088--0.317)} &
+\makecell{\colorbox{orange!15}{0.228} \\ (0.146--0.332)} &
+\colorbox{orange!15}{0.508} &
+% \makecell{1.000 \\ (0.667 -- 1.000)} &
+\makecell{0.135 \\ (0.046--0.188)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{\colorbox{orange!15}{67.6 (n=175)} \\ (61.8--73.4)} \\
+\hline
+Exp3\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
+\makecell{\colorbox{orange!15}{0.241} \\ (0.098--0.320)} &
+\makecell{0.222 \\ (0.147--0.343)} &
+0.489 &
+% \makecell{1.000 \\ (0.667 -- 1.000)} &
+\makecell{\colorbox{orange!15}{0.137} \\ (0.052--0.190)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{\colorbox{cyan!15}{68.0 (n=176)} \\ (62.2--73.7)} \\
+\hline
+Exp3\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe} &
+\makecell{\colorbox{cyan!15}{0.243} \\ (0.083--0.317)} &
+\makecell{\colorbox{cyan!15}{0.234} \\ (0.148--0.331)} &
+0.498 &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{\colorbox{cyan!15}{0.139} \\ (0.044--0.188)} &
+\makecell{79.3 (n=153) \\ (73.6--85.0)} &
+\makecell{67.2 (n=174) \\ (61.4--73.0)} \\
+\hline
+Exp3\_mixed & no\_text &
+\makecell{\colorbox{green!15}{0.249} \\ (0.080--0.296)} &
+\makecell{0.192 \\ (0.127--0.289)} &
+0.443 &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{\colorbox{green!15}{0.142} \\ (0.042--0.174)} &
+\makecell{52.3 (n=101) \\ (45.1--59.1)} &
+\makecell{66.0 (n=171) \\ (60.2--71.8)} \\
+
+\hline
+\end{tabular}
+\end{table}
+
+A similar effect is observed in Table~\ref{tab:wrong_main_cohort_mix_freeze}.  
+Even when the model is trained on deliberately incorrect textual descriptions, 
+freezing the decoder for the first 5 epochs again leads to a performance gain. 
+This can be clearly seen in all cases except for the \texttt{no\_text} baseline, 
+where \textbf{Sensitivity} decreases by about 14\%, while for the wrong-text models 
+\textbf{Sensitivity} still improves by roughly 2\%.  
+% This again demonstrates that, when the decoder warm-up is applied, the model becomes less 
+% sensitive to misleading or contradictory prompts during evaluation.
+
+\begin{table}[H]
+\centering
+\tiny
+\caption{Different text types with \emph{wrong} descriptions (with 5 frozen epochs). Main cohort — wrong descriptions}
+\label{tab:wrong_main_cohort_mix_freeze}
+\begin{tabular}{lccccccc}
+\textbf{Model} &
+\textbf{Text type} &
+\textbf{Dice} &
+\makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean)} \\\textbf{PPV} \\\textbf{clusters}} & 
+% \makecell{\textbf{(median)} \\\textbf{PPV} \\\textbf{clusters}} & 
+\textbf{IoU} & 
+\makecell{\textbf{Specificity, \%} \\ (N = 193)}&
+\makecell{\textbf{Sensitivity, \%} \\ (N = 259)}\\
+\hline
+MELD & -- &
+\makecell{\colorbox{orange!15}{0.230}\\(0.107--0.320)} &
+\makecell{0.166\\(0.086--0.220)} &
+\colorbox{green!15}{0.515} &
+% \makecell{1.000 \\ (1.000-1.000)} &
+\makecell{\colorbox{orange!15}{0.130}\\(0.057--0.190)} &
+\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{65.6 (n=170) \\ (59.8--71.4)} \\
+\hline
+Exp3\_mixed & 
+wrong\_hemi &
+\makecell{\colorbox{cyan!15}{0.231} \\ (0.119--0.287)} &
+\makecell{\colorbox{orange!15}{0.207} \\ (0.139--0.303)} &
+0.403 &
+% \makecell{0.667 \\ (0.500 -- 1.000)} &
+\makecell{\colorbox{cyan!15}{0.131} \\ (0.063--0.167)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{\colorbox{cyan!15}{73.7 (n=191)} \\ (68.3--79.2)} \\
+\hline
+Exp3\_mixed & 
+\makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
+\makecell{0.216 \\ (0.153--0.322)} &
+\makecell{\colorbox{cyan!15}{0.216} \\ (0.153--0.291)} &
+0.395 &
+% \makecell{0.667 \\ (0.500 -- 1.000)} &
+\makecell{0.121 \\ (0.083--0.192)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{\colorbox{orange!15}{73.0 (n=189)} \\ (67.6--78.4)} \\
+\hline
+Exp3\_mixed & 
+\makecell{wrong\_hemi + \\ correct\_lobe} &
+\makecell{0.222 \\ (0.120--0.318)} &
+\makecell{\colorbox{green!15}{0.243} \\ (0.166--0.329)} &
+\colorbox{cyan!15}{0.479} &
+% \makecell{0.800 \\ (0.500 -- 1.000)} &
+\makecell{0.125 \\ (0.064--0.189)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{70.7 (n=183) \\ (65.3--76.1)} \\
+\hline
+Exp3\_mixed &
+\makecell{wrong\_hemi+\\wrong\_lobe\_regions} &
+\makecell{0.224 \\ (0.135--0.330)} &
+\makecell{\colorbox{orange!15}{0.207} \\ (0.149--0.298)} &
+0.378 &
+% \makecell{0.667 \\ (0.500 -- 1.000)} &
+\makecell{0.126 \\ (0.072--0.198)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{\colorbox{green!15}{74.1 (n=192)} \\ (68.7--79.5)} \\
+\hline
+Exp3\_mixed &
+\makecell{wrong\_hemi+\\wrong\_lobe} &
+\makecell{0.219 \\ (0.114--0.331)} &
+\makecell{\colorbox{green!15}{0.243} \\ (0.164--0.346)} &
+\colorbox{orange!15}{0.470} &
+% \makecell{0.667 \\ (0.500 -- 1.000)} &
+\makecell{0.123 \\ (0.060--0.198)} &
+\makecell{88.1 (n=170) \\ (83.4--92.2)} &
+\makecell{71.0 (n=184) \\ (65.6--76.4)} \\
+\hline
+Exp3\_mixed & 
+no\_text &
+\makecell{\colorbox{green!15}{0.245} \\ (0.102--0.295)} &
+\makecell{0.205 \\ (0.132--0.292)} &
+0.384 &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{\colorbox{green!15}{0.140} \\ (0.054--0.173)} &
+\makecell{38.3 (n=74) \\ (31.6--45.1)} &
+\makecell{68.3 (n=177) \\ (62.5--74.1)} \\
+\hline
+\end{tabular}
+\end{table}
+
+Thus, the warm-up phase provides a consistent benefit: it prevents the decoder from immediately 
+overfitting to noisy textual cues and encourages the model to extract whatever useful 
+structural information is present, even when the text itself is incorrect.
+
+% However not all incorrect prompts are equally harmful. Prompts that are \emph{contradictory} to the image (\texttt{wrong\_hemi}) degrade performance the most. Inexact but \emph{partially informative} prompts (e.g., rough lobe hints) can still help by providing a weak localization prior. Compared with \texttt{no\_text}, even a rough prompt supplies enough context to stabilize attention and yields better overall metrics.
+
+
+\subsection*{Wrong textual descriptions (Independent cohort)}
+\begin{table}[ht]
+    \centering
+    \tiny
+    \caption{Different text types for \textbf{Exp3\_mixed} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder open from the start} — GuideDecoder trained from the first epoch. Independent cohort — correct descriptions.}
+    
+    \label{tab:independent_cohort_mixed}
+    \begin{tabular}{lccccccc}
+    \textbf{Model} &
+    \textbf{Text type} &
+    \textbf{Dice} &
+    \makecell{\textbf{PPV}\\\textbf{pixels}} &
+    \makecell{\textbf{(mean)} \\\textbf{PPV} \\\textbf{clusters}} & 
+    % \makecell{\textbf{(median)} \\\textbf{PPV} \\\textbf{clusters}} & 
+    \textbf{IoU} & 
+    \makecell{\textbf{Specificity, \%} \\ (N = 83)}&
+    \makecell{\textbf{Sensitivity, \%} \\ (N = 82)}\\
+    \hline
+    MELD & -- &
+    \makecell{0.358\\(0.209--0.465)} &
+    \makecell{0.261\\(0.142--0.428)} &
+    0.464 &
+    % \makecell{1.000\\(1.000--1.000)} &
+    \makecell{0.218\\(0.117--0.303)} &
+    \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
+    \makecell{\colorbox{cyan!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
+    \hline
+    Exp3\_mixed & 
+    hemi &  
+    \makecell{\colorbox{green!15}{0.430} \\ (0.067--0.515)} &
+    \makecell{\colorbox{orange!15}{0.429} \\ (0.181--0.610)} &
+    0.604 &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{\colorbox{green!15}{0.274} \\ (0.035--0.347)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
+    \makecell{\colorbox{orange!15}{68.3 (n=56)} \\ (57.3--78.0)} \\
+    \hline
+    Exp3\_mixed &
+    lobe\_regions &
+    \makecell{0.374 \\ (0.177--0.496)} &
+    \makecell{\colorbox{cyan!15}{0.486} \\ (0.224--0.670)} &
+    \colorbox{green!15}{0.656} &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{0.230 \\ (0.097--0.330)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
+    \makecell{\colorbox{orange!15}{68.3 (n=56)} \\ (57.3--78.0)} \\
+    \hline
+    Exp3\_mixed & 
+    \makecell{hemi+ \\lobe\_regions} &
+    \makecell{\colorbox{orange!15}{0.400} \\ (0.222--0.501)} &
+    \makecell{\colorbox{green!15}{0.515} \\ (0.242--0.668)} &
+    \colorbox{orange!15}{0.616} &
+    % \makecell{1.000 \\ (0.500 -- 1.000)} &
+    \makecell{\colorbox{orange!15}{0.250} \\ (0.125--0.334)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
+    \makecell{\colorbox{cyan!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
+    \hline
+    Exp3\_mixed &
+    hemi+lobe & 
+    \makecell{0.380 \\ (0.119--0.498)} &
+    \makecell{\colorbox{green!15}{0.515} \\ (0.073--0.655)} &
+    0.613 &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{0.234 \\ (0.064--0.331)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
+    \makecell{65.9 (n=54) \\ (54.9--75.6)} \\
+    \hline
+    Exp3\_mixed &
+    full\_desc &
+    \makecell{\colorbox{cyan!15}{0.402} \\ (0.271--0.486)} &
+    \makecell{\colorbox{green!15}{0.515} \\ (0.311--0.682)} &
+    \colorbox{cyan!15}{0.626} &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{\colorbox{cyan!15}{0.251} \\ (0.156--0.321)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
+    \makecell{\colorbox{green!15}{70.7 (n=58)} \\ (61.0--80.5)} \\
+    \hline
+    \end{tabular}
+    \end{table}
+    
+    \begin{table}[ht]
+    \centering
+    \tiny
+    \caption{Different text types for \textbf{Exp3\_mixed freeze 5 epochs} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder warm-up for 5 epochs} — GuideDecoder unfrozen after epoch 5. Independent cohort — correct descriptions.}
+    
+    \label{tab:main_cohort_mixed}
+    \begin{tabular}{lccccccc}
+    \textbf{Model} &
+    \textbf{Text type} &
+    \textbf{Dice} &
+    \makecell{\textbf{PPV}\\\textbf{pixels}} &
+    \makecell{\textbf{(mean)} \\\textbf{PPV} \\\textbf{clusters}} & 
+    % \makecell{\textbf{(median)} \\\textbf{PPV} \\\textbf{clusters}} & 
+    \textbf{IoU} & 
+    \makecell{\textbf{Specificity, \%} \\ (N = 83)}&
+    \makecell{\textbf{Sensitivity, \%} \\ (N = 82)}\\
+    \hline
+    MELD & -- &
+    \makecell{\colorbox{green!15}{0.358}\\(0.209--0.465)} &
+    \makecell{0.261\\(0.142--0.428)} &
+    0.464 &
+    % \makecell{1.000\\(1.000--1.000)} &
+    \makecell{\colorbox{orange!15}{0.218}\\(0.117--0.303)} &
+    \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
+    \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
+    \hline
+    Exp3\_mixed & 
+    hemi &
+    \makecell{\colorbox{cyan!15}{0.368} \\ (0.248--0.505)} &
+    \makecell{\colorbox{cyan!15}{0.406} \\ (0.218--0.596)} &
+    \colorbox{cyan!15}{0.489} &
+    % \makecell{1.000 \\ (0.500 -- 1.000)}&
+    \makecell{\colorbox{cyan!15}{0.225} \\ (0.141--0.338)} &
+    \makecell{94.0 (n=78) \\ (88.0--98.8)} &
+    \makecell{\colorbox{orange!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
+    \hline
+    Exp3\_mixed & 
+    lobe\_regions &
+    \makecell{0.335 \\ (0.144--0.474)} &
+    \makecell{0.338 \\ (0.168--0.543)} &
+    \colorbox{orange!15}{0.486} &
+    % \makecell{1.000 \\ (0.500 -- 1.000)}&
+    \makecell{0.201 \\ (0.077--0.311)} &
+    \makecell{94.0 (n=78) \\ (88.0--98.8)} &
+    \makecell{72.0 (n=59) \\ (62.2--81.7)} \\
+    \hline
+    Exp3\_mixed & 
+    \makecell{hemi+ \\lobe\_regions} &
+    \makecell{0.332 \\ (0.183--0.477)} &
+    \makecell{\colorbox{orange!15}{0.343} \\ (0.174--0.576)} &
+    0.474 &
+    % \makecell{1.000 \\ (0.500 -- 1.000)}&
+    \makecell{0.199 \\ (0.101--0.313)} &
+    \makecell{94.0 (n=78) \\ (88.0--98.8)} &
+    \makecell{\colorbox{cyan!15}{75.6 (n=62)} \\ (65.9--84.1)} \\
+    \hline
+    Exp3\_mixed & 
+    hemi+lobe &
+    \makecell{\colorbox{green!15}{0.400} \\ (0.162--0.507)} &
+    \makecell{\colorbox{green!15}{0.462} \\ (0.239--0.672)} &
+    \colorbox{green!15}{0.586} &
+    % \makecell{1.000 \\ (0.750 -- 1.000)}&
+    \makecell{\colorbox{green!15}{0.250} \\ (0.088--0.340)} &
+    \makecell{94.0 (n=78) \\ (88.0--98.8)} &
+    \makecell{\colorbox{orange!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
+    \hline
+    Exp3\_mixed & 
+    full\_desc &
+    \makecell{0.305 \\ (0.210--0.478)} &
+    \makecell{0.326 \\ (0.164--0.651)} &
+    0.306 &
+    % \makecell{1.000 \\ (0.500 -- 1.000)}&
+    \makecell{0.180 \\ (0.117--0.314)} &
+    \makecell{94.0 (n=78) \\ (88.0--98.8)} &
+    \makecell{\colorbox{green!15}{78.0 (n=64)} \\ (68.3--86.6)} \\
+    
+    \hline
+    \end{tabular}
+    \end{table}
+    
+On the independent cohort (Tables~\ref{tab:independent_cohort_mixed}--\ref{tab:wrong_independent_cohort_mix_freeze}), 
+for both correct and incorrect prompts, the model with a 5-epoch decoder freeze generally detects 
+approximately 5\% more lesions (higher \textbf{Sensitivity}).  
+For most text--description settings, this increase in detected lesions does not substantially 
+degrade segmentation quality: several segmentation metrics (\textbf{Dice}, \textbf{IoU}, and \textbf{PPV}) remain stable or even improve 
+slightly compared to the non-frozen model. 
+For the \texttt{hemi + lobe\_regions} and \texttt{full\_desc} prompts, we observe a noticeable decrease 
+in segmentation quality (5--11\% in Dice and 5--7\% in IoU).  
+However, these decreases are offset by a consistent improvement in lesion detection, which remains 
+the primary objective in this setting.
+
+\begin{table}[ht]
+    \centering
+    \tiny
+    \caption{Different text types with \emph{wrong} descriptions (without freezing). Independent cohort — wrong descriptions}
+    \label{tab:wrong_independent_cohort_mix_no_freeze}
+    \begin{tabular}{lccccccc}
+    \textbf{Model} &
+    \textbf{Text type} &
+    \textbf{Dice} &
+    \makecell{\textbf{PPV}\\\textbf{pixels}} &
+    \makecell{\textbf{(mean)}\\\textbf{PPV}\\\textbf{clusters}} &
+    % \makecell{\textbf{(median)}\\\textbf{PPV}\\\textbf{clusters}} &
+    \textbf{IoU} &
+    \makecell{\textbf{Specificity, \%} \\ (N = 83)}&
+    \makecell{\textbf{Sensitivity, \%} \\ (N = 82)}\\
+    \hline
+    MELD & -- &
+    \makecell{0.358\\(0.209--0.465)} &
+    \makecell{0.261\\(0.142--0.428)} &
+    0.464 &
+    % \makecell{1.000\\(1.000--1.000)} &
+    \makecell{0.218\\(0.117--0.303)} &
+    \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
+    \makecell{\colorbox{green!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
+    \hline
+    Exp3\_mixed &
+    wrong\_hemi &
+    \makecell{\colorbox{cyan!15}{0.421} \\ (0.067--0.520)} &
+    \makecell{0.432 \\ (0.179--0.609)} &
+    0.604 &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{\colorbox{cyan!15}{0.267} \\ (0.035--0.352)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} &
+    \makecell{\colorbox{cyan!15}{68.3 (n=56)} \\ (57.3--78.0)} \\
+    \hline
+    Exp3\_mixed &
+    \makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
+    \makecell{0.392 \\ (0.214--0.503)} &
+    \makecell{\colorbox{green!15}{0.515} \\ (0.240--0.675)} &
+    \colorbox{cyan!15}{0.625} &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{0.244 \\ (0.120--0.336)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} &
+    \makecell{\colorbox{green!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
+    \hline
+    Exp3\_mixed &
+    \makecell{wrong\_hemi + \\ correct\_lobe} &
+    \makecell{0.378 \\ (0.119--0.492)} &
+    \makecell{\colorbox{cyan!15}{0.509} \\ (0.073--0.658)} &
+    0.613 &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{0.233 \\ (0.063--0.326)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} &
+    \makecell{65.9 (n=54) \\ (54.9--75.6)} \\
+    \hline
+    Exp3\_mixed &
+    \makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
+    \makecell{\colorbox{green!15}{0.433} \\ (0.258--0.515)} &
+    \makecell{0.475 \\ (0.256--0.676)} &
+    \colorbox{green!15}{0.660} &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{\colorbox{green!15}{0.276} \\ (0.148--0.346)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} &
+    \makecell{\colorbox{green!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
+    \hline
+    Exp3\_mixed &
+    \makecell{wrong\_hemi + \\ wrong\_lobe} &
+    \makecell{0.388 \\ (0.147--0.501)} &
+    \makecell{0.481 \\ (0.154--0.672)} &
+    \colorbox{orange!15}{0.617} &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{0.241 \\ (0.079--0.334)} &
+    \makecell{89.2 (n=74) \\ (81.9--95.2)} &
+    \makecell{\colorbox{orange!15}{67.1 (n=55)} \\ (56.1--76.8)} \\
+    \hline
+    Exp3\_mixed &
+    no\_text &
+    \makecell{\colorbox{orange!15}{0.397} \\ (0.138--0.502)} &
+    \makecell{\colorbox{orange!15}{0.507} \\ (0.151--0.647)} &
+    0.549 &
+    % \makecell{1.000 \\ (1.000 -- 1.000)} &
+    \makecell{\colorbox{orange!15}{0.248} \\ (0.074--0.335)} &
+    \makecell{68.7 (n=57) \\ (59.0--78.3)} & 
+    \makecell{65.9 (n=54) \\ (54.9--75.6)} \\
+    \hline
+    \end{tabular}
+\end{table}
+    
+We also compare two key text--description types, \texttt{hemi+lobe} and \texttt{hemi+lobe\_regions},
+under both training strategies (with and without decoder warm-up).
+
+For models trained \emph{without} decoder warm-up, the \texttt{hemi+lobe\_regions} setting consistently produces higher segmentation quality:
+Dice and IoU improve by approximately 2-3\%, and Sensitivity increases by approximately 2-4\% compared to
+\texttt{hemi+lobe}. The same trend is seen in the evaluation of the incorrect text condition, where we compare
+\texttt{wrong\_hemi + wrong\_lobe} with \texttt{wrong\_hemi + wrong\_lobe\_regions}.
+
+However, for models trained \emph{with} 5-epoch warm-up, the situation is the opposite. 
+In this case, the \texttt{hemi+lobe} model provides higher segmentation accuracy, outperforming \texttt{hemi+lobe\_regions} 
+by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensitivity (typically 1-2\%).
+
+\begin{table}[H]
+\centering
+\tiny
+\caption{Different text types with \emph{wrong} descriptions (with 5 frozen epochs). Independent cohort — wrong descriptions}
+\label{tab:wrong_independent_cohort_mix_freeze}
+\begin{tabular}{lccccccc}
+\textbf{Model} &
+\textbf{Text type} &
+\textbf{Dice} &
+\makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean)}\\\textbf{PPV}\\\textbf{clusters}} &
+% \makecell{\textbf{(median)}\\\textbf{PPV}\\\textbf{clusters}} &
+\textbf{IoU} &
+\makecell{\textbf{Specificity, \%} \\ (N = 83)}&
+\makecell{\textbf{Sensitivity, \%} \\ (N = 82)}\\
+\hline
+MELD & -- &
+\makecell{\colorbox{orange!15}{0.358}\\(0.209--0.465)} &
+\makecell{0.261\\(0.142--0.428)} &
+0.464 &
+% \makecell{1.000\\(1.000--1.000)} &
+\makecell{\colorbox{orange!15}{0.218}\\(0.117--0.303)} &
+\makecell{55.4 (n=46) \\ (44.6--66.3)} & 
+\makecell{\colorbox{orange!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
+\hline
+Exp3\_mixed &
+wrong\_hemi &
+\makecell{\colorbox{cyan!15}{0.368} \\ (0.273--0.499)} &
+\makecell{\colorbox{cyan!15}{0.382} \\ (0.220--0.558)} &
+\colorbox{orange!15}{0.471} &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{\colorbox{cyan!15}{0.225} \\ (0.158--0.333)} &
+\makecell{94.0 (n=78) \\ (88.0--98.8)} &
+\makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
+\hline
+Exp3\_mixed &
+\makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
+\makecell{0.321 \\ (0.163--0.456)} &
+\makecell{0.336 \\ (0.152--0.545)} &
+\colorbox{orange!15}{0.471} &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{0.192 \\ (0.089--0.296)} &
+\makecell{94.0 (n=78) \\ (88.0--98.8)} &
+\makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
+\hline
+Exp3\_mixed &
+\makecell{wrong\_hemi + \\ correct\_lobe} &
+\makecell{\colorbox{green!15}{0.401} \\ (0.129--0.507)} &
+\makecell{\colorbox{green!15}{0.448} \\ (0.240--0.676)} &
+\colorbox{green!15}{0.578} &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{\colorbox{green!15}{0.253} \\ (0.069--0.340)} &
+\makecell{94.0 (n=78) \\ (88.0--98.8)} &
+\makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
+\hline
+Exp3\_mixed &
+\makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
+\makecell{0.325 \\ (0.196--0.458)} &
+\makecell{0.338 \\ (0.205--0.619)} &
+0.444 &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{0.194 \\ (0.109--0.297)} &
+\makecell{94.0 (n=78) \\ (88.0--98.8)} &
+\makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
+\hline
+Exp3\_mixed &
+\makecell{wrong\_hemi + \\ wrong\_lobe} &
+\makecell{0.353 \\ (0.137--0.489)} &
+\makecell{\colorbox{orange!15}{0.374} \\ (0.245--0.622)} &
+\colorbox{cyan!15}{0.551} &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{0.214 \\ (0.074--0.324)} &
+\makecell{94.0 (n=78) \\ (88.0--98.8)} &
+\makecell{\colorbox{cyan!15}{72.0 (n=59)} \\ (62.2--81.7)} \\
+\hline
+Exp3\_mixed &
+no\_text &
+\makecell{0.345 \\ (0.108--0.453)} &
+\makecell{0.349 \\ (0.156--0.567)} &
+0.406 &
+% \makecell{1.000 \\ (0.500 -- 1.000)} &
+\makecell{0.209 \\ (0.058--0.292)} &
+\makecell{47.0 (n=39) \\ (36.1--57.8)} &
+\makecell{64.6 (n=53) \\ (53.7--74.4)} \\
+\hline
+\end{tabular}
+\end{table}
+
+These results suggest that the warm-up strategy is preferable for practical use.
+In real clinical workflows, coarse anatomical labels are far more common than
+precise region-level descriptions, and in such scenarios the warm-up model provides
+more reliable segmentation accuracy, even if this comes with a slight reduction in
+the number of detected lesions.
+
+% \clearpage
+% \subsection*{Mixed Text Part 2}
+% In this section, we conducted two additional experiments using the Mixed model with several different text description types. Notably, for the “no text” condition we did not provide a fixed phrase such as “No lesion detected.” Instead, we randomly generated a text description composed of a hemisphere name and a lobe name. Each part was sampled according to predefined probabilities, computed from the training-set distribution, as shown below:
+
+% \begin{verbatim}
+% {
+% "hemisphere_text": {
+% "Right Hemisphere": 0.5047923322683706,
+% "Left Hemisphere": 0.4952076677316294
+% },
+% "lobe_text": {
+% "Frontal lobe": 0.41533546325878595,
+% "Subcortical nuclei": 0.10862619808306709,
+% "Limbic lobe": 0.35782747603833864,
+% "Temporal lobe": 0.19488817891373802,
+% "Occipital lobe": 0.20447284345047922,
+% "Parietal lobe": 0.268370607028754,
+% "Subcallosal Cortex": 0.04792332268370607,
+% "Insular lobe": 0.07028753993610223,
+% "Lateral Ventricle": 0.022364217252396165,
+% "Brain-Stem": 0.012779552715654952,
+% "Central Opercular Cortex": 0.04472843450479233
+% }
+% }
+% \end{verbatim}
+
+% We additionally introduced a new text description type, dominant lobe. For each patient, we converted the detailed lobe-region annotations into a higher-level lobe category. The atlas we used provided percentage overlaps between the lesion and individual regions; these percentages were summed across regions belonging to the same anatomical lobe. The lobe with the highest cumulative percentage was selected as the dominant lobe for that patient. The final text contained only the lobe name without the percentage values.
+
+% The second experiment used the same Mixed model architecture but removed all spatial augmentations and excluded healthy control patients from both training and testing in order to assess how these factors influence overall performance. For the language component, we used the PubMedBERT pretrained model.
+
+% Tables \ref{tab:meld_models_pumbed_main} and \ref{tab:bonn_models_pumbed_main} summarize the results. Dice and IoU metrics differ by no more than 1–2\% across text types, and Sensitivity shows a similar trend. For PPV\textsubscript{pixels} and PPV\textsubscript{clusters}, the values in Table \ref{tab:bonn_models_pumbed_main} are consistently higher, suggesting that training exclusively on FCD patients helps the model better identify true-positive pixels and reduce the number of false positives.
+
+% \begin{table}[H]
+% \tiny
+% \begin{threeparttable}
+% \centering
+% \caption{Performance of Exp3\_mixed under different text conditions (MELD dataset).}
+% \label{tab:meld_models_pumbed_main}
+% \begin{tabular}{lcccccccc}
+% \textbf{Model} &
+% \textbf{Text type} &
+% \textbf{Dice} &
+% \textbf{\makecell{PPV \\ pixels}} &
+% \textbf{\makecell{PPV \\ clusters \\ (mean)}} &
+% \textbf{\makecell{PPV \\ clusters \\ (median)}} &
+% \textbf{IoU} &
+% \textbf{\makecell{Sensitivity, \% \\ (N = 259)}} &
+% \textbf{\makecell{Specificity, \% \\ (N = 193)}} \\
+% \midrule
+
+% Exp3\_mixed & hemisphere &
+% \makecell{\colorbox{cyan!15}{0.248}\\(0.154--0.318)} &
+% \makecell{0.194\\(0.141--0.300)} &
+% \colorbox{orange!15}{0.260} &
+% \makecell{1.000\\(0.500--1.000)} &
+% \makecell{\colorbox{cyan!15}{0.141}\\(0.083--0.189)} &
+% \makecell{\colorbox{cyan!15}{72.2 (n=187)} \\ (66.8--77.6)} &
+% \makecell{8.3 (n=16) \\ (4.7--12.4)} \\
+% \hline
+% Exp3\_mixed & lobe &
+% \makecell{\colorbox{orange!15}{0.245}\\(0.170--0.324)} &
+% \makecell{\colorbox{green!15}{0.209}\\(0.139--0.320)} &
+% \colorbox{cyan!15}{0.274} &
+% \makecell{1.000\\(0.500--1.000)} &
+% \makecell{\colorbox{orange!15}{0.139}\\(0.093--0.193)} &
+% \makecell{\colorbox{green!15}{72.6 (n=188)} \\ (67.2--78.0)} &
+% \makecell{8.3 (n=16) \\ (4.7--12.4)} \\
+% \hline
+% Exp3\_mixed & dominant\_lobe &
+% \makecell{\colorbox{orange!15}{0.245}\\(0.158--0.324)} &
+% \makecell{\colorbox{green!15}{0.209}\\(0.133--0.298)} &
+% 0.258 &
+% \makecell{1.000\\(0.600--1.000)} &
+% \makecell{\colorbox{orange!15}{0.139}\\(0.086--0.193)} &
+% \makecell{\colorbox{cyan!15}{72.2 (n=187)} \\ (66.8--77.6)} &
+% \makecell{8.3 (n=16) \\ (4.7--12.4)} \\
+% \hline
+% Exp3\_mixed & hemisphere\_lobe &
+% \makecell{0.223\\(0.100--0.304)} &
+% \makecell{\colorbox{cyan!15}{0.206}\\(0.129--0.306)} &
+% \colorbox{green!15}{0.311} &
+% \makecell{1.000\\(0.667--1.000)} &
+% \makecell{0.126\\(0.053--0.179)} &
+% \makecell{68.0 (n=176) \\ (62.2--73.7)} &
+% \makecell{8.3 (n=16) \\ (4.7--12.4)} \\
+% \hline
+% Exp3\_mixed & no text &
+% \makecell{\colorbox{green!15}{0.250}\\(0.146--0.323)} &
+% \makecell{\colorbox{orange!15}{0.204}\\(0.140--0.299)} &
+% 0.190 &
+% \makecell{1.000\\(0.500--1.000)} &
+% \makecell{\colorbox{green!15}{0.143}\\(0.079--0.192)} &
+% \makecell{\colorbox{orange!15}{71.4 (n=185)} \\ (66.0--76.8)} &
+% \makecell{1.0 (n=2) \\ (0.0--2.6)}\\
+% \bottomrule
+% \end{tabular}
+% \end{threeparttable}
+% \end{table}
+
+% A notable observation concerns Specificity in Table \ref{tab:meld_models_pumbed_main}, which is extremely low. This occurs because a pretrained decoder was not used, and healthy control patients were provided with incorrect, randomly generated text descriptions. Consequently, the model performs poorly on identifying healthy cases in all settings. Moreover, differences between text types are small, indicating that training the model with varied text descriptions allows it to produce stable predictions at inference time, regardless of how detailed the text guidance is.
+
+% \begin{table}[H]
+% \tiny
+% \begin{threeparttable}
+% \centering
+% \caption{Performance of Exp3\_mixed with freezed decoder, without data augmentation and healthy control patients (MELD dataset).}
+% \label{tab:bonn_models_pumbed_main}
+% \begin{tabular}{lcccccccc}
+% \textbf{Model} &
+% \textbf{Text type} &
+% \textbf{Dice} &
+% \textbf{\makecell{PPV \\ pixels}} &
+% \textbf{\makecell{PPV \\ clusters \\ (mean)}} &
+% \textbf{\makecell{PPV \\ clusters \\ (median)}} &
+% \textbf{IoU} &
+% \textbf{\makecell{Sensitivity, \% \\ (N = 259)}} &
+% \textbf{\makecell{Specificity, \% \\ (N = 193)}} \\
+% \midrule
+
+% Exp3\_mixed & hemisphere &
+% \makecell{\colorbox{green!15}{0.259}\\(0.152--0.325)} &
+% \makecell{\colorbox{cyan!15}{0.245}\\(0.159--0.354)} &
+% 0.505 &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{green!15}{0.149}\\(0.082--0.194)} &
+% \makecell{\colorbox{green!15}{71.4 (n=185)} \\ (66.0--76.8)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & lobe &
+% \makecell{\colorbox{cyan!15}{0.245}\\(0.152--0.337)} &
+% \makecell{\colorbox{orange!15}{0.232}\\(0.162--0.352)} &
+% \colorbox{orange!15}{0.512} &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{cyan!15}{0.140}\\(0.082--0.203)} &
+% \makecell{69.5 (n=180) \\ (63.7--74.9)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & dominant\_lobe &
+% \makecell{\colorbox{cyan!15}{0.245}\\(0.146--0.336)} &
+% \makecell{0.229\\(0.146--0.364)} &
+% 0.497 &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{cyan!15}{0.140}\\(0.079--0.202)} &
+% \makecell{69.1 (n=179) \\ (63.3--74.9)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & hemisphere\_lobe &
+% \makecell{\colorbox{orange!15}{0.230}\\(0.144--0.315)} &
+% \makecell{0.226\\(0.152--0.327)} &
+% \colorbox{cyan!15}{0.518} &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{orange!15}{0.130}\\(0.078--0.187)} &
+% \makecell{\colorbox{orange!15}{70.7 (n=183)} \\ (65.3--76.1)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & no text &
+% \makecell{0.226\\(0.123--0.315)} &
+% \makecell{\colorbox{green!15}{0.247}\\(0.162-0.352)} &
+% \colorbox{green!15}{0.526} &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{0.128\\(0.065-0.187)} &
+% \makecell{\colorbox{cyan!15}{71.0 (n=184)} \\ (65.6--76.4)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+
+% \bottomrule
+% \end{tabular}
+% \end{threeparttable}
+% \end{table}
+
+% \begin{table}[H]
+% \tiny
+% \begin{threeparttable}
+% \centering
+% \caption{Performance of Exp3\_mixed under different text conditions (Bonn dataset).}
+% \label{tab:meld_models_pumbed_independent}
+% \begin{tabular}{lcccccccc}
+% \textbf{Model} &
+% \textbf{Text type} &
+% \textbf{Dice} &
+% \textbf{\makecell{PPV \\ pixels}} &
+% \textbf{\makecell{PPV \\ clusters \\ (mean)}} &
+% \textbf{\makecell{PPV \\ clusters \\ (median)}} &
+% \textbf{IoU} &
+% \textbf{\makecell{Sensitivity, \% \\ (N = 82)}} &
+% \textbf{\makecell{Specificity, \% \\ (N = 83)}} \\
+% \midrule
+
+% Exp3\_mixed & hemisphere &
+% \makecell{0.370\\(0.238--0.500)} &
+% \makecell{\colorbox{orange!15}{0.443}\\(0.211--0.593)} &
+% \colorbox{cyan!15}{0.564} &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{orange!15}{0.227}\\(0.135--0.334)} &
+% \makecell{\colorbox{green!15}{73.2 (n=60)} \\ (63.4--82.9)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & lobe &
+% \makecell{\colorbox{orange!15}{0.380}\\(0.235--0.507)} &
+% \makecell{0.428\\(0.198--0.590)} &
+% 0.496 &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{cyan!15}{0.235}\\(0.133--0.339)} &
+% \makecell{\colorbox{cyan!15}{72.0 (n=59)} \\ (62.2--81.7)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & dominant\_lobe &
+% \makecell{\colorbox{green!15}{0.389}\\(0.283--0.511)} &
+% \makecell{\colorbox{green!15}{0.457}\\(0.221--0.605)} &
+% 0.492 &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{green!15}{0.242}\\(0.165--0.343)} &
+% \makecell{\colorbox{cyan!15}{72.0 (n=59)} \\ (62.2--81.7)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & hemisphere\_lobe &
+% \makecell{0.365\\(0.177--0.542)} &
+% \makecell{0.384\\(0.127--0.580)} &
+% \colorbox{green!15}{0.674} &
+% \makecell{1.000\\(0.750--1.000)} &
+% \makecell{0.223\\(0.097--0.372)} &
+% \makecell{\colorbox{orange!15}{68.3 (n=56)} \\ (57.3--78.0)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & no text &
+% \makecell{\colorbox{cyan!15}{0.381}\\(0.285--0.507)} &
+% \makecell{\colorbox{cyan!15}{0.454}\\(0.226--0.603)} &
+% \colorbox{orange!15}{0.563} &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{cyan!15}{0.235}\\(0.166--0.340)} &
+% \makecell{\colorbox{green!15}{73.2 (n=60)} \\ (63.4--82.9)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+
+% \bottomrule
+% \end{tabular}
+% \end{threeparttable}
+% \end{table}
+
+% With the independent cohort, these differences become more noticeable. In Table \ref{tab:meld_models_pumbed_independent}, Specificity is zero in all cases because it was computed after all experiments were completed, and the feature files for healthy controls were not regenerated. However, this does not affect our conclusions, as earlier experiments already demonstrated that Specificity is very low. The largest differences across text types in Tables \ref{tab:meld_models_pumbed_independent} and \ref{tab:bonn_models_pumbed_independent} appear in Dice, PPV\textsubscript{pixels}, and IoU, ranging from 2 to 7\%. As mentioned earlier, this larger performance gap in Table 14 is expected because the model was trained exclusively on patients with FCD, which forces it to focus on patterns associated specifically with pathological cases.
+
+% \begin{table}[H]
+% \tiny
+% \begin{threeparttable}
+% \centering
+% \caption{Performance of Exp3\_mixed with freezed decoder, without data augmentation and healthy control patients (Bonn dataset).}
+% \label{tab:bonn_models_pumbed_independent}
+% \begin{tabular}{lcccccccc}
+% \textbf{Model} &
+% \textbf{Text type} &
+% \textbf{Dice} &
+% \textbf{\makecell{PPV \\ pixels}} &
+% \textbf{\makecell{PPV \\ clusters \\ (mean)}} &
+% \textbf{\makecell{PPV \\ clusters \\ (median)}} &
+% \textbf{IoU} &
+% \textbf{\makecell{Sensitivity, \% \\ (N = 82)}} &
+% \textbf{\makecell{Specificity, \% \\ (N = 83)}} \\
+% \midrule
+
+% Exp3\_mixed & hemisphere &
+% \makecell{0.405\\(0.245--0.533)} &
+% \makecell{\colorbox{cyan!15}{0.469}\\(0.211--0.600)} &
+% \colorbox{orange!15}{0.500} &
+% \makecell{1.000\\(0.833--1.000)} &
+% \makecell{0.254\\(0.140--0.363)} &
+% \makecell{\colorbox{cyan!15}{72.0 (n=59)} \\ (62.2--81.7)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & lobe &
+% \makecell{\colorbox{cyan!15}{0.435}\\(0.333--0.537)} &
+% \makecell{\colorbox{orange!15}{0.467}\\(0.261--0.650)} &
+% 0.473 &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{cyan!15}{0.278}\\(0.199--0.367)} &
+% \makecell{\colorbox{cyan!15}{72.0 (n=59)} \\ (62.2--81.7)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & dominant\_lobe &
+% \makecell{\colorbox{orange!15}{0.423}\\(0.327--0.523)} &
+% \makecell{\colorbox{green!15}{0.491}\\(0.257--0.662)} &
+% 0.473 &
+% \makecell{1.000\\(0.750--1.000)} &
+% \makecell{\colorbox{orange!15}{0.268}\\(0.196--0.354)} &
+% \makecell{\colorbox{green!15}{73.2 (n=60)} \\ (63.4--82.9)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & hemisphere\_lobe &
+% \makecell{\colorbox{green!15}{0.462}\\(0.303-0.554)} &
+% \makecell{0.456\\(0.239-0.590)} &
+% \colorbox{cyan!15}{0.517} &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{\colorbox{green!15}{0.300} \\(0.179--0.383)} &
+% \makecell{\colorbox{orange!15}{70.7 (n=58)} \\ (61.0--80.5)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+% \hline
+% Exp3\_mixed & no text &
+% \makecell{0.407\\(0.233-0.513)} &
+% \makecell{0.460\\(0.190-0.626)} &
+% \colorbox{green!15}{0.534} &
+% \makecell{1.000\\(1.000--1.000)} &
+% \makecell{0.256\\(0.133-0.345)} &
+% \makecell{\colorbox{orange!15}{70.7 (n=58)} \\ (61.0--80.5)} &
+% \makecell{0.0 (n=0) \\ (0.0--0.0)} \\
+
+% \bottomrule
+% \end{tabular}
+% \end{threeparttable}
+% \end{table}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 % TODO ######################################################
-\paragraph{Independent cohort (Bonn Dataset)}
-On the Bonn dataset, \texttt{Exp3\_hemi+lobe} again ranks second in Dice, PPV clusters, and IoU, remaining only 2--3\% behind the leading results, which underlines its robustness across datasets.  
-
-\texttt{Exp3\_full} achieves the highest number of detected lesions (57 vs.\ 54 for MELD), but as in the main cohort, it yields the weakest cluster PPV (0.415), confirming its unstable, overly sensitive nature.  
-
-\texttt{Test2\_hemi+lobe} detects 2 more lesions than \texttt{Exp3\_hemi+lobe}, but its performance on Dice and IoU is only marginally lower (by about 0.2\%), indicating a small trade-off between sensitivity and segmentation accuracy.  
-
-Overall, these results demonstrate that textual guidance consistently improves segmentation quality, even without fine-grained parameter tuning. Importantly, even partial guidance such as hemisphere and lobe information yields meaningful improvements, helping to balance recall and precision.  
-
-\paragraph{General conclusions.}
-\begin{itemize} %[noitemsep, topsep=0pt]
-    \item \texttt{Exp3\_hemi+lobe} is the most balanced and stable model, performing reliably across datasets and metrics.
-    \item \texttt{Test2\_hemi+lobe} shows slightly less accurate results than \texttt{Exp3\_hemi+lobe}, but detects more lesions, representing a compromise between accuracy and lesion sensitivity.
-    \item \texttt{Exp3\_full} achieves the highest sensitivity and lesion coverage but exhibits instability, generating many false positives.
-    \item Decoder tuning strategies (\texttt{Test2} vs.\ \texttt{Test3}) reveal a trade-off: early fine-tuning increases recall (higher Dice and lesion counts), while delayed fine-tuning improves precision (higher PPV\_pixels).
-    \item The \texttt{MELD baseline} consistently underperforms compared to the proposed models, confirming the added value of textual guidance and decoder adaptation.
-\end{itemize}
-
-
-The full results with confidence intervals are reported in \autoref{tab:main_full} and \autoref{tab:bonn_full}.
-
+\clearpage
 \section{Linking MELD to GNN}
 In these experiments we investigated the effect of connecting different numbers of MELD feature stages to the GNN block. The rationale was that higher MELD stages may produce sparse representations, while lower stages provide richer local detail. By progressively adding stages from top to bottom, we aimed to evaluate how multi-stage integration influences model performance. To isolate this effect, the text encoder and GuideDecoder were disabled.
-% In our initial experiments, after combining vision and text features, the obtained results were of relatively low quality. 
-% This observation suggested that the output representations produced by MELD at higher stages are rather sparse, which may limit the predictive capacity of the model. 
-% To address this, we hypothesized that aggregating information from multiple MELD stages could improve the expressivity of the GNN block and lead to more accurate predictions. 
-% Therefore, we conducted a series of experiments in which different numbers of MELD feature stages were connected to the GNN block, ranging from high-level features to lower-level ones, in order to evaluate the impact of stage-wise integration on model performance.
-% And in order to show exactly the influence of the GNN block, we disabled the text model and GuideDecoder.
 
-% A short clarification regarding the experiment names: 
-% \texttt{Exp1 1 layer} means that only the highest-level MELD features were connected to the GNN block, while 
-% \texttt{Exp1 0 layer} corresponds to skipping the GNN block entirely and feeding MELD features directly. 
-% As the number of layers increases, additional MELD stages are progressively included from top to bottom, 
-% so that lower-level representations are added step by step to the higher-level ones.
+On the main cohort (Tables~\ref{tab:gnn_main}), the configuration with \textbf{three GNN layers} provides the most balanced performance across Dice, PPV\textsubscript{pixels}, and IoU, while also detecting \textbf{one} additional lesion compared with the no-GNN baseline. 
+This is the only configuration that consistently appears among the top performers for all primary metrics, which supports selecting it as the best overall trade-off.
+
+Connecting \textbf{all seven} MELD stages to the GNN yields the highest lesion count (sensitivity increased approximately by 3\%: \(188/259\) vs. \(180/259\)), with only a modest drop in Dice and PPV\textsubscript{pixels} (about 1–4\%). 
+This gain is consistent with SAGEConv’s neighborhood aggregation: increasing depth expands each node’s receptive field and multi-stage inputs inject complementary local/global context, enabling detection of additional lesion clusters that are missed with purely local features.
 \begin{table}[ht]
 \centering
-\footnotesize
-\caption{Different number of MELD stages connected to the GNN block}
+\tiny
+\caption{Different number of MELD stages connected to the GNN block (values in parentheses indicate 95\% confidence intervals). Main cohort}
+\label{tab:gnn_main}
 \begin{tabular}{lccccc}
+\textbf{Experiment} & \textbf{Dice} & \makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean) PPV}\\\textbf{clusters}} & \textbf{IoU} & \textbf{\makecell{Sensitivity, \% \\ (N = 259)}} \\
 \hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+Exp1: 0 layers  & 
+\makecell{\colorbox{cyan!15}{0.240} \\ (0.129--0.324)} & 
+\makecell{0.217 \\ (0.151--0.319)} & 
+0.532 & 
+\makecell{\colorbox{cyan!15}{0.136} \\ (0.069--0.193)} & 
+\makecell{\colorbox{orange!15}{69.5 (n=180)} \\ (63.7--74.9)} \\
 \hline
-Exp1 0 layers & 0.148 & 0.129 & 0.649 & 0.080 & 147 / 259 \\
-Exp1 1 layer & 0.149 & 0.141 & 0.668 & 0.080 & 149 / 259 \\
-Exp1 2 layers & 0.192 & 0.172 & 0.553 & \colorbox{blue!20}{0.106} & \colorbox{orange!20}{156 / 259} \\
-Exp1 3 layers & 0.142 & \colorbox{blue!20}{0.206} & \colorbox{blue!20}{0.722} & 0.076 & 146 / 259 \\
-Exp1 4 layers & 0.119 & 0.174 & \colorbox{green!20}{0.760} & 0.063 & 146 / 259 \\
-Exp1 5 layers & \colorbox{blue!20}{0.178} & \colorbox{green!20}{0.242} & 0.685 & \colorbox{orange!20}{0.098} & \colorbox{blue!20}{157 / 259} \\
-Exp1 6 layers & \colorbox{green!20}{0.234} & \colorbox{orange!20}{0.196} & 0.654 & \colorbox{green!20}{0.133} & \colorbox{green!20}{162 / 259} \\
-Exp1 7 layers & \colorbox{orange!20}{0.177} & 0.174 & \colorbox{orange!20}{0.715} & 0.097 & 152 / 259 \\
+Exp1: 1 layer   & \makecell{\colorbox{orange!15}{0.235} \\ (0.096--0.313)} & \makecell{\colorbox{green!15}{0.235} \\ (0.148--0.362)} & \colorbox{green!15}{0.603} & \makecell{\colorbox{orange!15}{0.133} \\ (0.051--0.186)} & \makecell{67.2 (n=174) \\ (61.4--73.0)} \\
+\hline
+Exp1: 2 layers  & \makecell{0.234 \\ (0.126--0.334)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.136--0.371)} & \colorbox{cyan!15}{0.573} & \makecell{0.132 \\ (0.067--0.200)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
+\hline
+Exp1: 3 layers  & \makecell{\colorbox{green!15}{0.249} \\ (0.114--0.332)} & \makecell{\colorbox{cyan!15}{0.224} \\ (0.142--0.341)} & 0.479 & \makecell{\colorbox{green!15}{0.142} \\ (0.060--0.199)} & \makecell{\colorbox{cyan!15}{69.9 (n=181)} \\ (64.1--75.3)} \\
+\hline
+Exp1: 4 layers  & \makecell{0.231 \\ (0.097--0.304)} & \makecell{0.180 \\ (0.128--0.283)} & \colorbox{orange!15}{0.540} & \makecell{0.130 \\ (0.051--0.179)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
+\hline
+Exp1: 5 layers  & \makecell{0.223 \\ (0.081--0.312)} & \makecell{0.172 \\ (0.090--0.261)} & 0.533 & \makecell{0.125 \\ (0.042--0.185)} & \makecell{66.0 (n=171) \\ (60.2--71.8)} \\
+\hline
+Exp1: 6 layers  & \makecell{0.208 \\ (0.121--0.312)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.147--0.336)} & 0.539 & \makecell{0.116 \\ (0.065--0.185)} & \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
+\hline
+Exp1: 7 layers  & \makecell{0.206 \\ (0.119--0.293)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.135--0.341)} & 0.436 & \makecell{0.115 \\ (0.063--0.172)} & \makecell{\colorbox{green!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
 \hline
 \end{tabular}
 \end{table}
 
-% Among all models, \texttt{Exp1} with 6 layers performed best overall: it detected the largest number of lesions and achieved the highest Dice and IoU scores, but this came at the cost of reduced precision due to a large number of false positives.  
 
-% In contrast, \texttt{Exp1} with 3 layers showed a more balanced behavior: its PPV metrics ranked second-best, indicating fewer false positives, but it missed more lesions compared to the 6-layer variant.  
-% 0 layers
-% 0.148 (95% CI 0.015-0.268)
-% PPV_pixels  : 0.129 (95% CI 0.013-0.239)
-% PPV_clusters  :  0.6490566037735849
-% IoU  : 0.080 (95% CI 0.008-0.155)
-% 163842
-% 0.149 (95% CI 0.023-0.255)
-% PPV_pixels  : 0.141 (95% CI 0.031-0.222)
-% PPV_clusters  :  0.66796875
-% IoU  : 0.080 (95% CI 0.012-0.146)
-% 40962
-% 0.192 (95% CI 0.082-0.271)
-% PPV_pixels  : 0.172 (95% CI 0.077-0.286)
-% PPV_clusters  :  0.553475935828877
-% IoU  : 0.106 (95% CI 0.043-0.157)
-% 10242
-% 0.142 (95% CI 0.014-0.263)
-% PPV_pixels  : 0.206 (95% CI 0.009-0.334)
-% PPV_clusters  :  0.7222222222222222
-% IoU  : 0.076
-% 2562
-% 0.119 (95% CI 0.001-0.278)
-% PPV_pixels  : 0.174 (95% CI 0.001-0.302)
-% PPV_clusters  :  0.7601809954751131
-% IoU  : 0.063 (95% CI 0.000-0.162)
-% 642
-% 0.178 (95% CI 0.080-0.320)
-% PPV_pixels  : 0.242 (95% CI 0.091-0.345)
-% PPV_clusters  :  0.6851851851851852
-% IoU  : 0.098 (95% CI 0.042-0.190)
-% 162
-% 0.234 (95% CI 0.149-0.333)
-% PPV_pixels  : 0.196 (95% CI 0.107-0.304)
-% PPV_clusters  :  0.6541095890410958
-% IoU  : 0.133 (95% CI 0.080-0.199)
-% 42
-% 0.177 (95% CI 0.037-0.308)
-% PPV_pixels  : 0.174 (95% CI 0.035-0.257)
-% PPV_clusters  :  0.7149122807017544
-% IoU  : 0.097 (95% CI 0.019-0.182)
+On the independent (Bonn) cohort Table~\ref{tab:gnn_independent}, the \textbf{5-layer} configuration gives the best overall trade-off: it attains the \emph{second-highest} Dice and IoU while detecting the most lesions (\(63/82\)). 
+Compared with the no-GNN baseline (0 layers), the gap is \(\approx\)3\% in Dice and \(\approx\)5\% in IoU, highlighting the benefit of the proposed GNN block.
+
+For subsequent experiments we keep the \textbf{3-layer} and \textbf{5-layer} variants, and will compare them in the final study to determine the optimal number of connected MELD stages.
+
 
 \begin{table}[ht]
 \centering
-\footnotesize
-\caption{Different number of MELD stages connected to the GNN block. Independent cohort (Bonn Dataset)}
+\tiny
+\caption{Different number of MELD stages connected to the GNN block (values in parentheses indicate 95\% confidence intervals). Independent cohort (Bonn Dataset)}
+\label{tab:gnn_independent}
 \begin{tabular}{lccccc}
+
+\textbf{Experiment} & \textbf{Dice} & \makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean) PPV}\\\textbf{clusters}} & \textbf{IoU} & \textbf{\makecell{Sensitivity, \% \\ (N = 82)}} \\
 \hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+Exp1: 0 layers &
+\makecell{0.371 \\ (0.289--0.520)} &
+\makecell{0.438 \\ (0.246--0.660)} &
+\makecell{\colorbox{orange!15}{0.680}} &
+\makecell{0.227 \\ (0.169--0.351)} &
+\makecell{73.2 (n=60) \\ (63.4--82.9)} \\
 \hline
-Exp1 0 layers & 0.308 & 0.372 & 0.728 & 0.182 & \colorbox{blue!20}{48 / 82} \\
-Exp1 1 layer & 0.229 & 0.338 & 0.718 & 0.130 & \colorbox{blue!20}{48 / 82} \\
-Exp1 2 layers & \colorbox{blue!20}{0.379} & 0.349 & 0.639 & \colorbox{blue!20}{0.234} & \colorbox{green!20}{49 / 82} \\
-Exp1 3 layers & \colorbox{orange!20}{0.362} & \colorbox{green!20}{0.475} & \colorbox{orange!20}{0.841} & \colorbox{orange!20}{0.221} & \colorbox{blue!20}{48 / 82} \\
-Exp1 4 layers & 0.349 & \colorbox{orange!20}{0.420} & \colorbox{blue!20}{0.868} & 0.212 & \colorbox{blue!20}{48 / 82} \\
-Exp1 5 layers & 0.354 & \colorbox{blue!20}{0.448} & 0.802 & 0.215 & \colorbox{green!20}{49 / 82} \\
-Exp1 6 layers & \colorbox{green!20}{0.392} & 0.352 & 0.700 & \colorbox{green!20}{0.244} & \colorbox{green!20}{49 / 82} \\
-Exp1 7 layers & 0.357 & 0.355 & \colorbox{green!20}{0.879} & 0.218 & \colorbox{orange!20}{47 / 82} \\
+Exp1: 1 layer &
+\makecell{0.342 \\ (0.083--0.515)} &
+\makecell{\colorbox{cyan!15}{0.528} \\ (0.242--0.757)} &
+\makecell{\colorbox{green!15}{0.819}} &
+\makecell{0.206 \\ (0.043--0.347)} &
+\makecell{65.9 (n=54) \\ (54.9--75.6)} \\
+\hline
+Exp1: 2 layers &
+\makecell{0.383 \\ (0.216--0.506)} &
+\makecell{0.432 \\ (0.243--0.663)} &
+\makecell{\colorbox{cyan!15}{0.729}} &
+\makecell{0.237 \\ (0.123--0.339)} &
+\makecell{70.7 (n=58) \\ (61.0--80.5)} \\
+\hline
+Exp1: 3 layers &
+\makecell{0.390 \\ (0.302--0.517)} &
+\makecell{\colorbox{orange!15}{0.503} \\ (0.309--0.732)} &
+\makecell{0.619} &
+\makecell{0.242 \\ (0.178--0.349)} &
+\makecell{\colorbox{cyan!15}{75.6 (n=62)} \\ (65.9--84.1)} \\
+\hline
+Exp1: 4 layers &
+\makecell{\colorbox{green!15}{0.458} \\ (0.279--0.600)} &
+\makecell{0.491 \\ (0.186--0.582)} &
+\makecell{0.653} &
+\makecell{\colorbox{green!15}{0.297} \\ (0.162--0.428)} &
+\makecell{73.2 (n=60) \\ (63.4--82.9)} \\
+\hline
+Exp1: 5 layers &
+\makecell{\colorbox{cyan!15}{0.432} \\ (0.303--0.549)} &
+\makecell{0.410 \\ (0.249--0.606)} &
+\makecell{0.555} &
+\makecell{\colorbox{cyan!15}{0.275} \\ (0.179--0.378)} &
+\makecell{\colorbox{green!15}{76.8 (n=63)} \\ (67.1--85.4)} \\
+\hline
+Exp1: 6 layers &
+\makecell{0.382 \\ (0.292--0.544)} &
+\makecell{\colorbox{green!15}{0.584} \\ (0.342--0.687)} &
+\makecell{0.644} &
+\makecell{0.236 \\ (0.171--0.373)} &
+\makecell{73.2 (n=60) \\ (63.4--82.9)} \\
+\hline
+Exp1: 7 layers &
+\makecell{\colorbox{orange!15}{0.402} \\ (0.284--0.493)} &
+\makecell{0.375 \\ (0.232--0.634)} &
+\makecell{0.451} &
+\makecell{\colorbox{orange!15}{0.252} \\ (0.165--0.327)} &
+\makecell{\colorbox{orange!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
 \hline
 \end{tabular}
 \end{table}
 
-Across both cohorts, a clear trade-off emerges. Models with a larger number of connected MELD stages (e.g., with 6 layers) achieved the highest Dice and IoU scores and detected the most lesions, but at the expense of lower precision, as indicated by reduced PPV values. In contrast, configurations with fewer connected stages (e.g., 5 layers) provided more balanced results, yielding higher PPV and thus fewer false positives, but missing more lesions overall.
+\clearpage
 
-Given that the primary goal of this work is to maximize lesion detection (i.e., higher sensitivity), we adopt the 6-layer configuration for subsequent experiments. Nevertheless, the 5-layer setting appears preferable in scenarios where precision and false-positive control are prioritized.
-% On the independent Bonn dataset, the situation is similar. \texttt{Exp1} with 6 layers again achieved the highest Dice and IoU scores and detected the largest number of lesions, but its PPV dropped significantly, confirming the increase in false positives. The 3-layer model again provided a reasonable compromise between precision and sensitivity, although with lower Dice and IoU.  
+\section{Final Experiments}
 
-% The results show that connecting a larger number of MELD stages to the GNN block increases lesion sensitivity and overlap quality (Dice, IoU), but simultaneously reduces precision, as reflected by lower PPV values. 
-% A lower PPV means that, although multi-stage integration improves the detection of true lesions, it also increases the number of false positive clusters and thereby reduces the reliability of the predictions.
-% Because the objective of this study is to maximize the number of detected lesions, the 6-layer \texttt{Exp1} model is used in subsequent experiments.
+By summarizing the results from the previous chapters, we conclude that the most appropriate text model is PubMedBERT, the optimal configurations for the visual branch are GNN encoders with 3 and 5 blocks, and the best training strategy is to unfreeze the pretrained Exp1 decoder after 5 epochs.
+All these parameters will be used in the following experiments to observe the resulting improvements.
 
-% 0 layers
-% 0.308 (95% CI 0.000-0.448)
-% PPV_pixels  : 0.372 (95% CI 0.000-0.557)
-% PPV_clusters  :  0.7285714285714285
-% IoU  : 0.182 (95% CI 0.000-0.289)
-% 163842
-% 0.229 (95% CI 0.000-0.439)
-% PPV_pixels  : 0.338 (95% CI 0.000-0.625)
-% PPV_clusters  :  0.7183098591549296
-% IoU  : 0.130 (95% CI 0.000-0.283)
-% 40962
-% 0.379 (95% CI 0.000-0.473)
-% PPV_pixels  : 0.349 (95% CI 0.000-0.612)
-% PPV_clusters  :  0.6395348837209303
-% IoU  : 0.234 (95% CI 0.000-0.310)
-% 10242
-% 0.362 (95% CI 0.000-0.461)
-% PPV_pixels  : 0.475 (95% CI 0.000-0.692)
-% PPV_clusters  :  0.8412698412698413
-% IoU  : 0.221 (95% CI 0.000-0.299)
-% 2562
-% 0.349 (95% CI 0.000-0.517)
-% PPV_pixels  : 0.420 (95% CI 0.000-0.707)
-% PPV_clusters  :  0.8688524590163934
-% IoU  : 0.212 (95% CI 0.000-0.349)
-% 642
-% 0.354 (95% CI 0.000-0.452)
-% PPV_pixels  : 0.448 (95% CI 0.000-0.715)
-% PPV_clusters  :  0.8028169014084507
-% IoU  : 0.215 (95% CI 0.000-0.292)
-% 162
-% 0.392 (95% CI 0.039-0.565)
-% PPV_pixels  : 0.352 (95% CI 0.029-0.550)
-% PPV_clusters  :  0.7
-% IoU  : 0.244 (95% CI 0.020-0.394)
-% 42
-% 0.357 (95% CI 0.000-0.514)
-% PPV_pixels  : 0.355 (95% CI 0.000-0.621)
-% PPV_clusters  :  0.8793103448275862
-% IoU  : 0.218 (95% CI 0.000-0.346)
+For these experiments, we will use the following types of text prompts: ``hemisphere'' and ``hemisphere + lobe''.
+Using ``lobe regions'' and ``full text'' is not meaningful, as discussed earlier.
+We have also included a ``no text'' column, where instead of an empty string, this column will contain a general description: ``full brain''.
+Additionally, we will train the model with mixed text, primarily to reduce the overall experimental runtime, since our goal here is to demonstrate relative improvements under optimal settings, rather than to obtain the best possible model.
 
+The architecture used in this experiment for Exp1 is shown below:
 
-\section{Text Guidance in Decoder}
-% In this chapter, we investigate the influence of textual descriptions on the segmentation quality.
-% To this end, we conducted a series of experiments in which we unfroze different numbers of RadBERT layers, starting from 0 (all layers frozen) up to 12 (all layers unfrozen) in steps of 3.
-% In principle, one could also perform unfreezing with a step size of 1, but besides being time-consuming, we believe it would not yield substantial improvements in performance. 
-% An exception was made for the first 3 layers, which we evaluated separately. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{pictures/AdvancedExp1.png}
+    \caption{Architecture of Advanced Exp1: MELD surface-based features are extracted through a multi-stage GNN encoder (3- or 5-block variants) and passed through a hierarchical GuideDecoder with cross-attention to text embeddings. 
+    At each decoder stage, visual features are fused with linguistic cues, reshaped, and upsampled through geometry-aware operations, before producing the final segmentation via the DecoderHead. 
+    The right panel illustrates the internal structure of the GuideDecoder layer, including self- and cross-attention over text and vision tokens, skip connections, and spatial upsampling.}
+    \label{fig:advanced_exp1}
+\end{figure}
 
-To assess the influence of textual descriptions on segmentation quality, we conducted experiments with different numbers of unfrozen RadBERT layers. We compared settings from a fully frozen text encoder (0 layers) up to complete fine-tuning (12 layers), with intermediate configurations in steps of three layers. To better assess the effect of unfreezing a small number of layers, we additionally evaluated a configuration with the first three layers unfrozen.
-\begin{table}[ht]
+On the main cohort (Table~\ref{tab:main_cohort_final}), in the \textit{hemisphere + lobe} and \textit{no\_text} settings, the models with GNN blocks indeed detect a larger number of lesions. 
+However, in most cases the model without a GNN block exhibits higher values across all primary metrics and clearly dominates in terms of \textit{Specificity}.
+
+The PPV\textsubscript{clusters} metric explicitly indicates that GNN-based models produce substantially more false-positive clusters, which negatively affects the overall prediction quality. Therefore, based on the obtained results, no definitive advantage of information aggregation in sparse graphs can be concluded.
+\begin{table}[H]
+\tiny
+\begin{threeparttable}
 \centering
-\footnotesize
-\caption{Different number of unfreezed layers in RadBERT}
-\begin{tabular}{lccccc}
+\caption{Median performance on the main cohort (with 95\% confidence intervals).} 
+\label{tab:main_cohort_final}
+\begin{tabular}{ccccccccc}
+\textbf{Model} &
+\textbf{Text type} &
+\textbf{Deocder type} &
+\textbf{Dice} &
+\makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean)} \\\textbf{PPV}\\\textbf{clusters}} & 
+\textbf{IoU} & 
+\makecell{\textbf{Specificity, \%} \\ (N = 193)}&
+\makecell{\textbf{Sensitivity, \%} \\ (N = 259)}\\
+\midrule
+MELD &
+-- &
+Basice Exp1 &
+\makecell{0.230\\(0.107--0.320)} &
+\makecell{0.166\\(0.086--0.220)} &
+0.515 &
+\makecell{0.130\\(0.057--0.190)} &
+\makecell{58.0 (n=112) \\ (51.3--64.8)} &
+\makecell{65.6 (n=170) \\ (59.8--71.4)} \\
+
 \hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
+
+\multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+\multirow{3}{*}{\makecell[c]{hemisphere}} &
+\makecell{Exp1 with 3 GNN} &
+\makecell{\textbf{0.232} \\ (0.141-0.312)} &
+\makecell{0.212 \\ (0.146-0.330)} &
+\makecell{0.314} &
+\makecell{\textbf{0.131} \\ (0.076-0.185)} &
+\makecell{8.3 (n=16) \\ (4.7--12.4)} &
+\makecell{69.9 (n=181) \\ (64.1--75.3)} \\
+% second row
+& 
+&
+\makecell{Exp1 with 5 GNN} &
+\makecell{0.211 \\ (0.110--0.320)} &
+\makecell{\textbf{0.226} \\ (0.154--0.394)} &
+\makecell{0.242} &
+\makecell{0.118 \\ (0.058--0.191)} &
+\makecell{1.0 (n=2) \\ (0.0--2.6)} &
+\makecell{72.2 (n=187) \\ (66.8--77.6)} \\
+% third row
+& 
+&
+\makecell{Basic Exp1} &
+\makecell{0.225 \\ (0.131--0.294)} &
+\makecell{0.215 \\ (0.137--0.325)} &
+\textbf{0.401} &
+\makecell{0.127 \\ (0.070--0.172)} &
+\makecell{\textbf{88.1 (n=170)} \\ (83.4--92.2)} &
+\makecell{\textbf{73.7 (n=191)} \\ (68.3--79.2)} \\
+
 \hline
-0 layers & \textbf{0.286} & 0.214 & 0.542 & \textbf{0.167} & \textbf{172 / 259} \\
-3 layers & 0.281 & 0.244 & 0.630 & 0.163 & 164 / 259 \\
-6 layers & 0.256 & 0.223 & 0.587 & 0.147 & 166 / 259 \\
-9 layers & 0.245 & \textbf{0.263} & \textbf{0.634} & 0.139 & 164 / 259 \\
-12 layers & 0.286 & 0.202 & 0.554 & 0.167 & 168 / 259 \\
+
+\multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+\multirow{3}{*}{\makecell[c]{hemisphere \\ + \\ lobe}} &
+\makecell{Exp1 with 3 GNN} &
+\makecell{0.224 \\ (0.154-0.319)} &
+\makecell{0.200 \\ (0.142-0.314)} &
+\makecell{0.310} &
+\makecell{0.126 \\ (0.083-0.190)} &
+\makecell{8.3 (n=16) \\ (4.7--12.4)} &
+\makecell{69.5 (n=180) \\ (63.7--74.9)}\\% second row
+& 
+&
+\makecell{Exp1 with 5 GNN} &
+\makecell{0.186 \\ (0.119--0.314)} &
+\makecell{0.241 \\ (0.158--0.384)} &
+\makecell{0.246} &
+\makecell{0.103 \\ (0.063--0.186)} &
+\makecell{1.0 (n=2) \\ (0.0--2.6)} &
+\makecell{\textbf{71.8 (n=186)} \\ (66.4--77.2)} \\
+% third row
+& 
+&
+\makecell{Basic Exp1} &
+\makecell{\textbf{0.228} \\ (0.129--0.321)} &
+\makecell{\textbf{0.247} \\ (0.180--0.330)} &
+\textbf{0.482} &
+\makecell{\textbf{0.129} \\ (0.069--0.180)} &
+\makecell{\textbf{88.1 (n=170)} \\ (83.4--92.2)} &
+\makecell{71.0 (n=184) \\ (65.6--76.4)} \\
+
 \hline
+
+\multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+\multirow{3}{*}{\makecell[c]{no text}} &
+\makecell{Exp1 with 3 GNN} &
+\makecell{0.212 \\ (0.120-0.311)} &
+\makecell{\textbf{0.262} \\ (0.164-0.355)} &
+\makecell{0.206} &
+\makecell{0.119 \\ (0.064-0.184)} &
+\makecell{0.0 (n=0) \\ (0.0--0.0)} &
+\makecell{\textbf{72.2 (n=187)} \\ (66.8--77.6)}\\
+% second row
+& 
+&
+\makecell{Exp1 with 5 GNN} &
+\makecell{0.229 \\ (0.118--0.311)} &
+\makecell{0.259 \\ (0.135--0.363)} &
+\makecell{0.235} &
+\makecell{0.130 \\ (0.063--0.184)} &
+\makecell{1.0 (n=2) \\ (0.0--2.6)} &
+\makecell{69.5 (n=180) \\ (63.7--74.9)} \\
+% third row
+& 
+&
+\makecell{Basic Exp1} &
+\makecell{\textbf{0.249} \\ (0.080--0.296)} &
+\makecell{0.192 \\ (0.127--0.289)} &
+\textbf{0.443} &
+\makecell{\textbf{0.142} \\ (0.042--0.174)} &
+\makecell{\textbf{52.3 (n=101)} \\ (45.1--59.1)} &
+\makecell{66.0 (n=171) \\ (60.2--71.8)} \\
+
+\bottomrule
 \end{tabular}
+
+
+\end{threeparttable}
+
 \end{table}
 
-% 0 layers
-% Dice : 0.286 (95% CI 0.168-0.345)
-% PPV_pixels  : 0.214 (95% CI 0.163-0.303)
-% PPV_clusters  :  0.5417789757412399
-% IoU  : 0.167 (95% CI 0.092-0.209)
-% \section{Effect of Textual Descriptions}
-% 3 layers
-% 0.281 (95% CI 0.171-0.359)
-% PPV_pixels  : 0.244 (95% CI 0.134-0.306)
-% PPV_clusters  :  0.6295081967213115
-% IoU  : 0.163 (95% CI 0.094-0.219)
-% 6 layers
-% 0.256 (95% CI 0.159-0.327)
-% PPV_pixels  : 0.223 (95% CI 0.171-0.325)
-% PPV_clusters  :  0.5865921787709497
-% IoU  : 0.147 (95% CI 0.087-0.196)
-% 9 layers
-% 0.245 (95% CI 0.130-0.357)
-% PPV_pixels  : 0.263 (95% CI 0.133-0.364)
-% PPV_clusters  :  0.6335616438356164
-% IoU  : 0.139 (95% CI 0.070-0.217)
-% 12
-% 0.286 (95% CI 0.156-0.334)
-% PPV_pixels  : 0.202 (95% CI 0.156-0.299)
-% PPV_clusters  :  0.5538057742782152
-% IoU  : 0.167 (95% CI 0.084-0.200)
-\begin{table}[ht]
-\centering
-\footnotesize
-\caption{Different number of unfreezed layers in RadBERT. Independent cohort (Bonn Dataset)}
-\begin{tabular}{lccccc}
-\hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
-\hline
-0 layers & \textbf{0.483} & 0.427 & 0.582 & \textbf{0.319} & \textbf{55 / 82} \\
-3 layers & 0.456 & 0.415 & \textbf{0.803} & 0.295 & 52 / 82 \\
-6 layers & 0.367 & 0.398 & 0.655 & 0.225 & 51 / 82 \\
-9 layers & 0.411 & \textbf{0.443} & 0.721 & 0.258 & 52 / 82 \\
-12 layers & 0.444 & 0.371 & 0.663 & 0.286 & 53 / 82 \\
-\hline
-\end{tabular}
-\end{table}
+However, on the independent (Bonn) cohort (Tables~\ref{tab:independent_cohort_final}), we observe that for the 
+\textit{hemisphere} and \textit{hemisphere + lobe} settings, the model with \textbf{three GNN blocks} achieves the 
+highest Dice, IoU, and Sensitivity. 
+However, its PPV\textsubscript{clusters} is almost twice as low as that of the baseline without a GNN block, 
+indicating a substantially larger number of false-positive clusters. 
+This is further reflected in the Specificity, which is approximately three times lower than the baseline and nearly 
+two orders of magnitude lower compared with the 5-GNN configuration.
 
-The results show a consistent trend across both cohorts. With a fully frozen text encoder (0 layers), the model achieved the highest Dice and IoU, as well as the largest number of detected lesions. This suggests that extensive fine-tuning of RadBERT does not improve overall segmentation performance and may even degrade it. 
+These findings suggest that the number of GNN blocks must be selected with caution: deeper aggregation can cause 
+feature oversmoothing, which may negatively affect cluster-level precision, as clearly seen in the 5-GNN case. 
+In the \textit{no-text} setting, GNN-based models primarily increase the number of detected lesions, but do so at 
+the cost of all remaining metrics, indicating reduced prediction quality.
 
-At the same time, partially unfrozen models (especially with 3 or 9 layers) yielded higher \textit{PPV\_clusters} values, indicating fewer false positive clusters and thus a more precise localization of lesions. In particular, the improvement between 0 layers and 3 layers amounts to approximately 9\% in the main cohort and about 22\% in the independent cohort. 
+\begin{table}[H]
+    \tiny
+    \renewcommand{\arraystretch}{1.4}
+    \begin{threeparttable}
+    \centering
+    \caption{Median performance on the independent cohort (with 95\% confidence intervals).} 
+    \label{tab:independent_cohort_final}
+    \begin{tabular}{ccccccccc}
+    \textbf{Model} &
+    \textbf{Text type} &
+    \textbf{Deocder type} &
+    \textbf{Dice} &
+    \makecell{\textbf{PPV}\\\textbf{pixels}} &
+    \makecell{\textbf{(mean)} \\\textbf{PPV}\\\textbf{clusters}} & 
+    \textbf{IoU} & 
+    \makecell{\textbf{Specificity, \%} \\ (N = 83)}&
+    \makecell{\textbf{Sensitivity, \%} \\ (N = 82)}\\
+    \midrule
+    MELD &
+    -- &
+    -- &
+    \makecell{0.358\\(0.209--0.465)} &
+    \makecell{0.261\\(0.142--0.428)} &
+    0.464 &
+    \makecell{0.218\\(0.117--0.303)} &
+    \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
+    \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
+    
+    \hline
+    
+    \multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+    \multirow{3}{*}{\makecell[c]{hemisphere}} &
+    \makecell{Exp1 with 3 GNN} &
+    \makecell{\textbf{0.446} \\ (0.289--0.553)} &
+    \makecell{0.404 \\ (0.228--0.605)} &
+    \makecell{0.294} &
+    \makecell{\textbf{0.288} \\ (0.169--0.382)} &
+    \makecell{33.7 (n=28) \\ (24.1--44.6)} &
+    \makecell{\textbf{78.0 (n=64)} \\ (68.3--86.6)} \\
+    % second row
+    &
+    &
+    \makecell{Exp1 with 5 GNN} &
+    \makecell{0.378 \\ (0.274--0.549)} &
+    \makecell{\textbf{0.418} \\ (0.237--0.667)} &
+    \makecell{0.186} &
+    \makecell{0.233 \\ (0.159--0.379)} &
+    \makecell{1.2 (n=1) \\ (0.0--3.6)} &
+    \makecell{75.6 (n=62) \\ (65.9--84.1)} \\
+    % third row
+    &
+    &
+    \makecell{Basic Exp1} &
+    \makecell{0.368 \\ (0.248--0.505)} &
+    \makecell{0.406 \\ (0.218--0.596)} &
+    \textbf{0.489} &
+    \makecell{0.225 \\ (0.141--0.338)} &
+    \makecell{\textbf{94.0 (n=78)} \\ (88.0--98.8)} &
+    \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
+    
+    \hline
+    \multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+    \multirow{3}{*}{\makecell[c]{hemisphere \\ + \\ lobe}} &
+    \makecell{Exp1 with 3 GNN} &
+    \makecell{\textbf{0.412} \\ (0.302--0.565)} &
+    \makecell{0.388 \\ (0.217--0.567)} &
+    \makecell{0.299} &
+    \makecell{\textbf{0.260} \\ (0.178--0.394)} &
+    \makecell{33.7 (n=28) \\ (24.1--44.6)} &
+    \makecell{\textbf{78.0 (n=64)} \\ (68.3--86.6)} \\
+    % second row
+    &
+    &
+    \makecell{Exp1 with 5 GNN} &
+    \makecell{0.379 \\ (0.259-0.541)} &
+    \makecell{0.408 \\ (0.220-0.666)} &
+    \makecell{0.188} &
+    \makecell{0.233 \\ (0.148-0.371)} &
+    \makecell{1.2 (n=1) \\ (0.0--3.6)} &
+    \makecell{75.6 (n=62) \\ (65.9--84.1)} \\
+    % third row
+    &
+    &
+    \makecell{Basic Exp1} &
+    \makecell{0.400 \\ (0.162--0.507)} &
+    \makecell{\textbf{0.462} \\ (0.239--0.672)} &
+    \textbf{0.586} &
+    \makecell{0.250 \\ (0.088--0.340)} &
+    \makecell{\textbf{94.0 (n=78)} \\ (88.0--98.8)} &
+    \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
+    \hline
 
-Taken together, these findings reveal a trade-off: freezing RadBERT maximizes sensitivity (number of lesions found), while partial unfreezing improves precision (PPV). Since our primary objective in this study is to detect as many lesions as possible, we adopt the frozen configuration as the default in subsequent experiments. Nevertheless, for applications prioritizing precision, limited fine-tuning of the text encoder may be beneficial.
+    \multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+    \multirow{3}{*}{\makecell[c]{no text}} &
+    \makecell{Exp1 with 3 GNN} &
+    \makecell{0.299 \\ (0.161-0.431)} &
+    \makecell{0.385 \\ (0.193-0.711)} &
+    \makecell{0.202} &
+    \makecell{0.176 \\ (0.088-0.274)} &
+    \makecell{1.2 (n=1) \\ (0.0--3.6)} &
+    \makecell{72.0 (n=59) \\ (62.2--81.7)} \\
+    % second row
+    &
+    &
+    \makecell{Exp1 with 5 GNN} &
+    \makecell{0.342 \\ (0.242-0.464)} &
+    \makecell{0.376 \\ (0.215-0.676)} &
+    \makecell{0.191} &
+    \makecell{0.206 \\ (0.138-0.302)} &
+    \makecell{0.0 (n=0) \\ (0.0--0.0)} &
+    \makecell{\textbf{74.4 (n=61)} \\ (64.6--84.1)} \\
+    % third row
+    &
+    &
+    \makecell{Basic Exp1} &
+    \makecell{\textbf{0.397} \\ (0.138--0.502)} &
+    \makecell{\textbf{0.507} \\ (0.151--0.647)} &
+    \textbf{0.549} &
+    \makecell{\textbf{0.248} \\ (0.074--0.335)} &
+    \makecell{\textbf{68.7 (n=57)} \\ (59.0--78.3)} & 
+    \makecell{65.9 (n=54) \\ (54.9--75.6)} \\
 
-% We performed experiments both on the main cohort and on an independent one (Bonn Dataset). 
-% The results show that with a fully frozen text model we achieved the best Dice and IoU, as well as the largest number of detected lesions. 
-% However, according to the PPV metrics, the quality of the predictions was the worst among all settings, indicating that the model produced many false positives. 
-% This difference is particularly visible in the PPV\_clusters metric, where the gap between 0 layers and the best result (3 layers) amounts to approximately 9\% in the main cohort and about 22\% in the independent one. 
 
-% Thus, the question arises again of what setting should be considered optimal. 
-% Since in this work our primary goal is to detect as many lesions as possible, even at the cost of a slight drop in quality, we decided to use the frozen model for subsequent experiments. 
-% Nevertheless, we do not exclude the possibility that with other datasets or RadBERT hyperparameters, an unfrozen model may perform better.% 0 layers
+    \bottomrule
+    \end{tabular}
+    
+    \end{threeparttable}
+    
+    \end{table}
 
-% 0 layers
-% Dice: 0.483 (95% CI 0.282-0.574)
-% PPV_pixels  : 0.427 (95% CI 0.237-0.591)
-% PPV_clusters  :  0.5825242718446602
-% IoU  : 0.319 (95% CI 0.164-0.403)
-% 1 layer
-% Dice: 0.439 (95% CI 0.258-0.554)
-% PPV_pixels  : 0.390 (95% CI 0.198-0.656)
-% PPV_clusters  :  0.6829268292682927
-% IoU  : 0.282 (95% CI 0.148-0.384)
-% 3 layers
-% Dice: 0.456 (95% CI 0.007-0.559)
-% PPV_pixels  : 0.415 (95% CI 0.008-0.648)
-% PPV_clusters  :  0.8028169014084507
-% IoU  : 0.295 (95% CI 0.004-0.388)
-% 6 layers
-% Dice: 0.367 (95% CI 0.156-0.523)
-% PPV_pixels  : 0.398 (95% CI 0.114-0.569)
-% PPV_clusters  :  0.6551724137931034
-% IoU  : 0.225 (95% CI 0.091-0.354)
-% 9 layers
-% Dice: 0.411 (95% CI 0.070-0.545)
-% PPV_pixels  : 0.443 (95% CI 0.131-0.619)
-% PPV_clusters  :  0.7215189873417721
-% IoU  : 0.258 (95% CI 0.036-0.375)
-% 12 layers
-% 0.444 (95% CI 0.216-0.546)
-% PPV_pixels  : 0.371 (95% CI 0.177-0.474)
-% PPV_clusters  :  0.6629213483146067
-% IoU  : 0.286 (95% CI 0.123-0.376)
+    Overall, the results show that additional message passing can indeed increase sensitivity for sparse graphs by 
+capturing more lesion candidates, but this benefit comes with a pronounced increase in false positives. 
+Therefore, while deeper aggregation offers potential advantages, it also highlights the need for further refinement 
+of GNN-based feature integration to avoid sacrificing precision.
 
-\section{Text–GuideDecoder Connections}
-In these experiments, we examine how the number of LLM connections to the GuideDecoder affects the final performance.
-We tested configurations ranging from 0 connections (no text guidance) to 6 connections (text features connected to all GuideDecoder layers).
-\begin{table}[ht]
-\centering
-\footnotesize
-\caption{Different number of unfreezed layers in RadBERT}
-\begin{tabular}{lccccc}
-\hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
-\hline
-0 connections  & 0.234 & 0.196 & 0.654 & 0.133 & 162 / 259 \\
-1 connection   & 0.243 & 0.184 & 0.548 & 0.138 & 169 / 259 \\
-2 connections  & 0.123 & 0.116 & 0.689 & 0.066 & 151 / 259 \\
-3 connections  & 0.074 & 0.076 & \textbf{0.761} & 0.038 & 139 / 259 \\
-4 connections  & \textbf{0.282} & 0.210 & 0.540 & \textbf{0.164} & \textbf{170 / 259} \\
-5 connections  & 0.234 & 0.223 & 0.614 & 0.133 & 161 / 259 \\
-6 connections  & 0.245 & \textbf{0.227} & 0.597 & 0.140 & 163 / 259 \\
-\hline
-\end{tabular}
-\end{table}
-% 6 connections
-% Dice: 0.245 (95% CI 0.100-0.364)
-% PPV_pixels  : 0.227 (95% CI 0.152-0.349)
-% PPV_clusters  :  0.5975232198142415
-% IoU  : 0.140 (95% CI 0.052-0.222)
-% 5 connections 
-% 0.234 (95% CI 0.114-0.356)
-% PPV_pixels  : 0.223 (95% CI 0.138-0.378)
-% PPV_clusters  :  0.6141975308641975
-% IoU  : 0.133 (95% CI 0.061-0.216)
-% 4 connections
-% 0.282 (95% CI 0.166-0.340)
-% PPV_pixels  : 0.210 (95% CI 0.135-0.266)
-% PPV_clusters  :  0.5403899721448467
-% IoU  : 0.164 (95% CI 0.091-0.205)
-% 3 connections
-% Dice: 0.074 (95% CI 0.000-0.264)
-% PPV_pixels  : 0.076 (95% CI 0.000-0.230)
-% PPV_clusters  :  0.7616580310880829
-% IoU  : 0.038 (95% CI 0.000-0.152)
-% 2 connections
-% Dice: 0.123 (95% CI 0.035-0.294)
-% PPV_pixels  : 0.116 (95% CI 0.035-0.209)
-% PPV_clusters  :  0.689795918367347
-% IoU  : 0.066 (95% CI 0.018-0.173)
-% 1 connection
-% Dice: 0.243 (95% CI 0.158-0.318)
-% PPV_pixels  : 0.184 (95% CI 0.100-0.229)
-% PPV_clusters  :  0.5482954545454546
-% IoU  : 0.138 (95% CI 0.086-0.189)
-\begin{table}[ht]
-\centering
-\footnotesize
-\caption{Different number of unfreezed layers in RadBERT. Independent cohort (Bonn Dataset)}
-\begin{tabular}{lccccc}
-\hline
-\textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
-\hline
-0 connections & 0.392 & 0.352 & 0.700 & 0.244 & 49 / 82 \\
-1 connection & 0.413 & 0.332 & 0.545 & 0.260 & \textbf{55 / 82} \\
-2 connections & 0.339 & 0.287 & 0.787 & 0.204 & 50 / 82 \\
-3 connections & 0.319 & 0.296 & \textbf{0.875} & 0.189 & 46 / 82 \\
-4 connections & \textbf{0.433} & 0.352 & 0.555 & \textbf{0.276}  & \textbf{55 / 82} \\
-5 connections & 0.406 & 0.397 & 0.682 & 0.255 & 50 / 82 \\
-6 connections & 0.378 & \textbf{0.422} & 0.760 & 0.233 & 50 / 82 \\
-\hline
-\end{tabular}
-\end{table}
 
-In both experiments, using 4 connections yielded the best overall performance, achieving the highest Dice score and IoU, while also detecting the largest number of lesions. This suggests that a moderate level of text guidance provides the optimal balance between leveraging textual information and preserving model stability.
+% Rewrite
+\clearpage
+\section{General conclusions}
 
-Notably, the difference between using no text guidance (0 connections) and applying it everywhere (6 connections) was relatively small. This implies that excessive text integration may cause overfitting or redundancy, where additional textual connections fail to provide meaningful improvements and can even introduce noise that degrades performance.
+\begin{itemize}
 
-Therefore, we adopted 4 connections for all subsequent experiments.
-% 6 connections
-% Dice: 0.378 (95% CI 0.109-0.539)
-% PPV_pixels  : 0.422 (95% CI 0.122-0.672)
-% PPV_clusters  :  0.7605633802816901
-% IoU  : 0.233 (95% CI 0.057-0.369)
-% 5 connections
-% 0.406 (95% CI 0.041-0.533)
-% PPV_pixels  : 0.397 (95% CI 0.101-0.617)
-% PPV_clusters  :  0.6823529411764706
-% IoU  : 0.255 (95% CI 0.021-0.363)
-% 4 connections
-% 0.433 (95% CI 0.236-0.567)
-% PPV_pixels  : 0.352 (95% CI 0.168-0.498)
-% PPV_clusters  :  0.5555555555555556
-% IoU  : 0.276 (95% CI 0.134-0.396)
-% 3 connections
-% 0.319 (95% CI 0.000-0.542)
-% PPV_pixels  : 0.296 (95% CI 0.000-0.581)
-% PPV_clusters  :  0.875
-% IoU  : 0.189 (95% CI 0.000-0.372)
-% 2 connections
-% Dice: 0.339 (95% CI 0.035-0.545)
-% PPV_pixels  : 0.287 (95% CI 0.068-0.486)
-% PPV_clusters  :  0.7878787878787878
-% IoU  : 0.204 (95% CI 0.018-0.374)
-% 1 connection
-% 0.413 (95% CI 0.245-0.550)
-% PPV_pixels  : 0.332 (95% CI 0.188-0.443)
-% PPV_clusters  :  0.5454545454545454
-% IoU  : 0.260 (95% CI 0.141-0.379)
+    \item From the \textbf{Basic Experiments} chapter, we conclude that:
+    \begin{itemize}
 
-% \section{Augmentations influence}
+        \item \textbf{Exp3\_hemi+lobe\_regions} provides the most balanced performance and achieves the 
+        \textbf{highest sensitivity}. Incorporating hemisphere and lobe-region information constrains the 
+        search space and improves localization.
 
-% In this section, we systematically evaluated the impact of four augmentation types, both individually and in combination, on the final segmentation quality:
+        \item \textbf{Exp3\_hemi+lobe+PubMedBERT} achieves the best overall trade-off on both cohorts. 
+        The concise prompt without redundant context, combined with PubMedBERT’s domain-specific pretraining, 
+        consistently improves all metrics, highlighting its influence and importance for the final results.
 
-% \begin{itemize}
-%     \item \textbf{Flipping} — mirroring the cortical surface across hemispheres.
-%     \item \textbf{Warping} — applying smooth non–rigid deformations to the mesh.
-%     \item \textbf{Spinning} — re–indexing the icosphere to simulate rigid rotations.
-%     \item \textbf{Lesion–mask noise} — perturbing the lesion mask to create additional training samples.
-% \end{itemize}
+        \item \textbf{Exp3\_full\_desc} underperforms relative to the hemi+lobe variants, suggesting that 
+        long atlas-style descriptions introduce noise and redundancy. In contrast, shorter and more targeted 
+        prompts generalize better.
 
-% These augmentations were chosen to reflect different categories of variation: geometric transformations of the cortical mesh (flipping, warping, spinning) and label–space perturbations (lesion–mask noise). By isolating their effects, we aimed to identify which augmentations improve generalization and which may introduce instability.
+    \end{itemize}
 
-% \begin{table}[ht]
-% \centering
-% \footnotesize
-% \caption{Different types of augmentations}
-% \begin{tabular}{lccccc}
-% \hline
-% \textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
-% \hline
-% No augmentations & 0.286 & 0.214 & 0.542 & 0.167 & 172 / 259 \\
-% Flipping & 0.000 & 0.000 & 0.557 & 0.000 & 114 / 259 \\
-% Warping & -- & -- & -- & -- & -- \\
-% Spinning & -- & -- & -- & -- & -- \\
-% Lesion–mask noise & -- & -- & -- & -- & -- \\
-% \hline
-% \end{tabular}
-% \end{table}
-% Flipping
-% 0.000 (95% CI 0.000-0.001)
-% PPV_pixels  : 0.000 (95% CI 0.000-0.001)
-% PPV_clusters  :  0.5572755417956656
-% IoU  : 0.000 (95% CI 0.000-0.000)
+    \item From the \textbf{Mixed Text} chapter, we conclude that training the model on mixed-type descriptions 
+    yields better results than the \textbf{MELD} baseline, but remains slightly worse than models trained on a 
+    single, well-specified prompt type. Notably, replacing correct descriptions with incorrect ones does not 
+    collapse performance, demonstrating the robustness and stability of the proposed architecture.
 
-% \begin{table}[ht]
-% \centering
-% \footnotesize
-% \caption{Different types of augmentations. Independent cohort (Bonn Dataset)}
-% \begin{tabular}{lccccc}
-% \hline
-% \textbf{Experiment} & \textbf{Dice} & \textbf{PPV pixels} & \textbf{PPV clusters} & \textbf{IoU} & \textbf{Number of FCD found} \\
-% \hline
-% No augmentations & 0.483 & 0.427 & 0.582 & 0.319 & 55 / 82 \\
-% Flipping & 0.000 & 0.000 & 0.666 & 0.000 & 29 / 82 \\
-% Warping & -- & -- & -- & -- & -- \\
-% Spinning & -- & -- & -- & -- & -- \\
-% Lesion–mask noise & -- & -- & -- & -- & -- \\
-% \hline
-% \end{tabular}
-% \end{table}
-% Flipping
-% Dice : 0.000 (95% CI 0.000-0.000)
-% PPV_pixels  : 0.000 (95% CI 0.000-0.000)
-% PPV_clusters  :  0.6666666666666666
-% IoU  : 0.000 (95% CI 0.000-0.000)
+    Furthermore, freezing the decoder for the first several epochs allows the model to focus on aligning 
+    vision and text embeddings before full end-to-end training. This warm-up phase helps the model learn the 
+    contextual structure of textual prompts more reliably, ultimately leading to more detected lesions and a 
+    higher number of correctly classified healthy patients.
+
+    \item From the \textbf{Linking MELD to GNN} chapter, we conclude that adding a GNN block that aggregates 
+    information from neighboring nodes helps the model accumulate contextual information more effectively. 
+    This leads to improved performance and higher sensitivity. In future work, integrating this block into 
+    the final architecture may further enhance results.
+
+    \item From the \textbf{Final Experiments} chapter, we conclude that adding a GNN block ultimately helps 
+    the model detect more lesions. However, it also increases the number of false-positive 
+    predictions, which negatively affects the overall quality. Therefore, the idea of aggregating information 
+    within sparse graphs requires further refinement.
+
+    \item From the \textbf{Text Distribution} chapter (see Appendix), we conclude that conditioning on 
+    fine-grained region names as textual inputs tends to induce overfitting, because the underlying label 
+    distribution is heavily imbalanced and long-tailed. Frequent categories dominate the learning signal, 
+    while numerous rare classes lack sufficient variability for robust generalization.
+
+    \item From the \textbf{Semantic Similarity Analysis of Frontal Lobe Regions} chapter (see Appendix), 
+    we conclude that the choice of text encoder is crucial. Biomedical language models pretrained on 
+    domain-specific corpora (e.g., PubMedBERT, RadBERT, BioClinicalBERT) produce higher semantic coherence 
+    between anatomically related brain regions, whereas general-purpose models exhibit inconsistent similarity 
+    patterns. This shows that semantically aligned text embeddings can improve multimodal fusion and 
+    ultimately enhance the model’s interpretability and performance.
+
+\end{itemize}
+
 
 \end{document}

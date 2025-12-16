@@ -75,7 +75,8 @@ def make_dl_test(args, tokenizer, cohort):
         csv_path=args.csv_path,
         tokenizer=tokenizer,
         feature_path=args.feature_path,
-        subject_ids=[sid for sid in pd.read_csv(args.split_path).query("split=='test'")["subject_id"].tolist() if "FCD" in sid],
+        # subject_ids=[sid for sid in pd.read_csv(args.split_path).query("split=='test'")["subject_id"].tolist() if "FCD" in sid],
+        subject_ids=[sid for sid in pd.read_csv(args.split_path).query("split=='test'")["subject_id"].tolist()],
         cohort=cohort,
     )
     dl_test = DataLoader(
@@ -95,11 +96,26 @@ def run_meld_check(dl_test, eva, cohort):
     dice_metric = []
     ppv_metric = []
     iou_metric = []
+    fp_control_clusters = []
+    ppv_clusters_metric = []
     results = []
     all_preds = []
 
     for batch in tqdm(dl_test):
         subject_ids = batch["subject_id"]  # list[str]
+
+        ######################################################### 
+        # target_ids = {
+        #     # "MELD_H3_3T_FCD_0018",
+        #     # "MELD_H4_15T_FCD_0021",
+        #     # "MELD_H6_3T_FCD_0017"
+        #     "MELD_H2_3T_FCD_0002"
+        # }
+
+        # # если пересечение пустое → пропускаем batch
+        # if not (set(subject_ids) & target_ids):
+        #     continue
+        ######################################################### 
         y = batch["roi"]  # torch.Tensor
         B, H, N = y.shape
 
@@ -114,6 +130,8 @@ def run_meld_check(dl_test, eva, cohort):
             gt_cortex = gt[:, cohort.cortex_mask]  # [2, N_cortex]
             gt_flat = gt_cortex.reshape(-1)  # [2*N_cortex]
 
+            is_control = ("FCD" not in sid) or (gt.sum() == 0)
+
             nii_path = os.path.join(
                 MELD_DATA_PATH,
                 f"preprocessed/meld_files/{sid}/features",
@@ -127,21 +145,19 @@ def run_meld_check(dl_test, eva, cohort):
             probs_flat = out[sid]["cluster_thresholded"]           # (2*N_cortex,)
             boundary_zone = dist_maps_cortex_subj < 20
             # boundary_zone_np = boundary_zone.cpu().numpy() if hasattr(boundary_zone, "cpu") else np.array(boundary_zone)
+            #probs_flat = np.asarray(probs_flat, dtype=np.float32).ravel()
+            
+            probs = probs_flat.reshape(2, -1)
+            final_nii = convert_preds_to_nifti("meld", [sid], [probs], cohort)
 
             # cluster sizes and distances
             all_ids = np.unique(probs_flat)
             all_ids = all_ids[all_ids > 0]
-            full_cluster_sizes = {int(cid): int((probs_flat == cid).sum()) for cid in all_ids}
-            full_cluster_distance = {int(cid): float(dist_maps_cortex_subj[probs_flat == cid].sum()) for cid in all_ids}
+            # full_cluster_sizes = {int(cid): int((probs_flat == cid).sum()) for cid in all_ids}
+            # full_cluster_distance = {int(cid): float(dist_maps_cortex_subj[probs_flat == cid].sum()) for cid in all_ids}
 
             tp_ids = np.unique(probs_flat[boundary_zone])
             tp_ids = tp_ids[tp_ids > 0]
-            fp_ids = np.setdiff1d(all_ids, tp_ids)
-
-            # tp_cluster_sizes = {int(cid): int(((probs_flat == cid) & boundary_zone_np).sum()) for cid in tp_ids}
-            # fp_cluster_sizes = {int(cid): int(((probs_flat == cid) & boundary_zone_np).sum()) for cid in fp_ids}
-            # tp_cluster_distance = {int(cid): float(dist_maps_cortex_subj[(probs_flat == cid) & boundary_zone_np].sum()) for cid in tp_ids}
-            # fp_cluster_distance = {int(cid): float(dist_maps_cortex_subj[(probs_flat == cid) & boundary_zone_np].sum()) for cid in fp_ids}
 
             difference = np.setdiff1d(np.unique(probs_flat), np.unique(probs_flat[boundary_zone]))
             difference = difference[difference > 0]
@@ -159,47 +175,70 @@ def run_meld_check(dl_test, eva, cohort):
             tp, fp, fn, tn = tp_fp_fn_tn(mask, labels)
             iou = tp / (tp + fp + fn + 1e-8)
             ppv = tp / (tp + fp + 1e-8)
+            ppv_clusters = n_tp_clusters / (n_tp_clusters + n_fp_clusters + 1e-8)
 
-            dice_metric.append(dices[1])
-            ppv_metric.append(ppv)
-            iou_metric.append(iou)
+            if not is_control:
+                dice_metric.append(dices[1])
+                ppv_metric.append(ppv)
+                iou_metric.append(iou)
+                if (n_tp_clusters + n_fp_clusters) > 0:
+                    ppv_clusters_metric.append(float(ppv_clusters))
 
-            print(f"[{sid}] Dice lesional={dices[1]:.3f}, IoU={iou:.3f}, PPV={ppv:.3f}, "
-                f"TP={tp}, FP={fp}, FN={fn}, TN={tn}")
+                print(f"[{sid}] Dice lesional={dices[1]:.3f}, IoU={iou:.3f}, PPV={ppv:.3f}, PPV_clusters={ppv_clusters:.3f}, "
+                    f"TP={tp}, FP={fp}, FN={fn}, TN={tn}")
 
-            results.append({
-                "subject_id": sid,
-                "number FP clusters": n_fp_clusters,
-                "number TP clusters": n_tp_clusters,
-                # "tp_cluster_sizes_boundary": tp_cluster_sizes,
-                # "fp_cluster_sizes_boundary": fp_cluster_sizes,
-                # "tp_cluster_distance_boundary": tp_cluster_distance,
-                # "fp_cluster_distance_boundary": fp_cluster_distance,
-                "full_cluster_sizes": full_cluster_sizes,
-                "full_cluster_distance": full_cluster_distance,
-                "dice": float(dices[1]),
-                "iou": float(iou),
-                "ppv_voxel": float(ppv),
-            })
-
+                results.append({
+                    "subject_id": sid,
+                    "number FP clusters": n_fp_clusters,
+                    "number TP clusters": n_tp_clusters,
+                    "dice": float(dices[1]),
+                    "iou": float(iou),
+                    "ppv_voxel": float(ppv),
+                    "ppv_clusters": float(ppv_clusters),
+                })
+            else:
+                fp_control_clusters.append(n_fp_clusters)
+                results.append({
+                    "subject_id": sid,
+                    "number FP clusters": n_fp_clusters,
+                    "number TP clusters": 0,
+                    "dice": None,
+                    "iou": None,
+                    "ppv_voxel": None,
+                    "ppv_clusters": None,
+                })
     # save and report
     df = pd.DataFrame(results)
     df.to_csv("meld_results.csv", index=False)
-    total = len(df["number TP clusters"]) if len(df) > 0 else 0
-    found = sum(1 for t in df["number TP clusters"] if t > 0) if total > 0 else 0
-    pct = found / total if total > 0 else 0.0
+    
     d_med, d_lo, d_hi = summarize_ci(dice_metric)
     p_med, p_lo, p_hi = summarize_ci(ppv_metric)
     i_med, i_lo, i_hi = summarize_ci(iou_metric)
+    ppv_clusters_med, ppv_clusters_lo, ppv_clusters_hi = summarize_ci(ppv_clusters_metric)
+    
     n_tp_clusters = df["number TP clusters"].sum() if len(df) > 0 else 0
     n_fp_clusters = df["number FP clusters"].sum() if len(df) > 0 else 0
     ppv_clusters = n_tp_clusters / (n_tp_clusters + n_fp_clusters) if (n_tp_clusters + n_fp_clusters) > 0 else 0.0
-    print("\n=== OVERALL TEST METRICS ===")
+    
+    # Sensitivity
+    tp_clusters_list = [r["number TP clusters"] for r in results if "FCD" in r["subject_id"]]
+    total_tp = len(tp_clusters_list)
+    found_tp = sum(1 for t in tp_clusters_list if t > 0)
+    pct_tp = found_tp / total_tp if total_tp > 0 else 0.0
+
+    # Specificity
+    total_ctrl = len(fp_control_clusters)
+    no_fp_ctrl = sum(1 for t in fp_control_clusters if t == 0)
+    pct_spec = no_fp_ctrl / total_ctrl if total_ctrl > 0 else 0.0
+
+    print("\n=== ENSEMBLE OVERALL TEST METRICS ===")
     print(f"Dice : {d_med:.3f} (95% CI {d_lo:.3f}-{d_hi:.3f})")
     print(f"PPV_pixels  : {p_med:.3f} (95% CI {p_lo:.3f}-{p_hi:.3f})")
-    print(f"PPV_clusters  : {ppv_clusters:.3f}")
+    print(f"PPV_clusters_mean  : {ppv_clusters:.3f}")
+    print(f"PPV_clusters_median  : {ppv_clusters_med:.3f} (95% CI {ppv_clusters_lo:.3f}-{ppv_clusters_hi:.3f})")
     print(f"IoU  : {i_med:.3f} (95% CI {i_lo:.3f}-{i_hi:.3f})")
-    print(f"Detected {found} / {total} FCDs ({pct:.1%})")
+    print(f"Sensitivity (patients only): {found_tp} / {total_tp} FCDs ({pct_tp:.1%})")
+    print(f"Specificity (controls only): {no_fp_ctrl} / {total_ctrl} scans with no FP ({pct_spec:.1%})")
 
 
 def run_trainer_test(model, dl_test, args, accelerator, devices, ckpt_path=None):

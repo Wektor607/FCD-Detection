@@ -44,13 +44,21 @@ class LanGuideMedSeg(nn.Module):
         # Layer stage6 — shape: torch.Size([bs, 2, 162, 128])
         # Layer stage7 — shape: torch.Size([bs, 2, 42, 256])
 
+        # TODO: make a hyperparameter in config file
+        self.num_levels: int = 7
         self.num_stages: int = len(feature_dim)
-        self.text_emb = text_emb
+        self.text_emb_flag = text_emb
         self.encoder = VisionModel(
-            feature_dim, meld_script_path, feature_path, output_dir, device,
+            feature_dim, 
+            meld_script_path, 
+            feature_path, 
+            output_dir, 
+            device,
             gnn_min_verts=gnn_min_verts, fold_number=fold_number
         )
-        self.text_encoder = BERTModel(bert_type, num_unfreeze_layers=num_unfreeze_layers)
+        self.text_encoder = BERTModel(bert_type, 
+                                      num_unfreeze_layers=num_unfreeze_layers,
+                                      use_pooler=True)
 
         self.decoders = nn.ModuleList()
         skip_dims: List[int] = []
@@ -77,11 +85,11 @@ class LanGuideMedSeg(nn.Module):
         spiral_len, level = 7, 2  # make it automatically
         in_size: int = feature_dim[-1]
         for i in range(self.num_stages - 1):
-            upsample = icos.get_upsample(target_level=level)
-            num: int = len(icos.get_neighbours(level=level))
+            upsample        = icos.get_upsample(target_level=level)
+            num_neighbours  = len(icos.get_neighbours(level=level))
 
             self.unpool_layers.append(
-                HexUnpool(upsample_indices=upsample, target_size=num)
+                HexUnpool(upsample_indices=upsample, target_size=num_neighbours)
             )
 
             # 2. SpiralConv
@@ -125,7 +133,7 @@ class LanGuideMedSeg(nn.Module):
         # ----------------------------
         self.pool_layers: Dict[int, HexPool] = {
             level: HexPool(icos.get_downsample(target_level=level))
-            for level in range(1, 7)[::-1]
+            for level in range(1, self.num_levels)[::-1]
         }
 
         final_in: int = feature_dim[0]
@@ -175,15 +183,12 @@ class LanGuideMedSeg(nn.Module):
                 vis_feat: torch.Tensor = current_graphs[j].x.unsqueeze(0)  # [1, N_from, C_from]
                 skip_feat: torch.Tensor = next_graphs[j].x.unsqueeze(0)  # [1, N_to, C_to]
                 
-                if self.text_emb:
+                if self.text_emb_flag:
                     # TODO: hyperparameter
-                    # if vis_feat.shape[1] <= 162:
                     txt_emb: torch.Tensor = text_hidden_last[j].unsqueeze(0)  # [1, L_seq, 768]
-                    # else:
-                    # txt_emb = None
                 else:
                     txt_emb = None
-
+        
                 # TODO: hyperparameter
                 chunk: bool = vis_feat.size(1) > 40962
                 out_feat: torch.Tensor = decoder(
@@ -199,9 +204,7 @@ class LanGuideMedSeg(nn.Module):
                     logp: torch.Tensor = nn.LogSoftmax(dim=1)(logits)  # [N_to, 2]
                     ds_logp_level.append(logp)
 
-                    dist: torch.Tensor = self.ds_dist_heads[str(cur_level)](
-                        x_lvl
-                    )  # [N_to, 1]
+                    dist: torch.Tensor = self.ds_dist_heads[str(cur_level)](x_lvl)  # [N_to, 1]
                     ds_dist_level.append(dist)
 
                 # Save back to Data: update x in stage_to stage graph
@@ -235,7 +238,7 @@ class LanGuideMedSeg(nn.Module):
             final_logp_list.append(log_seg_logits)  # [N1, 2]
 
             pool_g: torch.Tensor = g.x.unsqueeze(0).unsqueeze(0)  # [1,1,N1,C]
-            for lvl in range(6, 0, -1):
+            for lvl in range(self.num_levels - 1, 0, -1):
                 pool_g = self.pool_layers[lvl](pool_g)
             pool_g = pool_g.squeeze(0).squeeze(0)
 

@@ -22,7 +22,7 @@ from meld_graph.paths import MELD_DATA_PATH
 from meld_graph.icospheres import IcoSpheres
 import nibabel as nb
 
-
+MELD_PARAMS_PATH = "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
 # for saliency - do not force people to have this
 try:
     import captum
@@ -591,9 +591,10 @@ class Evaluator:
         save_prediction_suffix = f"{save_prediction_suffix}{self.dropout_suffix}"
         # try to load predictions
         data = {}
-        
+        print(keys)
         if 'result' in keys:
             data['result'] = self.load_prediction(subj_id, dataset_str='prediction', suffix=save_prediction_suffix)
+            print(data['result'])
             if data['result'] is None:
                 return False
             if split_hemis:
@@ -1029,6 +1030,7 @@ class Evaluator:
         load prediction from file.
         """
         filename = os.path.join(self.results_dir, f"predictions{suffix}.hdf5")
+        print(filename)
         if not os.path.isfile(filename):
             # cannot load data
             self.log.debug(f'file {filename} does not exist')
@@ -1175,7 +1177,32 @@ class Evaluator:
         print(f'Save parameters optimised sigmoid at {filename}')
         df_best.to_csv(filename)
         return 
+    
+    # NEW
+    def save_prediction_for_subject(self, subject_id, prediction, dataset_str="prediction", suffix=""):
+        """
+        Save predictions for one subject into its own HDF5 file.
+        """
+        # создаём индивидуальную папку для пациента
+        subj_dir = os.path.join(
+            self.save_dir,               # обычно .../classifier_outputs/model_name
+            "results_best_model",
+            subject_id
+        )
+        os.makedirs(subj_dir, exist_ok=True)
 
+        fname = os.path.join(subj_dir, f"predictions{suffix}.hdf5")
+
+        import h5py
+        with h5py.File(fname, "w") as f:
+            grp = f.create_group(subject_id)
+            for hemi in ["lh", "rh"]:
+                g_hemi = grp.create_group(hemi)
+                g_hemi.create_dataset(dataset_str, data=prediction[hemi])
+
+        print(f"[OK] Saved prediction for {subject_id}: {fname}")
+        return fname
+        
 def get_scores(subjects_dict, thresholds):
         """
         return sensitivity & dice for given threshold

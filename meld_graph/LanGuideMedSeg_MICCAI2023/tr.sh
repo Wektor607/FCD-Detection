@@ -1,8 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=exp3_no_gnn_full
+#SBATCH --job-name=exp3_no_gnn_full_freeeze
 #SBATCH --partition=A100short
 #SBATCH --time=8:00:00
 #SBATCH --gpus=1
+#SBATCH -w node-06
 #SBATCH --cpus-per-task=1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -31,7 +32,11 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg_MICCAI2023
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
-WANDB_MODE=disabled python3 train_Kfold.py --ckpt_path ./save_model/exp1_no_gnn_full_aug --job_name exp3_no_gnn_full
+# WANDB_MODE=disabled 
+# WANDB_MODE=disabled python3 train_Kfold.py --job_name exp1_5_gnn_aug
+WANDB_MODE=disabled python3 train_Kfold.py --ckpt_path ./save_model/exp1_3_gnn_aug --job_name exp3_mixed_3_gnn_aug
+# --ckpt_path ./save_model/exp1_no_gnn_full_aug --job_name exp3_dominant_nognn_nocontrols_noaug_freeze
+
 # --ckpt_path ./save_model/exp1_no_gnn_full_aug --job_name exp3_no_gnn_hemi_lobe
 # --job_name exp1_no_gnn_full_aug
 # --ckpt_path /home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg-MICCAI2023/save_model/exp1.ckpt

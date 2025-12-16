@@ -22,7 +22,7 @@ from utils.data import EpilepDataset
 from engine.loss_meld import dice_coeff, tp_fp_fn_tn
 from engine.wrapper import LanGuideMedSegWrapper
 import utils.config as config
-
+from utils.utils import convert_preds_to_nifti
 # Keep reproducibility settings at top
 SEED = 42
 pl.seed_everything(SEED, workers=True)
@@ -59,16 +59,19 @@ def get_cfg() -> argparse.Namespace:
     cfg.ckpt_prefix = cli.ckpt_prefix
     return cfg
 
-def prepare_dataloader(args, tokenizer, cohort) -> DataLoader:
+def prepare_dataloader(args, tokenizer, cohort, text_emb) -> DataLoader:
     df = pd.read_csv(args.split_path, sep=",")
-    test_ids = df[(df["split"] == "test") & (df["subject_id"].str.contains("FCD"))]["subject_id"].tolist()
-
+    # test_ids = df[(df["split"] == "test") & (df["subject_id"].str.contains("FCD"))]["subject_id"].tolist()
+    test_ids = df[(df["split"] == "test")]["subject_id"].tolist()
+    print("CSV and SPLIT path: ", args.csv_path, args.split_path)
     ds_test = EpilepDataset(
         csv_path=args.csv_path,
         tokenizer=tokenizer,
         feature_path=args.feature_path,
         subject_ids=test_ids,
         cohort=cohort,
+        max_length=args.max_len,
+        text_emb=text_emb,
     )
 
     dl_test = DataLoader(
@@ -93,7 +96,10 @@ def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.d
             text_emb = flags.get("text_emb", False)
             print(f"[INFO] Experiment '{exp}' flags: self_att_mechanism={att_mechanism}, text_emb={text_emb}")
             break
-    
+    # ######################## DELETE AFTER EXPERIMENT WITHOUT TEXT EMBEDDING
+    # text_emb = False
+    # print(f"[INFO] Experiment '{exp}' flags: self_att_mechanism={att_mechanism}, text_emb={text_emb}")
+    ######################## DELETE AFTER EXPERIMENT WITHOUT TEXT EMBEDDING
     tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True) if text_emb else None
     print(f"[INFO] Using ensemble of {len(ckpt_paths)} models:", ckpt_paths)
     models = []
@@ -113,9 +119,8 @@ def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.d
     return models, tokenizer
 
 
-def run_ensemble_inference(dl_test: DataLoader, models: List[torch.nn.Module], eva, device: torch.device, cohort: MeldCohort = None) -> Tuple[List[str], torch.Tensor, torch.Tensor, torch.Tensor]:
+def run_ensemble_inference(dl_test: DataLoader, models: List[torch.nn.Module], eva, device: torch.device, cohort: MeldCohort = None, prefix: str = "") -> Tuple[List[str], torch.Tensor, torch.Tensor, torch.Tensor]:
     cortex_mask = torch.from_numpy(cohort.cortex_mask).to(device)
-
     all_subject_ids = []
     all_labels = []
     all_probs = []
@@ -124,6 +129,18 @@ def run_ensemble_inference(dl_test: DataLoader, models: List[torch.nn.Module], e
     with torch.no_grad():
         for batch in tqdm(dl_test, desc="Ensemble inference"):
             subject_ids = batch["subject_id"]
+            
+            ######################################################### 
+            # target_ids = {
+            #     "MELD_H3_3T_FCD_0018",
+            #     "MELD_H4_15T_FCD_0021",
+            #     "MELD_H6_3T_FCD_0017"
+            # }
+
+            # # если пересечение пустое → пропускаем batch
+            # if not (set(subject_ids) & target_ids):
+            #     continue
+            #########################################################
             batch_on_device = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in batch.items()}
             y = batch_on_device["roi"]
             text = batch.get("text", batch_on_device.get("text"))
@@ -162,26 +179,35 @@ def run_ensemble_inference(dl_test: DataLoader, models: List[torch.nn.Module], e
             all_labels.append(target.cpu())
             all_dist_maps.append(dist_maps_cortex.cpu())
             all_probs.append(probs_mean.detach())
-
     all_labels = torch.cat(all_labels, dim=0)
     all_dist_maps = torch.cat(all_dist_maps, dim=0)
-    all_probs = torch.cat(all_probs, dim=0)
+    all_preds = torch.cat(all_probs, dim=0)
+    
+    return all_subject_ids, all_labels, all_dist_maps, all_preds
 
-    return all_subject_ids, all_labels, all_dist_maps, all_probs
 
-
-def postprocess_and_save(all_subject_ids, all_labels, all_dist_maps, all_probs, eva, ckpt_prefix: str):
-    dice_scores, iou_scores, ppv_scores = [], [], []
+def postprocess_and_save(all_subject_ids, all_labels, all_dist_maps, all_preds, eva, ckpt_prefix: str, cohort: MeldCohort, dataset_type: str, dataset_name: str, text_emb: bool):
+    dice_scores, iou_scores, ppv_scores, ppv_clusters_scores = [], [], [], []
     results = []
 
+    fp_control_clusters = []
     for i in range(all_labels.shape[0]):
         sid = all_subject_ids[i]
-        pred = all_probs[i]
+        pred = all_preds[i]
         tgt = all_labels[i]
         dist_map_subj = all_dist_maps[i]
 
-        pred_np = torch.cat([pred[0], pred[1]], dim=0).detach().cpu().numpy().astype("float32")
+        is_control = ("FCD" not in sid) or (tgt.sum() == 0)
+
+        # pred_np = torch.cat([pred[0], pred[1]], dim=0).detach().cpu().numpy().astype("float32")
+        # mini = {sid: {"result": pred_np}}
+        pred_left = pred[0].detach().cpu().numpy().astype("float32")
+        pred_right = pred[1].detach().cpu().numpy().astype("float32")
+
+        # Убедимся, что мы объединяем по оси вершин, не по каналам
+        pred_np = np.concatenate([pred_left, pred_right], axis=-1)  # <-- правильно
         mini = {sid: {"result": pred_np}}
+
         out = eva.threshold_and_cluster(data_dictionary=mini, save_prediction=False)
         probs_flat = out[sid]["cluster_thresholded"]
         boundary_zone = dist_map_subj < 20
@@ -191,7 +217,10 @@ def postprocess_and_save(all_subject_ids, all_labels, all_dist_maps, all_probs, 
         else:
             probs_flat_cpu = probs_flat
 
+        # final_nii = convert_preds_to_nifti(ckpt_prefix, [sid], [probs_flat_cpu.reshape(2, -1)], cohort)
+
         boundary_zone_cpu = boundary_zone.detach().cpu().numpy() if isinstance(boundary_zone, torch.Tensor) else np.array(boundary_zone)
+
 
         difference = np.setdiff1d(np.unique(probs_flat_cpu), np.unique(probs_flat_cpu[boundary_zone_cpu]))
         difference = difference[difference > 0]
@@ -209,42 +238,72 @@ def postprocess_and_save(all_subject_ids, all_labels, all_dist_maps, all_probs, 
         tp, fp, fn, tn = tp_fp_fn_tn(mask, labels)
         iou = tp / (tp + fp + fn + 1e-8)
         ppv = tp / (tp + fp + 1e-8)
+        ppv_clusters = n_tp_clusters / (n_tp_clusters + n_fp_clusters + 1e-8)
 
-        dice_scores.append(float(dices[1].detach().cpu()))
-        ppv_scores.append(float(ppv))
-        iou_scores.append(float(iou))
+        if not is_control:
+            dice_scores.append(float(dices[1].detach().cpu()))
+            ppv_scores.append(float(ppv))
+            iou_scores.append(float(iou))
+            ppv_clusters_scores.append(float(ppv_clusters))
 
-        print(f"[{sid}] Dice lesional={dices[1]:.3f}, IoU={iou:.3f}, PPV={ppv:.3f}, TP={tp}, FP={fp}, FN={fn}, TN={tn}")
-        results.append({
-            "subject_id": sid,
-            "number FP clusters": n_fp_clusters,
-            "number TP clusters": n_tp_clusters,
-            "dice": float(dices[1]),
-            "iou": float(iou),
-            "ppv_voxel": float(ppv),
-        })
+            print(f"[{sid}] Dice lesional={dices[1]:.3f}, IoU={iou:.3f}, PPV={ppv:.3f}, TP={tp}, FP={fp}, FN={fn}, TN={tn}")
+            results.append({
+                "subject_id": sid,
+                "number FP clusters": n_fp_clusters,
+                "number TP clusters": n_tp_clusters,
+                "dice": float(dices[1]),
+                "iou": float(iou),
+                "ppv_voxel": float(ppv),
+                "ppv_clusters": float(ppv_clusters),
+            })
+        else:
+            fp_control_clusters.append(n_fp_clusters)
+            results.append({
+                "subject_id": sid,
+                "number FP clusters": n_fp_clusters,
+                "number TP clusters": 0,
+                "dice": None,
+                "iou": None,
+                "ppv_voxel": None,
+                "ppv_clusters": None,
+            })
 
     d_med, d_lo, d_hi = summarize_ci(dice_scores)
     p_med, p_lo, p_hi = summarize_ci(ppv_scores)
     i_med, i_lo, i_hi = summarize_ci(iou_scores)
+    ppv_clusters_med, ppv_clusters_lo, ppv_clusters_hi = summarize_ci(ppv_clusters_scores)
     n_tp_clusters = sum(r["number TP clusters"] for r in results)
     n_fp_clusters = sum(r["number FP clusters"] for r in results)
     ppv_clusters = n_tp_clusters / (n_tp_clusters + n_fp_clusters + 1e-8)
 
-    tp_clusters_list = [r["number TP clusters"] for r in results]
-    total = len(tp_clusters_list)
-    found = sum(1 for t in tp_clusters_list if t > 0)
-    pct = found / total if total > 0 else 0.0
+    # Sensitivity
+    tp_clusters_list = [r["number TP clusters"] for r in results if "FCD" in r["subject_id"]]
+    total_tp = len(tp_clusters_list)
+    found_tp = sum(1 for t in tp_clusters_list if t > 0)
+    pct_tp = found_tp / total_tp if total_tp > 0 else 0.0
+
+    # Specificity
+    total_ctrl = len(fp_control_clusters)
+    no_fp_ctrl = sum(1 for t in fp_control_clusters if t == 0)
+    pct_spec = no_fp_ctrl / total_ctrl if total_ctrl > 0 else 0.0
+
 
     print("\n=== ENSEMBLE OVERALL TEST METRICS ===")
     print(f"Dice : {d_med:.3f} (95% CI {d_lo:.3f}-{d_hi:.3f})")
     print(f"PPV_pixels  : {p_med:.3f} (95% CI {p_lo:.3f}-{p_hi:.3f})")
-    print(f"PPV_clusters  : {ppv_clusters:.3f}")
+    print(f"PPV_clusters_mean  : {ppv_clusters:.3f}")
+    print(f"PPV_clusters_median  : {ppv_clusters_med:.3f} (95% CI {ppv_clusters_lo:.3f}-{ppv_clusters_hi:.3f})")
     print(f"IoU  : {i_med:.3f} (95% CI {i_lo:.3f}-{i_hi:.3f})")
-    print(f"Detected {found} / {total} FCDs ({pct:.1%})")
+    print(f"Sensitivity (patients only): {found_tp} / {total_tp} FCDs ({pct_tp:.1%})")
+    print(f"Specificity (controls only): {no_fp_ctrl} / {total_ctrl} scans with no FP ({pct_spec:.1%})")
 
+    data_type = dataset_type.split("/")[-1].split("_")[0]
+    data_name = dataset_name.split("/")[-1].split(".")[0]
     df = pd.DataFrame(results)
-    df.to_csv(f"{ckpt_prefix}_results.csv", index=False)
+    if not text_emb:
+        data_name = "no_text"
+    
+    df.to_csv(f"{ckpt_prefix}_{data_type}_{data_name}_results.csv", index=False)
 
 
 def main():
@@ -255,11 +314,16 @@ def main():
     print("start testing on device:", device)
 
     models, tokenizer = load_ensemble_models(args.ckpt_prefix, args, eva, exp_flags, device)
-    dl_test = prepare_dataloader(args, tokenizer, cohort)
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # CHANGED from False on True
+    text_emb = True
+    print(f"[INFO] Text_emb={text_emb}")
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    dl_test = prepare_dataloader(args, tokenizer, cohort, text_emb)
 
-    all_subject_ids, all_labels, all_dist_maps, all_probs = run_ensemble_inference(dl_test, models, eva, device, cohort)
+    all_subject_ids, all_labels, all_dist_maps, all_probs = run_ensemble_inference(dl_test, models, eva, device, cohort, prefix=args.ckpt_prefix)
 
-    postprocess_and_save(all_subject_ids, all_labels, all_dist_maps, all_probs, eva, args.ckpt_prefix)
+    postprocess_and_save(all_subject_ids, all_labels, all_dist_maps, all_probs, eva, args.ckpt_prefix, cohort, args.split_path, args.csv_path, text_emb)
 
 
 if __name__ == "__main__":
