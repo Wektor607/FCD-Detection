@@ -1,26 +1,25 @@
+import itertools
+import json
 import logging
 import os
-import torch
 import sys
-import torch_geometric.data
-from meld_graph.dataset import GraphDataset
-from meld_graph.models import PredictionForSaliency
-import numpy as np
-import h5py
-import scipy
-import json
-import pandas as pd
-from meld_graph.training import tp_fp_fn_tn, dice_coeff
-import os
-import numpy as np
+
 import h5py
 import matplotlib.pyplot as plt
-import sklearn.metrics as metrics
-import itertools
-import seaborn as sns
-from meld_graph.paths import MELD_DATA_PATH
-from meld_graph.icospheres import IcoSpheres
 import nibabel as nb
+import numpy as np
+import pandas as pd
+import scipy
+import seaborn as sns
+import sklearn.metrics as metrics
+import torch
+import torch_geometric.data
+
+from meld_graph.dataset import GraphDataset
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.models import PredictionForSaliency
+from meld_graph.paths import MELD_DATA_PATH
+from meld_graph.training import dice_coeff, tp_fp_fn_tn
 
 MELD_PARAMS_PATH = "/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing"
 # for saliency - do not force people to have this
@@ -33,7 +32,8 @@ except ImportError:
 
 def load_config(config_file):
     '''load config.py file and return config object'''
-    import importlib.machinery, importlib.util
+    import importlib.machinery
+    import importlib.util
 
     loader = importlib.machinery.SourceFileLoader('config', config_file)
     spec = importlib.util.spec_from_loader(loader.name, loader)
@@ -1268,9 +1268,10 @@ def save_json(json_filename, json_results):
 
 def create_surface_plots(coords, faces, overlay, flat_map=True, limits=None):
     """plot and reload surface images"""
-    from meld_graph.meld_plotting import trim
     import matplotlib_surface_plotting.matplotlib_surface_plotting as msp
     from PIL import Image
+
+    from meld_graph.meld_plotting import trim
 
     if limits == None:
         vmin = np.min(overlay)

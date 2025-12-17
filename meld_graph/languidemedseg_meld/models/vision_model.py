@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import List, Dict, Tuple
 from pathlib import Path
+from typing import Dict, List, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from torch_geometric.data import Data, Batch
-from torch_geometric.nn import SAGEConv, GraphNorm
-
 from meld_graph.icospheres import IcoSpheres
+from torch_geometric.data import Batch, Data
+from torch_geometric.nn import GraphNorm, SAGEConv
 
 
 # TODO: Conduct experiments with different GNN layers (GAT, GCN, etc.)
@@ -52,20 +52,15 @@ class VisionModel(nn.Module):
     def __init__(
         self,
         feature_dim: List[int],
-        meld_script_path: str | Path,
         feature_path: str | Path,
-        output_dir: str | Path,
         device: str | torch.device,
         gnn_min_verts: int = 642,
         fold_number: int = 0
     ) -> None:
         super().__init__()
 
-        self.meld_script_path = Path(meld_script_path)
         self.feature_path = Path(feature_path)
-        self.output_dir = Path(output_dir)
         ico_path = Path("data/icospheres")
-        self.template_root = self.output_dir / "data4sharing"
 
         self.fold_number = fold_number
         self.device = (

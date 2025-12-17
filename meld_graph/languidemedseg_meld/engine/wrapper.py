@@ -1,23 +1,25 @@
 from __future__ import annotations
+
+import datetime
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
-from LanGuideMedSeg_MICCAI2023.models.model import LanGuideMedSeg
-
-from meld_graph.meld_cohort import MeldCohort
-from meld_graph.icospheres import IcoSpheres
-
-from pathlib import Path
-import torch
-import pytorch_lightning as pl
-from engine.loss_meld import dice_coeff, tp_fp_fn_tn
-import pandas as pd
-from utils.utils import summarize_ci
-import sys
 import numpy as np
-import datetime
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.meld_cohort import MeldCohort
+
+from engine.loss_meld import calculate_loss, dice_coeff, tp_fp_fn_tn
 from engine.pooling import HexPool
-from engine.loss_meld import calculate_loss
-from utils.utils import convert_preds_to_nifti
+from languidemedseg_meld.models.model import LanGuideMedSeg
+from utils.utils import convert_preds_to_nifti, summarize_ci
+
 
 def load_config(config_file):
     """load config.py file and return config object"""
@@ -67,9 +69,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         
         self.model = LanGuideMedSeg(
             args.bert_type,
-            args.meld_script_path,
             args.feature_path,
-            args.output_dir,
             layer_sizes,
             args.device,
             args.feature_dim,

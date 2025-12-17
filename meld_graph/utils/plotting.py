@@ -1,5 +1,5 @@
-from nilearn import plotting
 import matplotlib.pyplot as plt
+from nilearn import plotting
 
 if __name__ == '__main__':
     wanted = {
@@ -20,6 +20,7 @@ if __name__ == '__main__':
             bg_nii = f'/home/s17gmikh/FCD-Detection/meld_graph/data/input/ds004199/{subj}/anat/{subj}_acq-T2sel_FLAIR.nii.gz'
 
         from matplotlib import gridspec
+
         # 1) Создаём фигуру и GridSpec-сетку
         fig = plt.figure(figsize=(14, 10))
         gs  = gridspec.GridSpec(

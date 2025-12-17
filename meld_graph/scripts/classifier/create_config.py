@@ -1,10 +1,10 @@
 import argparse
-from copy import deepcopy
-import os
-
-import pprint
-import black
 import collections.abc
+import os
+import pprint
+from copy import deepcopy
+
+import black
 
 
 def write_config(name, config_dict, save_path):
@@ -36,7 +36,8 @@ def write_config(name, config_dict, save_path):
 
 def load_config(config_file):
     """load config.py file and return config object"""
-    import importlib.machinery, importlib.util
+    import importlib.machinery
+    import importlib.util
 
     loader = importlib.machinery.SourceFileLoader("config", config_file)
     spec = importlib.util.spec_from_loader(loader.name, loader)

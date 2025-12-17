@@ -1,15 +1,18 @@
+import os
 import sys
-import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-import os
-from pathlib import Path
-import numpy as np
-import nibabel as nb
-from scipy import sparse
-import meld_graph.mesh_tools as mt
-import torch
-from math import pi
 import logging
+import os
+from math import pi
+from pathlib import Path
+
+import nibabel as nb
+import numpy as np
+import torch
+from scipy import sparse
+
+import meld_graph.mesh_tools as mt
 
 
 class IcoSpheres:

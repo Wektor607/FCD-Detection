@@ -1,14 +1,17 @@
 ## Script used to create the different icosphere used at different level of the unet
-import sys
 import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+import copy
+import os
+import time
+
+import nibabel as nb
+import numpy as np
+
 from meld_graph.meld_cohort import MeldCohort, MeldSubject
 from meld_graph.paths import BASE_PATH
-import os
-import numpy as np
-import nibabel as nb
-import copy
-import time
 
 
 def calc_n_verts_and_tris_in_down(n_tris):

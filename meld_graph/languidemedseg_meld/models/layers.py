@@ -1,7 +1,8 @@
-from typing import Optional, List, Callable
+import math
+from typing import Callable, List, Optional
+
 import torch
 import torch.nn as nn
-import math
 
 
 class PositionalEncoding(nn.Module):

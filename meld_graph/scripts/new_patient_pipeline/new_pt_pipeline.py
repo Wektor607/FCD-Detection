@@ -1,15 +1,21 @@
-import os
 import argparse
+import os
+import shutil
 import sys
 import time
-import shutil
-import pandas as pd
+
 import numpy as np
-from scripts.new_patient_pipeline.run_script_segmentation import run_script_segmentation
-from scripts.new_patient_pipeline.run_script_preprocessing import run_script_preprocessing
-from meld_graph.scripts.new_patient_pipeline.run_script_prediction_bonn_data import run_script_prediction
-from meld_graph.paths import MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE
-from meld_graph.tools_pipeline import get_m, create_demographic_file
+import pandas as pd
+
+from meld_graph.paths import DEMOGRAPHIC_FEATURES_FILE, MELD_DATA_PATH
+from meld_graph.scripts.new_patient_pipeline.run_script_prediction_bonn_data import \
+    run_script_prediction
+from meld_graph.tools_pipeline import create_demographic_file, get_m
+from scripts.new_patient_pipeline.run_script_preprocessing import \
+    run_script_preprocessing
+from scripts.new_patient_pipeline.run_script_segmentation import \
+    run_script_segmentation
+
 
 class Logger(object):
     def __init__(self, sys_type=sys.stdout, filename='MELD_output.log'):

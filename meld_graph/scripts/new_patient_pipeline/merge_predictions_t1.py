@@ -1,11 +1,14 @@
-import os
-import numpy as np
-import nibabel as nb
-import shutil
-import glob
 import argparse
+import glob
+import os
+import shutil
 from os.path import join as opj
+
+import nibabel as nb
+import numpy as np
+
 from meld_graph.tools_pipeline import get_m, run_command
+
 
 def merge_predictions_t1(subject_id, t1_file, prediction_file, output_dir, verbose=False):
     ''' fusion predictions and t1

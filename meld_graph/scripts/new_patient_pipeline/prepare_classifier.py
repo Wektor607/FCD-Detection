@@ -1,10 +1,9 @@
 import argparse
 import os
-from configparser import ConfigParser, NoOptionError
-import sys
 import shutil
 import subprocess
-
+import sys
+from configparser import ConfigParser, NoOptionError
 
 
 def prepare_meld_config():
@@ -80,7 +79,8 @@ if __name__ == '__main__':
     parser.add_argument("--update_test", action="store_true", help="only update the test data")
     args = parser.parse_args()
 
-    from meld_graph.download_data import get_test_data, get_model, get_meld_params
+    from meld_graph.download_data import (get_meld_params, get_model,
+                                          get_test_data)
     
     if args.update_test:
         get_test_data(force_download=True)

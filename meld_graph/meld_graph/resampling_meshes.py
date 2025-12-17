@@ -1,12 +1,13 @@
 ### functions needed to create transformations on spherical mesh for augmentation.
 ### These include a warp, spins and reindexing the coordinates.
 
-from meld_graph import icospheres
-from meld_graph.icospheres import IcoSpheres
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import cKDTree
-import matplotlib.pyplot as plt
 from scipy.stats import special_ortho_group
+
+from meld_graph import icospheres
+from meld_graph.icospheres import IcoSpheres
 
 
 def warp_mesh(low_res_ico, warp_fraction=2):

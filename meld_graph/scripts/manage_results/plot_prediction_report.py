@@ -1,41 +1,37 @@
+import argparse
+import glob
+import json
+import os
+from datetime import date
+
+import h5py
+import matplotlib as mpl
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import matplotlib_surface_plotting as msp
+import nibabel as nb
+import numpy as np
+import pandas as pd
+from fpdf import FPDF
+from matplotlib.gridspec import GridSpec
+from nilearn import image, plotting
+from nilearn._utils.extmath import fast_abs_percentile
+from nilearn._utils.numpy_conversions import as_ndarray
+from nilearn._utils.param_validation import check_threshold
+from nilearn.image import new_img_like
+from PIL import Image
+
+import meld_graph.mesh_tools as mt
 from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort, MeldSubject
 from meld_graph.meld_plotting import trim
-from meld_graph.paths import (
-    NVERT,
-    MELD_PARAMS_PATH,
-    MELD_DATA_PATH,
-    DK_ATLAS_FILE,
-    EXPERIMENT_PATH, 
-    MODEL_PATH,
-    SURFACE_PARTIAL, 
-    DEFAULT_HDF5_FILE_ROOT,
-    SCRIPTS_DIR,
-)
-import os
-import json
-import glob
-import h5py
-import argparse
-import numpy as np
-import nibabel as nb
-from nilearn import plotting, image
-from nilearn.image import new_img_like
-from nilearn._utils.numpy_conversions import as_ndarray
-from nilearn._utils.param_validation import check_threshold
-from nilearn._utils.extmath import fast_abs_percentile
-import pandas as pd
-import matplotlib_surface_plotting as msp
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
-import matplotlib as mpl
-import matplotlib.cm as cm
-from PIL import Image
-import meld_graph.mesh_tools as mt
-from datetime import date
-from fpdf import FPDF
-from meld_graph.tools_pipeline import get_m, get_anat_files
+from meld_graph.paths import (DEFAULT_HDF5_FILE_ROOT, DK_ATLAS_FILE,
+                              EXPERIMENT_PATH, MELD_DATA_PATH,
+                              MELD_PARAMS_PATH, MODEL_PATH, NVERT, SCRIPTS_DIR,
+                              SURFACE_PARTIAL)
+from meld_graph.tools_pipeline import get_anat_files, get_m
+
 
 class PDF(FPDF):    
     def lines(self):
@@ -196,8 +192,8 @@ def save_mgh(filename, array, demo):
 
 def load_cmap():
     """ create the colors dictionarry for the clusters"""
-    from matplotlib.colors import ListedColormap
     import numpy as np
+    from matplotlib.colors import ListedColormap
     colors =  [
         [255,0,0],     #red
         [255,215,0],   #gold

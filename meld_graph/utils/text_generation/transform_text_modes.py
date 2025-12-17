@@ -1,11 +1,12 @@
-from typing import List
+import csv
+import os
+import random
 import re
 import sys
-import os
-import csv
-import random
-import pandas as pd
 from pathlib import Path
+from typing import List
+
+import pandas as pd
 
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.abspath(os.path.join( "..", ".."))

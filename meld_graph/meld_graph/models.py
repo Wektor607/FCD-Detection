@@ -1,16 +1,18 @@
-import sys
 import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-import torch_geometric
-import torch.nn as nn
 from copy import deepcopy
 
-from meld_graph.icospheres import IcoSpheres
-import torch
-from meld_graph.spiralconv import SpiralConv
-from torch_geometric.nn import InstanceNorm
-import scipy.sparse as sp
 import numpy as np
+import scipy.sparse as sp
+import torch
+import torch.nn as nn
+import torch_geometric
+from torch_geometric.nn import InstanceNorm
+
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.spiralconv import SpiralConv
 
 
 class GMMConv(nn.Module):

@@ -1,11 +1,11 @@
-from meld_classifier.meld_cohort import MeldCohort, MeldSubject
-import numpy as np
-
+import argparse
 import os
 import subprocess
-import nibabel as nb
+
 import meld_classifier.paths as p
-import argparse
+import nibabel as nb
+import numpy as np
+from meld_classifier.meld_cohort import MeldCohort, MeldSubject
 
 
 def save_numpy_array_as_func_gii(arr, filename):

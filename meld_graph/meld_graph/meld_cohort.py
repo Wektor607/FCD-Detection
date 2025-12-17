@@ -1,28 +1,25 @@
 #Contains MeldCohort and MeldSubject classes
-import sys
 import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-from contextlib import contextmanager
-from meld_graph.paths import (
-    DEMOGRAPHIC_FEATURES_FILE,
-    CORTEX_LABEL_FILE,
-    SURFACE_FILE,
-    DEFAULT_HDF5_FILE_ROOT,
-    NVERT,
-    BASE_PATH,
-    MELD_PARAMS_PATH,
-    MELD_DATA_PATH,
-)
-import pandas as pd
-import numpy as np
-import nibabel as nb
-import os
-import h5py
-import sys
 import glob
 import logging
-import meld_graph.mesh_tools as mt
+import os
+import sys
+from contextlib import contextmanager
+
+import h5py
+import nibabel as nb
+import numpy as np
+import pandas as pd
 import scipy
+
+import meld_graph.mesh_tools as mt
+from meld_graph.paths import (BASE_PATH, CORTEX_LABEL_FILE,
+                              DEFAULT_HDF5_FILE_ROOT,
+                              DEMOGRAPHIC_FEATURES_FILE, MELD_DATA_PATH,
+                              MELD_PARAMS_PATH, NVERT, SURFACE_FILE)
 
 
 class MeldCohort:

@@ -1,17 +1,17 @@
-import os
-import numpy as np
-import nibabel as nb
 import copy
-import time
-import sys
-from scipy import sparse
-import meld_graph.mesh_tools as mt
-import torch
-from math import pi
 import logging
-from meld_graph.paths import (
-    SCRIPTS_DIR,
-)
+import os
+import sys
+import time
+from math import pi
+
+import nibabel as nb
+import numpy as np
+import torch
+from scipy import sparse
+
+import meld_graph.mesh_tools as mt
+from meld_graph.paths import SCRIPTS_DIR
 
 
 class Transform:

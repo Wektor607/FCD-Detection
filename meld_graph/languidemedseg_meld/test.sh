@@ -29,10 +29,12 @@ which python
 export PATH="$CONDA_PREFIX/bin:$PATH"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-cd /home/s17gmikh/FCD-Detection/meld_graph/LanGuideMedSeg_MICCAI2023
+cd /home/s17gmikh/FCD-Detection/meld_graph
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
-WANDB_MODE=disabled python3 test_Kfold.py --ckpt_prefix exp3_mixed_3_gnn_aug
+WANDB_MODE=disabled python3 languidemedseg_meld/test_Kfold.py \
+  --config languidemedseg_meld/config/training.yaml \
+  --ckpt_prefix languidemedseg_meld/save_model/exp3_mixed_3_gnn_aug
 # exp3_no_gnn_mixed_freeeze
 # WANDB_MODE=disabled python3 test.py  --meld_check
 # --meld_check

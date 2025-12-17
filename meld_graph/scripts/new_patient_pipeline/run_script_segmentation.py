@@ -4,32 +4,42 @@
 ## that contains the T1 in nifti format ".nii" and where available a FLAIR 
 ## folder that contains the FLAIR in nifti format ".nii"
 ## To run : python run_script_segmentation.py -id <sub_id> -harmo_code <harmo_code>
+import argparse
 import glob
 import json
+import multiprocessing
 import os
-from tabnanny import verbose
-import numpy as np
-from sqlite3 import paramstyle
-import sys
-import argparse
+import shutil
 import subprocess
-from subprocess import Popen
+import sys
+import tempfile
 # from subprocess import Popen, DEVNULL, STDOUT, check_call
 import threading
-import multiprocessing
 from functools import partial
-import tempfile
-import glob
-import shutil
-import pandas as pd
 from os.path import join as opj
-from meld_graph.paths import BASE_PATH, MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE, FS_SUBJECTS_PATH, CLIPPING_PARAMS_FILE
-from meld_graph.tools_pipeline import get_m, create_demographic_file, get_anat_files
-from scripts.data_preparation.extract_features.create_xhemi import run_parallel_xhemi, create_xhemi
-from scripts.data_preparation.extract_features.create_training_data_hdf5 import create_training_data_hdf5
-from scripts.data_preparation.extract_features.sample_FLAIR_smooth_features import sample_flair_smooth_features
-from scripts.data_preparation.extract_features.lesion_labels import lesion_labels, project_lesion_to_surface
-from scripts.data_preparation.extract_features.move_to_xhemi_flip import move_to_xhemi_flip
+from sqlite3 import paramstyle
+from subprocess import Popen
+from tabnanny import verbose
+
+import numpy as np
+import pandas as pd
+
+from meld_graph.paths import (BASE_PATH, CLIPPING_PARAMS_FILE,
+                              DEMOGRAPHIC_FEATURES_FILE, FS_SUBJECTS_PATH,
+                              MELD_DATA_PATH)
+from meld_graph.tools_pipeline import (create_demographic_file, get_anat_files,
+                                       get_m)
+from scripts.data_preparation.extract_features.create_training_data_hdf5 import \
+    create_training_data_hdf5
+from scripts.data_preparation.extract_features.create_xhemi import (
+    create_xhemi, run_parallel_xhemi)
+from scripts.data_preparation.extract_features.lesion_labels import (
+    lesion_labels, project_lesion_to_surface)
+from scripts.data_preparation.extract_features.move_to_xhemi_flip import \
+    move_to_xhemi_flip
+from scripts.data_preparation.extract_features.sample_FLAIR_smooth_features import \
+    sample_flair_smooth_features
+
 
 def init(lock):
     global starting

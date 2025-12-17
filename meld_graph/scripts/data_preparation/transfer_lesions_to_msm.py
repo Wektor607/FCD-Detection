@@ -1,5 +1,5 @@
-from meld_classifier.meld_cohort import MeldCohort
 from meld_classifier.data_preprocessing import Preprocess
+from meld_classifier.meld_cohort import MeldCohort
 from meld_classifier.paths import BASE_PATH
 
 site_codes = [

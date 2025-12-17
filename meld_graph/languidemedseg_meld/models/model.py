@@ -1,28 +1,28 @@
-from typing import List, Dict, Tuple
 import os
 import sys
+from typing import Dict, List, Tuple
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import torch
 from pathlib import Path
-import torch.nn as nn
-from LanGuideMedSeg_MICCAI2023.models.layers import GuideDecoder
-from meld_graph.icospheres import IcoSpheres
-from LanGuideMedSeg_MICCAI2023.engine.pooling import HexPool, HexUnpool
-from meld_graph.spiralconv import SpiralConv
-from torch_geometric.data import Data, Batch
 
-from .vision_model import VisionModel
+import torch
+import torch.nn as nn
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.spiralconv import SpiralConv
+from torch_geometric.data import Batch, Data
+
+from languidemedseg_meld.engine.pooling import HexPool, HexUnpool
+from languidemedseg_meld.models.layers import GuideDecoder
+
 from .language_model import BERTModel
+from .vision_model import VisionModel
 
 
 class LanGuideMedSeg(nn.Module):
     def __init__(
         self,
         bert_type: str,
-        meld_script_path: str,
         feature_path: str,
-        output_dir: str,
         layer_sizes: List[List[int]],
         device: str,
         feature_dim: List[int],
@@ -50,9 +50,7 @@ class LanGuideMedSeg(nn.Module):
         self.text_emb_flag = text_emb
         self.encoder = VisionModel(
             feature_dim, 
-            meld_script_path, 
             feature_path, 
-            output_dir, 
             device,
             gnn_min_verts=gnn_min_verts, fold_number=fold_number
         )

@@ -1,7 +1,7 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 try:
-    from meld_graph import __author__, __maintainer__, __email__, __version__
+    from meld_graph import __author__, __email__, __maintainer__, __version__
 except ImportError:
     __author__ = __maintainer__ = "MELD development team"
     __email__ = "meld.study@gmail.com"

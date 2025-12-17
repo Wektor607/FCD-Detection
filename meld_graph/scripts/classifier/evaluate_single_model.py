@@ -2,22 +2,22 @@
 ### Runs one model across a val /test cohort and will either save predictions
 ### or calculate summary statistics
 import argparse
-import meld_graph
-import meld_graph.models
-import meld_graph.experiment
-import meld_graph.dataset
-import meld_graph.data_preprocessing
-import meld_graph.evaluation
-
-from meld_graph.dataset import GraphDataset
-from meld_graph.meld_cohort import MeldCohort
-
-import os
-from meld_graph.evaluation import Evaluator
-import numpy as np
 import json
 import os
 import sys
+
+import numpy as np
+
+import meld_graph
+import meld_graph.data_preprocessing
+import meld_graph.dataset
+import meld_graph.evaluation
+import meld_graph.experiment
+import meld_graph.models
+from meld_graph.dataset import GraphDataset
+from meld_graph.evaluation import Evaluator
+from meld_graph.meld_cohort import MeldCohort
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="""

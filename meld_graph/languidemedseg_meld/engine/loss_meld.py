@@ -1,10 +1,10 @@
-import sys
 import os
+import sys
+from functools import partial
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 import torch
 from monai.losses import DiceLoss as MonaiDiceLoss
-from functools import partial
 
 
 def dice_coeff(pred, target, smooth=1e-15):

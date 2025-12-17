@@ -10,10 +10,11 @@
 # MISSING TESTS:
 # - more extensive tests for functions tested in test_meldsubject_api (just tests for syntax)
 
-import pytest
-from meld_graph.meld_cohort import MeldCohort, MeldSubject
 import numpy as np
+import pytest
+
 from meld_graph.download_data import get_test_data
+from meld_graph.meld_cohort import MeldCohort, MeldSubject
 from meld_graph.paths import DEFAULT_HDF5_FILE_ROOT
 from meld_graph.test.utils import create_test_demos
 

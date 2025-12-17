@@ -1,7 +1,12 @@
-import os,sys,json,subprocess
+import json
+import os
+import subprocess
+import sys
+
 
 def setup():
     from meld_graph.paths import MELD_DATA_PATH
+
     # Should only be run on mac
     if not "FREESURFER_HOME" in os.environ:
         if sys.platform == "darwin":

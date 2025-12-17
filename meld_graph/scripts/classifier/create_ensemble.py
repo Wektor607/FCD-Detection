@@ -1,16 +1,18 @@
 # create an ensemble model from multiple folds
 # adapted from meld_classifier/scripts/classifier/ensemble.py
 
+import argparse
 import json
-import numpy as np
-import torch
+import logging
 import os
 import shutil
-import argparse
-import logging
 
-from meld_graph.experiment import Experiment
+import numpy as np
+import torch
+
 from meld_graph.ensemble import Ensemble
+from meld_graph.experiment import Experiment
+
 
 def _update_subj_ids(data_param_file, ensemble_experiments):
     print('updating subj_ids')

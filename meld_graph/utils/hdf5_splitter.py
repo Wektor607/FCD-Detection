@@ -1,6 +1,7 @@
-import h5py
-import os
 import fnmatch
+import os
+
+import h5py
 
 
 def recursive_copy(src_group, dst_group):

@@ -9,36 +9,41 @@
 ## To run : python run_script_prediction.py -ids <text_file_with_ids> -harmo_code <harmo_code>
 
 
-import os
-import sys
-import subprocess
 import json
+import os
+import subprocess
+import sys
+
 import numpy as np
+
 if not hasattr(np, "float"):
     np.float = float
 
+import argparse
+import shutil
+import tempfile
+import warnings
+from os.path import join as opj
+
 import nibabel as nb
 import pandas as pd
-import argparse
-import tempfile
-import shutil
-from os.path import join as opj
-from meld_graph.paths import (FS_SUBJECTS_PATH, 
-                              MELD_DATA_PATH,
-                              DEMOGRAPHIC_FEATURES_FILE, 
-                              DEFAULT_HDF5_FILE_ROOT, 
-                              EXPERIMENT_PATH, 
-                              MODEL_PATH)
+
+import scripts.env_setup
 from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
-import scripts.env_setup
-from scripts.manage_results.register_back_to_xhemi import register_subject_to_xhemi
-from scripts.manage_results.move_predictions_to_mgh import move_predictions_to_mgh
-from scripts.manage_results.plot_prediction_report import generate_prediction_report
-from meld_graph.tools_pipeline import get_m, create_demographic_file, create_dataset_file
+from meld_graph.paths import (DEFAULT_HDF5_FILE_ROOT,
+                              DEMOGRAPHIC_FEATURES_FILE, EXPERIMENT_PATH,
+                              FS_SUBJECTS_PATH, MELD_DATA_PATH, MODEL_PATH)
+from meld_graph.tools_pipeline import (create_dataset_file,
+                                       create_demographic_file, get_m)
+from scripts.manage_results.move_predictions_to_mgh import \
+    move_predictions_to_mgh
+from scripts.manage_results.plot_prediction_report import \
+    generate_prediction_report
+from scripts.manage_results.register_back_to_xhemi import \
+    register_subject_to_xhemi
 
-import warnings
 warnings.filterwarnings("ignore")
 
 def save_surface_mgh(arr_1d, out_path: str):
@@ -540,7 +545,7 @@ if __name__ == '__main__':
     
     if args.return_results and results is not None:
         import pickle
-        
+
         # базовая директория для всех результатов
         base_dir = "/home/s17gmikh/FCD-Detection/backend/data_results"
         os.makedirs(base_dir, exist_ok=True)

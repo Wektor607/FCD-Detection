@@ -1,24 +1,25 @@
-from pathlib import Path
 import os
-import sys
-import subprocess
-import shutil
 import pickle
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
 # ensure package imports for meld_graph and project root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "meld_graph")))
 
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from LanGuideMedSeg_MICCAI2023.inference import inference
+from languidemedseg_meld.inference import inference
 
-from .config import DEFAULT_DEMOGRAPHIC_FILE, UPLOAD_DIR, RESULT_DIR, T1_FILE, ensure_dirs
-from .utils import parse_id
+from .config import (DEFAULT_DEMOGRAPHIC_FILE, RESULT_DIR, T1_FILE, UPLOAD_DIR,
+                     ensure_dirs)
 from .plotting_utils import plot_and_save
+from .utils import parse_id
 
 ensure_dirs()
 

@@ -1,6 +1,7 @@
+import logging
+
 import torch
 import torch.nn as nn
-import logging
 from torch_geometric.nn import InstanceNorm
 
 

@@ -1,5 +1,6 @@
 import os
 import sys
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import argparse
@@ -8,22 +9,20 @@ from typing import List
 
 import numpy as np
 import pandas as pd
+import pytorch_lightning as pl
 import torch
 import torch.multiprocessing
-from torch.utils.data import DataLoader
-
-import pytorch_lightning as pl
 # from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
-
+from pytorch_lightning.callbacks import (Callback, EarlyStopping,
+                                         ModelCheckpoint)
 from sklearn.model_selection import KFold
+from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
 import utils.config as config
-
+from engine.wrapper import LanGuideMedSegWrapper
 from utils.data import EpilepDataset
 from utils.utils import LesionOversampleSampler
-from engine.wrapper import LanGuideMedSegWrapper
 
 # Ensure repository root is on sys.path so imports like `meld_graph` resolve
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -130,6 +129,7 @@ def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fol
     hc_set = set([sid for sid in train_fold_ids if sid.split("_")[3].startswith("C")])
     labels = [0 if sid in hc_set else 1 for sid in ds_train.subject_ids]
     sampler = LesionOversampleSampler(labels, seed=fold_seed)
+    
     dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, sampler=sampler, num_workers=args.train_batch_size, pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
     dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size, pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
     
@@ -215,15 +215,17 @@ if __name__ == "__main__":
         early_stopping = EarlyStopping(monitor="val_loss", patience=args.patience, mode="min")
 
         # FREEZE DECODER CALLBACK
-        freeze_cb = FreezeDecoderCallback(unfreeze_at_epoch=5)
+        freeze_cb = FreezeDecoderCallback(unfreeze_at_epoch=args.num_freeze_epochs) if args.unfreeze_decoder else None
 
+        callback_list = [model_ckpt, early_stopping]
+        if args.unfreeze_decoder:
+            callback_list.append(freeze_cb)
+    
         trainer = pl.Trainer(min_epochs=args.min_epochs, 
                             max_epochs=args.max_epochs, 
                             accelerator=accelerator, 
                             devices=devices, 
-                            callbacks=[model_ckpt, early_stopping, 
-                            # ],
-                            freeze_cb], 
+                            callbacks=callback_list, 
                             # logger=wandb_logger,
                             enable_progress_bar=True)
 

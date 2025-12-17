@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import os
 import argparse
-import numpy as np
-import nibabel as nib
-from nilearn import plotting, surface
+import os
+
 import matplotlib.pyplot as plt
+import nibabel as nib
+import numpy as np
+from nilearn import plotting, surface
+
 
 def main(subject_id, subjects_dir):
     # Prepare directories

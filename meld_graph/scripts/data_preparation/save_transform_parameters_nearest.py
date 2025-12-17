@@ -1,18 +1,20 @@
-import os
-import numpy as np
-import nibabel as nb
 import copy
-import time
-from scipy import sparse
-import meld_classifier.mesh_tools as mt
-import torch
-from math import pi
 import logging
-from meld_graph.icospheres import IcoSpheres
-import matplotlib_surface_plotting as msp
-from scipy.stats import special_ortho_group
-from scipy.spatial import cKDTree
+import os
 import pickle
+import time
+from math import pi
+
+import matplotlib_surface_plotting as msp
+import meld_classifier.mesh_tools as mt
+import nibabel as nb
+import numpy as np
+import torch
+from scipy import sparse
+from scipy.spatial import cKDTree
+from scipy.stats import special_ortho_group
+
+from meld_graph.icospheres import IcoSpheres
 from meld_graph.resampling_meshes import *
 
 

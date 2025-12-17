@@ -1,7 +1,9 @@
-import pandas as pd
-import numpy as np
-import patsy
 import math
+
+import numpy as np
+import pandas as pd
+import patsy
+
 
 def biweight_midvar(data, center=None, axis=None):
     if center is None:

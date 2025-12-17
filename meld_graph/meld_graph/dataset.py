@@ -1,16 +1,18 @@
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-import torch_geometric.data
-from meld_graph.data_preprocessing import Preprocess
-from meld_graph.icospheres import IcoSpheres
-from meld_graph.graph_tools import GraphTools
+import sys
 
-from meld_graph.models import HexPool
-from meld_graph.augment import Augment
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+import logging
+
 import numpy as np
 import torch
-import logging
+import torch_geometric.data
+
+from meld_graph.augment import Augment
+from meld_graph.data_preprocessing import Preprocess
+from meld_graph.graph_tools import GraphTools
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.models import HexPool
 
 
 class Oversampler(torch.utils.data.Sampler):

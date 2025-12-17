@@ -1,14 +1,18 @@
 
-import os
-import sys
 import argparse
-import subprocess
-from subprocess import Popen
-from meld_graph.tools_pipeline import  get_m
 import glob
+import os
+import subprocess
+import sys
+from subprocess import Popen
+
 import nibabel as nib
-from meld_graph.paths import MELD_DATA_PATH
 import numpy as np
+
+from meld_graph.paths import MELD_DATA_PATH
+from meld_graph.tools_pipeline import get_m
+
+
 def project_lesion_to_surface(subject_id, subjects_dir):
     
     env = os.environ.copy()

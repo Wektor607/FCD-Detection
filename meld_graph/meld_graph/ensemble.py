@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 class Ensemble(nn.Module):
     """
     Ensemble models by taking mean of output

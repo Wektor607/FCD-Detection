@@ -7,16 +7,19 @@
 # - the creation of the MELD pdf reports
 # It checks outputs exists and compare the prediction with the expected one.
 
-import subprocess
 import os
-import pytest
+import subprocess
+
 import h5py
-import numpy as np
 import nibabel as nb
+import numpy as np
 import pandas as pd
-from meld_graph.test.utils import create_test_demos
-from meld_graph.paths import MELD_DATA_PATH
+import pytest
+
 from meld_graph.download_data import get_test_data
+from meld_graph.paths import MELD_DATA_PATH
+from meld_graph.test.utils import create_test_demos
+
 
 def get_data_parameters():
     data_parameters = {

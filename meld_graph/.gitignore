@@ -9,4 +9,6 @@ scripts/wandb
 scripts/config_files/reproducibility
 data
 dataset
-LanGuideMedSeg_MICCAI2023/save_model/
+languidemedseg_meld/save_model/
+meld_graph/utils/something_old
+meld_graph/utils/text_generation/transform_text_modes_old.py

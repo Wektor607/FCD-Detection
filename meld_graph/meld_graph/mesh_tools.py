@@ -1,15 +1,19 @@
 #Tools for mesh-based operations
 #Smoothing, 
-import sys
 import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+import os
+import subprocess
+
+import matplotlib.pyplot as plt
 import nibabel as nb
 import numpy as np
-import subprocess
-import os
 import potpourri3d as pp3d
+
 from meld_graph.paths import BASE_PATH, MELD_PARAMS_PATH
-import matplotlib.pyplot as plt
+
 
 # import paths as paths
 def find_nearest_multi(array, value):
@@ -246,8 +250,9 @@ def read_vtk(file):
     Reads ASCII coded vtk files using pandas,
     returning vertices, faces and data as three numpy arrays.
     """
-    import pandas as pd
     import csv
+
+    import pandas as pd
 
     # read full file while dropping empty lines
     try:
@@ -309,8 +314,9 @@ def read_vtk(file):
 
 # function to read ASCII coded ply file
 def read_ply(file):
-    import pandas as pd
     import csv
+
+    import pandas as pd
 
     # read full file and drop empty lines
     try:

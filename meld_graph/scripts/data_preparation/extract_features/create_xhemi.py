@@ -1,15 +1,18 @@
 ### Python functions to registers the participant's data to the  bilaterally symmetrical template
 
-from functools import partial
+import multiprocessing
 import os
-import numpy as np
-from os.path import join as opj
 import shutil
 import subprocess
-from subprocess import Popen
 from argparse import ArgumentParser
-import multiprocessing
+from functools import partial
+from os.path import join as opj
+from subprocess import Popen
+
+import numpy as np
+
 from meld_graph.tools_pipeline import get_m
+
 
 def create_xhemi(subject_id, subjects_dir,template = 'fsaverage_sym', verbose=False):
     

@@ -1,25 +1,25 @@
-from typing import List, Tuple
-
-from tqdm import tqdm
-import torch
 import argparse
 import random
+from pathlib import Path
+from typing import List, Tuple
+
 import numpy as np
 import pandas as pd
-
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-
+import torch
 import torch.multiprocessing
-from utils.utils import summarize_ci, get_device, worker_init_fn, move_to_device
-
 from meld_graph.meld_cohort import MeldCohort
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from utils.data import EpilepDataset
+import utils.config as config
 from engine.loss_meld import dice_coeff, tp_fp_fn_tn
 from engine.wrapper import LanGuideMedSegWrapper
-import utils.config as config
+from utils.data import EpilepDataset
+from utils.utils import (get_device, move_to_device, summarize_ci,
+                         worker_init_fn)
+
 # Keep reproducibility settings at top
 SEED = 42
 pl.seed_everything(SEED, workers=True)
@@ -84,7 +84,12 @@ def prepare_dataloader(args, tokenizer, cohort, text_emb) -> DataLoader:
 
 
 def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.device) -> List[torch.nn.Module]:
-    ckpt_paths = [f"./save_model/{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 5)]
+    ckpt_prefix = Path(ckpt_prefix)
+
+    ckpt_paths = [
+        ckpt_prefix.parent / f"{ckpt_prefix.name}_fold{i+1}.ckpt"
+        for i in range(5)
+    ]
     att_mechanism = False
     text_emb = False
     for exp, flags in exp_flags.items():

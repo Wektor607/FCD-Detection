@@ -11,16 +11,17 @@
 # MISSING TESTS:
 #   test getting / filtering features?
 
-import pytest
-from meld_graph.meld_cohort import MeldCohort, MeldSubject
-from meld_graph.paths import NVERT, BASE_PATH, DEFAULT_HDF5_FILE_ROOT
-import numpy as np
-import warnings
-from meld_graph.download_data import get_test_data
 import tempfile
-import pandas as pd
-from meld_graph.test.utils import create_test_demos
+import warnings
 
+import numpy as np
+import pandas as pd
+import pytest
+
+from meld_graph.download_data import get_test_data
+from meld_graph.meld_cohort import MeldCohort, MeldSubject
+from meld_graph.paths import BASE_PATH, DEFAULT_HDF5_FILE_ROOT, NVERT
+from meld_graph.test.utils import create_test_demos
 
 create_test_demos()
 

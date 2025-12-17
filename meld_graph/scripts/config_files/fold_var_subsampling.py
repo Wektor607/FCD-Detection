@@ -1,6 +1,9 @@
 # script to set up the subsampling experiments for MICCAI
 
-import random, string, datetime
+import datetime
+import random
+import string
+
 import numpy as np
 
 

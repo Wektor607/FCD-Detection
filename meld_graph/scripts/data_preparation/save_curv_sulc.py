@@ -1,9 +1,10 @@
-from meld_classifier.meld_cohort import MeldCohort, MeldSubject
-import numpy as np
-import meld_classifier.paths as p
-import nibabel as nb
 import os
 import subprocess
+
+import meld_classifier.paths as p
+import nibabel as nb
+import numpy as np
+from meld_classifier.meld_cohort import MeldCohort, MeldSubject
 
 dataset = "MELD_dataset_V6.csv"
 hdf5_file_root = "{site_code}_{group}_featurematrix_combat_6_kernels.hdf5"

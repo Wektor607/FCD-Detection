@@ -2,20 +2,20 @@
 # this is needed for confidence estimation
 
 import argparse
-import meld_graph
-import meld_graph.models
-import meld_graph.experiment
-import meld_graph.dataset
-import meld_graph.data_preprocessing
-import meld_graph.evaluation
-
-from meld_graph.dataset import GraphDataset
-from meld_classifier.meld_cohort import MeldCohort
-
-from meld_graph.evaluation import Evaluator
 import json
 import os
+
 import h5py
+from meld_classifier.meld_cohort import MeldCohort
+
+import meld_graph
+import meld_graph.data_preprocessing
+import meld_graph.dataset
+import meld_graph.evaluation
+import meld_graph.experiment
+import meld_graph.models
+from meld_graph.dataset import GraphDataset
+from meld_graph.evaluation import Evaluator
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

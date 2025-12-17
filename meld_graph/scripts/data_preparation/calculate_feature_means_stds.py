@@ -1,19 +1,24 @@
 ## Script to calculate the mean and standard deviation of the MELD cohort surface-based features
 ## Parameters are saved and used for normalisation
-import sys
 import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+import glob
+import json
+import os
+
+import numpy as np
+
 from meld_graph.data_preprocessing import Preprocess as Prep
 from meld_graph.meld_cohort import MeldCohort, MeldSubject
 from meld_graph.paths import BASE_PATH
-import numpy as np
-import json
-import os
-import glob
+
 
 def load_config(config_file):
     """load config.py file and return config object"""
-    import importlib.machinery, importlib.util
+    import importlib.machinery
+    import importlib.util
 
     loader = importlib.machinery.SourceFileLoader("config", config_file)
     spec = importlib.util.spec_from_loader(loader.name, loader)

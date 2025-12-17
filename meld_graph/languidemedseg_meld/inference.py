@@ -4,28 +4,28 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "meld_graph")))
 
-from tqdm import tqdm
-import torch
 import argparse
 import random
-import numpy as np
-
-from typing import List
 from pathlib import Path
-from meld_graph.meld_cohort import MeldCohort
+from typing import List
 
-import torch.multiprocessing
-from torch.utils.data import DataLoader
-
+import numpy as np
 import pytorch_lightning as pl
+import torch
+import torch.multiprocessing
+from meld_graph.meld_cohort import MeldCohort
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from LanGuideMedSeg_MICCAI2023.utils.data import SingleEpilepSample
-from LanGuideMedSeg_MICCAI2023.utils.utils import convert_preds_to_nifti, summarize_clusters, get_device, worker_init_fn, move_to_device
-import LanGuideMedSeg_MICCAI2023.utils.config as config
-from LanGuideMedSeg_MICCAI2023.engine.wrapper import LanGuideMedSegWrapper
+import languidemedseg_meld.utils.config as config
+from languidemedseg_meld.engine.wrapper import LanGuideMedSegWrapper
+from languidemedseg_meld.utils.data import SingleEpilepSample
+from languidemedseg_meld.utils.utils import (convert_preds_to_nifti,
+                                             get_device, move_to_device,
+                                             summarize_clusters,
+                                             worker_init_fn)
 
-# теперь можно вызвать
 torch.multiprocessing.set_sharing_strategy("file_system")
 
 
@@ -49,17 +49,16 @@ def get_cfg(argv=[]):
         description="Language-guide Medical Image Segmentation"
     )
     parser.add_argument(
-        "--config", default="./meld_graph/LanGuideMedSeg_MICCAI2023/config/training.yaml", type=str, help="config file"
+        "--config", default="./meld_graph/languidemedseg_meld/config/training.yaml", type=str, help="config file"
     )
 
     cli = parser.parse_args(argv)
 
-    # Загружаем конфиг
     cfg = config.load_cfg_from_cfg_file(cli.config)
     return cfg
 
 
-def create_inference_loader(subject_data: dict, description: str, tokenizer, cohort, batch_size: int = 1):
+def create_inference_loader(subject_data: dict, description: str, tokenizer, cohort: MeldCohort) -> DataLoader:
     """
     Prepare the Dataset and DataLoader for inference.
 
@@ -86,9 +85,9 @@ def create_inference_loader(subject_data: dict, description: str, tokenizer, coh
 
 
 def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.device) -> List[torch.nn.Module]:
-    save_dir = Path("meld_graph") / "LanGuideMedSeg_MICCAI2023" / "save_model"
-    # ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 5)]
-    ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 3)]
+    save_dir = Path("meld_graph") / "languidemedseg_meld" / "save_model"
+    ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 5)]
+    # ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 3)]
     att_mechanism = False
     text_emb = False
     for exp, flags in exp_flags.items():

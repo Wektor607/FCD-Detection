@@ -1,9 +1,10 @@
 # scripts for creating per-vertex and per-cluster calibration plots
 import matplotlib.pyplot as plt
 import numpy as np
-from meld_graph.meld_cohort import MeldSubject
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
+
+from meld_graph.meld_cohort import MeldSubject
 
 
 def get_lesion(subjects, cohort, results_dict=None):

@@ -1,8 +1,11 @@
 import os
+
 import h5py
 import numpy as np
 import pandas as pd
-from meld_graph.paths import BASE_PATH, DEFAULT_HDF5_FILE_ROOT, MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE
+
+from meld_graph.paths import (BASE_PATH, DEFAULT_HDF5_FILE_ROOT,
+                              DEMOGRAPHIC_FEATURES_FILE, MELD_DATA_PATH)
 from meld_graph.tools_pipeline import create_dataset_file
 
 print(DEMOGRAPHIC_FEATURES_FILE)
@@ -26,6 +29,7 @@ def create_test_data():
     Now, the downloadable test data is preferred over recreating it.
     """
     from shutil import copyfile
+
     # edit copied H4 dataset to contain 0,1,2.... as feature values. 5 patients, 5 subjects
     # start from copies of H4 site
     print("creating test dataset MELD_TEST from MELD_H4...")

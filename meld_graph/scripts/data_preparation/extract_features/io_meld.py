@@ -1,9 +1,11 @@
-import numpy as np
-import nibabel as nb
-import pandas as pd
 import os
-import h5py
 import sys
+
+import h5py
+import nibabel as nb
+import numpy as np
+import pandas as pd
+
 
 def load_mgh(filename):
     """ import mgh file using nibabel. returns flattened data array"""

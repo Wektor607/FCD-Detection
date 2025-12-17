@@ -1,6 +1,6 @@
-from typing import Dict
 import os
 import sys
+from typing import Dict
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import torch

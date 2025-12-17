@@ -1,31 +1,30 @@
 import json
-import sys
 import os
+import random
 import shutil
+import sys
+from pathlib import Path
 from typing import Tuple
+
+import h5py
+import matplotlib.pyplot as plt
+import nibabel as nib
+import numpy as np
+import torch
+from PIL import Image
+from scipy import ndimage
+from torch.utils.data import Sampler
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-import torch
-import h5py
-from torch.utils.data import Sampler
-import numpy as np
-from PIL import Image
-import random
-from pathlib import Path
-from scipy import ndimage
-import nibabel as nib
-from converter_mgh_to_nifti import convert_prediction_mgh_to_nii, get_combat_feature_path, save_mgh
-from meld_graph.paths import MELD_DATA_PATH
-import matplotlib.pyplot as plt
-
 import meld_graph.mesh_tools as mt
-from meld_graph.paths import MELD_PARAMS_PATH, SURFACE_PARTIAL
-
-from scripts.manage_results.plot_prediction_report import create_surface_plots
 from meld_graph.meld_cohort import MeldCohort
-from meld_graph.paths import (
-    DEFAULT_HDF5_FILE_ROOT,
-)
+from meld_graph.paths import (DEFAULT_HDF5_FILE_ROOT, MELD_DATA_PATH,
+                              MELD_PARAMS_PATH, SURFACE_PARTIAL)
+from scripts.manage_results.plot_prediction_report import create_surface_plots
+
+from utils.converter_mgh_to_nifti import (convert_prediction_mgh_to_nii,
+                                          get_combat_feature_path, save_mgh)
 
 SEED = 42
 

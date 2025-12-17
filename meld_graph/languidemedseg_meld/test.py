@@ -1,34 +1,32 @@
 import os
 import sys
 
-from tqdm import tqdm
-import torch
-import argparse
-import random
-import numpy as np
-import pandas as pd
-
-import torch.multiprocessing
-from utils.utils import summarize_ci
-from torch.utils.data import DataLoader
-
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-# from pytorch_lightning.loggers import WandbLogger
-from transformers import AutoTokenizer
-
-from utils.data import EpilepDataset
-from engine.loss_meld import dice_coeff, tp_fp_fn_tn
-from engine.wrapper import LanGuideMedSegWrapper
-from meld_graph.paths import MELD_DATA_PATH
-import utils.config as config
-from utils.utils import convert_preds_to_nifti
-
 # Ensure repository root is on sys.path so imports like `meld_graph` resolve
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
-    
+
+import argparse
+import random
+
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+import torch.multiprocessing
+from meld_graph.paths import MELD_DATA_PATH
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+# from pytorch_lightning.loggers import WandbLogger
+from transformers import AutoTokenizer
+
+import utils.config as config
+from engine.loss_meld import dice_coeff, tp_fp_fn_tn
+from engine.wrapper import LanGuideMedSegWrapper
+from utils.data import EpilepDataset
+from utils.utils import convert_preds_to_nifti, summarize_ci
+
 # теперь можно вызвать
 torch.multiprocessing.set_sharing_strategy("file_system")
 

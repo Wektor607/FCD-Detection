@@ -1,10 +1,15 @@
-import urllib.request
 import os
-import numpy as np
-from meld_graph.paths import BASE_PATH, DEFAULT_HDF5_FILE_ROOT, EXPERIMENT_PATH, MODEL_NAME, MODEL_PATH, MELD_DATA_PATH
-import sys
 import shutil
+import sys
 import tempfile
+import urllib.request
+
+import numpy as np
+
+from meld_graph.paths import (BASE_PATH, DEFAULT_HDF5_FILE_ROOT,
+                              EXPERIMENT_PATH, MELD_DATA_PATH, MODEL_NAME,
+                              MODEL_PATH)
+
 
 # --- download data from figshare ---
 def _fetch_url(url, fname):

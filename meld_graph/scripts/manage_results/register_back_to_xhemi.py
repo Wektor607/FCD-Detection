@@ -1,8 +1,9 @@
 import os
 import shutil
-from os.path import join as opj
 import subprocess
+from os.path import join as opj
 from subprocess import Popen
+
 from meld_graph.tools_pipeline import get_m
 
 

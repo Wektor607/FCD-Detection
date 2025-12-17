@@ -3,11 +3,14 @@
 # - if Freesurfer is activated 
 # - check Freesurfer version? 
 
+import os
 import subprocess
 from subprocess import Popen
-import os
+
 import pytest
+
 from meld_graph.paths import MELD_DATA_PATH
+
 
 @pytest.mark.slow
 def test_freesurfer():

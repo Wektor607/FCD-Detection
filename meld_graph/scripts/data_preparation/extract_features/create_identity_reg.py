@@ -1,7 +1,8 @@
 #import relevant packages
-import numpy as np
 import argparse
 import os
+
+import numpy as np
 
 
 def create_identity(subject_id):

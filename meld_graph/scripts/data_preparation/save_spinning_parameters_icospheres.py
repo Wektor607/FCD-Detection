@@ -63,23 +63,24 @@
 #     print(len(data))  # если это кортеж из двух элементов
 #     print([arr.shape for arr in data])
 
-import os
-import numpy as np
-import nibabel as nb
 import copy
+import logging
+import os
+import pickle
 import time
-from scipy import sparse
+from math import pi
+
+import matplotlib_surface_plotting as msp
+import nibabel as nb
+import numpy as np
 # import meld_classifier.mesh_tools as mt
 import torch
-from math import pi
-import logging
-from meld_graph.icospheres import IcoSpheres
-import matplotlib_surface_plotting as msp
-from scipy.stats import special_ortho_group
+from scipy import sparse
 from scipy.spatial import cKDTree
-import pickle
-from meld_graph.resampling_meshes import *
+from scipy.stats import special_ortho_group
 
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.resampling_meshes import *
 
 if __name__ == "__main__":
     # initialise params

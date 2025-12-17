@@ -3,22 +3,23 @@
 # -----------------------------------------------------------------------------
 import copy
 import os
-from ast import literal_eval
-
-import yaml
 import sys
-import tempfile
-
-from meld_graph.evaluation import Evaluator
-from meld_graph.meld_cohort import MeldCohort
-from meld_graph.paths import EXPERIMENT_PATH, MODEL_PATH
-from meld_graph.experiment import Experiment
 
 # make sure repo root is discoverable (when scripts run from nested folders)
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
-    
+
+import tempfile
+from ast import literal_eval
+
+import yaml
+from meld_graph.evaluation import Evaluator
+from meld_graph.experiment import Experiment
+from meld_graph.meld_cohort import MeldCohort
+from meld_graph.paths import EXPERIMENT_PATH, MODEL_PATH
+
+
 class CfgNode(dict):
     """
     CfgNode represents an internal node in the configuration tree. It's a simple

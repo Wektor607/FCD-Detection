@@ -1,14 +1,15 @@
-import matplotlib.pyplot as plt
 import os
 import subprocess
-import numpy as np
-from PIL import Image, ImageChops
-from PIL import ImageFont
-from PIL import ImageDraw
-from meld_graph.meld_cohort import MeldCohort, MeldSubject
+
+import matplotlib.pyplot as plt
 import matplotlib_surface_plotting.matplotlib_surface_plotting as msp
-from meld_graph.paths import MELD_PARAMS_PATH
 import nibabel as nb
+import numpy as np
+from PIL import Image, ImageChops, ImageDraw, ImageFont
+
+from meld_graph.meld_cohort import MeldCohort, MeldSubject
+from meld_graph.paths import MELD_PARAMS_PATH
+
 
 def trim(im):
     bg = Image.new(im.mode, im.size, im.getpixel((0,0)))

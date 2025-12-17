@@ -1,14 +1,18 @@
 # Script to create scaling parameters for the raw features
+import os
 import sys
-import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-from meld_graph.paths import BASE_PATH, MELD_DATA_PATH
-from meld_graph.meld_cohort import MeldCohort, MeldSubject
-from meld_graph.data_preprocessing import Preprocess
+import glob
 import os
+
 import numpy as np
 import pandas as pd
-import glob
+
+from meld_graph.data_preprocessing import Preprocess
+from meld_graph.meld_cohort import MeldCohort, MeldSubject
+from meld_graph.paths import BASE_PATH, MELD_DATA_PATH
+
 # define cohort to compute scaling parameters from
 # site_codes = sorted(set(
 #     os.path.basename(p).split('_')[0]

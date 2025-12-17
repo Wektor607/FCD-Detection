@@ -1,14 +1,18 @@
-import os
-from os.path import join as opj
-import subprocess
-from subprocess import Popen
-import shutil
 import argparse
-import numpy as np
+import os
+import shutil
+import subprocess
+from os.path import join as opj
+from subprocess import Popen
+
 import nibabel as nb
-from scripts.data_preparation.extract_features import io_meld
-from scripts.data_preparation.extract_features.create_identity_reg import create_identity
+import numpy as np
+
 from meld_graph.tools_pipeline import get_m
+from scripts.data_preparation.extract_features import io_meld
+from scripts.data_preparation.extract_features.create_identity_reg import \
+    create_identity
+
 
 def sample_flair_smooth_features(subject_id, subjects_dir, verbose=False):
     #TODO: rename function

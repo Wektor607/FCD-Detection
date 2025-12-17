@@ -8,36 +8,39 @@
 
 ## To run : python run_script_prediction.py -ids <text_file_with_ids> -harmo_code <harmo_code>
 import faulthandler
+
 faulthandler.enable()
 
 
-import os
-import sys
-import subprocess
+import argparse
 import json
-import torch
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import warnings
+from os.path import join as opj
+
 import numpy as np
 import pandas as pd
-import argparse
-import tempfile
-import shutil
+import torch
 
-from os.path import join as opj
-from meld_graph.paths import (FS_SUBJECTS_PATH, 
-                              MELD_DATA_PATH,
-                              DEMOGRAPHIC_FEATURES_FILE, 
-                              DEFAULT_HDF5_FILE_ROOT, 
-                              EXPERIMENT_PATH, 
-                              MODEL_PATH)
 from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
-from scripts.manage_results.register_back_to_xhemi import register_subject_to_xhemi
-from scripts.manage_results.move_predictions_to_mgh import move_predictions_to_mgh
-from scripts.manage_results.plot_prediction_report import generate_prediction_report
-from meld_graph.tools_pipeline import get_m, create_demographic_file, create_dataset_file
+from meld_graph.paths import (DEFAULT_HDF5_FILE_ROOT,
+                              DEMOGRAPHIC_FEATURES_FILE, EXPERIMENT_PATH,
+                              FS_SUBJECTS_PATH, MELD_DATA_PATH, MODEL_PATH)
+from meld_graph.tools_pipeline import (create_dataset_file,
+                                       create_demographic_file, get_m)
+from scripts.manage_results.move_predictions_to_mgh import \
+    move_predictions_to_mgh
+from scripts.manage_results.plot_prediction_report import \
+    generate_prediction_report
+from scripts.manage_results.register_back_to_xhemi import \
+    register_subject_to_xhemi
 
-import warnings
 warnings.filterwarnings("ignore")
 
 def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=False,

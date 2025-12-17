@@ -1,5 +1,10 @@
-import random, string, datetime
+import datetime
+import random
+import string
+
 import numpy as np
+
+
 def date_code():
     # return unique date code of form: YYYY-MM-DD_XXXX
     return datetime.datetime.now().strftime("%y-%m-%d") + '_' + \
@@ -133,6 +138,7 @@ losses=[
 
 
 from copy import deepcopy
+
 for loss in losses:
     for fold in np.arange(5):
         if 'data_parameters' in loss.keys():

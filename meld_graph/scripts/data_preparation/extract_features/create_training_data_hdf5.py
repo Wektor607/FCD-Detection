@@ -2,15 +2,18 @@
 
 # This script writes out the per-vertex features and lesion classification for each patient and control to a .hdf5 file. 
 
+import argparse
+import os
+
+import nibabel as nb
 #import relevant packages
 import numpy as np
-import nibabel as nb
 import pandas as pd
-import argparse
-from scripts.data_preparation.extract_features.io_meld import save_subject
-from meld_graph.paths import MELD_DATA_PATH, DEMOGRAPHIC_FEATURES_FILE
+
+from meld_graph.paths import DEMOGRAPHIC_FEATURES_FILE, MELD_DATA_PATH
 from meld_graph.tools_pipeline import get_m
-import os
+from scripts.data_preparation.extract_features.io_meld import save_subject
+
 
 def create_training_data_hdf5(subject, subject_dir, output_dir):
     #list features

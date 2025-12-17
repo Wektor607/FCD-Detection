@@ -75,7 +75,8 @@ NVERT = 163842
 
 def load_config(config_file):
     """load config.py file and return config object"""
-    import importlib.machinery, importlib.util
+    import importlib.machinery
+    import importlib.util
 
     loader = importlib.machinery.SourceFileLoader("config", config_file)
     spec = importlib.util.spec_from_loader(loader.name, loader)

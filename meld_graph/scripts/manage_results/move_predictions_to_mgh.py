@@ -1,15 +1,17 @@
+import argparse
 import os
 import sys
-import numpy as np
+from pathlib import Path
+
 import h5py
+import nibabel as nb
+import numpy as np
+
+from languidemedseg_meld.engine.converter_mgh_to_nifti import \
+    get_combat_feature_path
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import MELD_DATA_PATH
-import nibabel as nb
-import argparse
-from pathlib import Path
 from meld_graph.tools_pipeline import get_m
-from LanGuideMedSeg_MICCAI2023.engine.converter_mgh_to_nifti import get_combat_feature_path
-
 
 
 def load_prediction(subject, hdf5, prediction_name="prediction_clustered"):

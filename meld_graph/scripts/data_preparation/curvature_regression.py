@@ -1,9 +1,10 @@
-import numpy as np
-#from scipy.spatial.distance import mahalanobis
-from meld_classifier.meld_cohort import MeldCohort,MeldSubject
-from scipy.stats import linregress
-import pandas as pd
 import os
+
+import numpy as np
+import pandas as pd
+#from scipy.spatial.distance import mahalanobis
+from meld_classifier.meld_cohort import MeldCohort, MeldSubject
+from scipy.stats import linregress
 
 
 def surface_regression(metric_in, remove):

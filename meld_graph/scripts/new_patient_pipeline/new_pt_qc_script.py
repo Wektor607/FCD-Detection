@@ -4,14 +4,16 @@
 ## To run : python new_pt_qc_script.py -id <sub_id>
 
 
-import os
-import sys
 import argparse
-import subprocess as sub
 import glob
+import os
+import subprocess as sub
+import sys
+
+from meld_graph.paths import FS_SUBJECTS_PATH, MELD_DATA_PATH
 from meld_graph.tools_pipeline import get_anat_files
-from meld_graph.paths import MELD_DATA_PATH, FS_SUBJECTS_PATH
-            
+
+
 def return_file(path, file_name):
     files = glob.glob(path)
     if len(files)>1 :

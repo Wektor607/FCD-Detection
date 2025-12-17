@@ -1,15 +1,18 @@
 # Run command: PYTHONPATH=/home/s17gmikh/FCD-Detection python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
-import logging as log
-import subprocess
 import glob
 import json
+import logging as log
 import os
+import subprocess
 import sys
-from bids.layout import BIDSLayout
-import pandas as pd
-from subprocess import Popen
-from meld_graph.paths import MELD_DATA_PATH, FS_SUBJECTS_PATH
 from datetime import datetime
+from subprocess import Popen
+
+import pandas as pd
+from bids.layout import BIDSLayout
+
+from meld_graph.paths import FS_SUBJECTS_PATH, MELD_DATA_PATH
+
 
 def get_m(message, subject=None, type_message='INFO'):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -117,6 +120,8 @@ def run_command(command, verbose=False):
     return proc
 
 import numpy as np
+
+
 def create_demographic_file(subjects_ids, save_file, harmo_code='noHarmo'):
     df = pd.DataFrame()
     if  isinstance(subjects_ids, str):

@@ -1,10 +1,11 @@
-from subprocess import Popen, PIPE
-import h5py
-import numpy as np
 import os
-import nibabel as nb
 from pathlib import Path
+from subprocess import PIPE, Popen
 from typing import Union
+
+import h5py
+import nibabel as nb
+import numpy as np
 
 
 def run_command(command: str, verbose: bool):

@@ -1,9 +1,11 @@
-import numpy as np
-import torch
-import potpourri3d as pp3d
-from meld_graph.models import HexUnpool, HexPool, HexSmoothSparse
-from meld_graph.meld_cohort import MeldCohort
 import time
+
+import numpy as np
+import potpourri3d as pp3d
+import torch
+
+from meld_graph.meld_cohort import MeldCohort
+from meld_graph.models import HexPool, HexSmoothSparse, HexUnpool
 
 
 class GraphTools:

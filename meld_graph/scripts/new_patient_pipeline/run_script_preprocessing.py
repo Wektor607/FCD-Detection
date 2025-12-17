@@ -7,30 +7,28 @@ Pipeline to prepare data from new patients :
 
 ## To run : python run_script_preprocessing.py -harmo_code <harmo_code> -ids <text_file_with_subject_ids> 
 
-import os
-import sys
+import argparse
 import glob
 import json
-import argparse
-import pandas as pd
-import numpy as np
-import tempfile
+import os
 import shutil
-from os.path import join as opj
-from meld_graph.meld_cohort import MeldCohort
-from meld_graph.data_preprocessing import Preprocess, Feature
-from meld_graph.tools_pipeline import get_m, create_demographic_file, create_dataset_file
-from meld_graph.paths import (
-                            BASE_PATH, 
-                            MELD_PARAMS_PATH, 
-                            MELD_DATA_PATH,
-                            DEMOGRAPHIC_FEATURES_FILE,
-                            CLIPPING_PARAMS_FILE,
-                            NORM_CONTROLS_PARAMS_FILE, 
-                            FS_SUBJECTS_PATH,
-                            )   
-
+import sys
+import tempfile
 import warnings
+from os.path import join as opj
+
+import numpy as np
+import pandas as pd
+
+from meld_graph.data_preprocessing import Feature, Preprocess
+from meld_graph.meld_cohort import MeldCohort
+from meld_graph.paths import (BASE_PATH, CLIPPING_PARAMS_FILE,
+                              DEMOGRAPHIC_FEATURES_FILE, FS_SUBJECTS_PATH,
+                              MELD_DATA_PATH, MELD_PARAMS_PATH,
+                              NORM_CONTROLS_PARAMS_FILE)
+from meld_graph.tools_pipeline import (create_dataset_file,
+                                       create_demographic_file, get_m)
+
 warnings.filterwarnings("ignore")
 
 def which_combat_file(harmo_code):

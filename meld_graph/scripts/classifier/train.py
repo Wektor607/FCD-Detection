@@ -1,14 +1,15 @@
-import sys
 import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+import argparse
+import logging
+
 # import meld_graph
 # import meld_graph.models
 from meld_graph.experiment import Experiment
 # import meld_graph.dataset
 from meld_graph.paths import load_config
-
-import logging
-import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

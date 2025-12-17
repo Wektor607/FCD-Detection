@@ -1,28 +1,26 @@
+import argparse
+import itertools
 import os
-import numpy as np
+
 import h5py
 import matplotlib.pyplot as plt
-from meld_classifier.meld_cohort import MeldCohort,MeldSubject
-import sklearn.metrics as metrics
-from meld_graph.evaluation import load_prediction, sens_spec_curves, roc_curves, plot_roc_multiple
+import numpy as np
 import pandas as pd
-import itertools
 import seaborn as sns
+import sklearn.metrics as metrics
+from meld_classifier.meld_cohort import MeldCohort, MeldSubject
 
-
-
-import os
-import argparse
 import meld_graph
-import meld_graph.models
-import meld_graph.experiment
-import meld_graph.dataset
 import meld_graph.data_preprocessing
+import meld_graph.dataset
 import meld_graph.evaluation
+import meld_graph.experiment
+import meld_graph.models
 from meld_graph.dataset import GraphDataset
-from meld_classifier.meld_cohort import MeldCohort
+from meld_graph.evaluation import (Evaluator, load_prediction,
+                                   plot_roc_multiple, roc_curves,
+                                   sens_spec_curves)
 
-from meld_graph.evaluation import Evaluator
 
 def calculate_roc(model_path, pred_fname,cohort,thresholds):
     # initialize roc dictionary

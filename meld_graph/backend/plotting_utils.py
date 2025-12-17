@@ -1,8 +1,9 @@
-from nilearn import plotting
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
-from pathlib import Path
+from nilearn import plotting
 
 
 def plot_and_save(img_nii, epi_dict, file_name: str, out_dir: Path, t1_file: str) -> None:

@@ -8,16 +8,17 @@
 # MISSING TESTS:
 #   Dataset - test asserting correct handling of boundary zones in Dataset
 
-from meld_graph.dataset import GraphDataset
-from meld_graph.download_data import get_test_data
-from meld_graph.meld_cohort import MeldSubject, MeldCohort
-import pytest
-from meld_graph.paths import NVERT, DEFAULT_HDF5_FILE_ROOT
-# from meld_graph.network_tools import build_model
-from meld_graph.test.utils import create_test_demos
-import numpy as np
 from copy import deepcopy
 
+import numpy as np
+import pytest
+
+from meld_graph.dataset import GraphDataset
+from meld_graph.download_data import get_test_data
+from meld_graph.meld_cohort import MeldCohort, MeldSubject
+from meld_graph.paths import DEFAULT_HDF5_FILE_ROOT, NVERT
+# from meld_graph.network_tools import build_model
+from meld_graph.test.utils import create_test_demos
 
 # @pytest.fixture(autouse=True)
 # def setup_teardown_tests():

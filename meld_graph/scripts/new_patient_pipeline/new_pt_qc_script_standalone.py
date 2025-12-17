@@ -4,13 +4,15 @@
 ## To run : python new_pt_qc_script.py -id <sub_id>
 
 
-import os
-import sys
 import argparse
-import subprocess as sub
-import bids.layout
-import json
 import glob
+import json
+import os
+import subprocess as sub
+import sys
+
+import bids.layout
+
 
 def return_meld_T1_FLAIR(meld_dir, subject_id):
     subject_data={}

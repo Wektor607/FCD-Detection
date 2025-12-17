@@ -1,15 +1,17 @@
-import os
 import csv
+import os
+from pathlib import Path
+from subprocess import PIPE, Popen
+
+import ants
 import h5py
 import nibabel as nib
 import numpy as np
 import pandas as pd
-import ants
-from subprocess import Popen, PIPE
+from atlasreader import create_output
 from nilearn import datasets
 from nilearn.datasets import fetch_icbm152_2009
-from atlasreader import create_output
-from pathlib import Path
+
 
 def has_lesion(h5, hemi):
     key = f"{hemi}/.on_lh.lesion.mgh"

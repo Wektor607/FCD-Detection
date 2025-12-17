@@ -1,7 +1,10 @@
 ## script to set up the config files for the 4 main MICCAI experiments:
 ## nnunet, +classification, +distance, +classification & distance.
 
-import random, string, datetime
+import datetime
+import random
+import string
+
 import numpy as np
 
 

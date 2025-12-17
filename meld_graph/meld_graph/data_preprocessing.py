@@ -1,29 +1,27 @@
 
-from meld_graph.paths import (
-    BASE_PATH,
-    NVERT,
-    DEMOGRAPHIC_FEATURES_FILE,
-    DK_ATLAS_FILE,
-    MELD_PARAMS_PATH,
-)
-import numpy as np
-import nibabel as nb
-import os
-import logging
-import json
-import csv
 import copy
-import h5py
-import pandas as pd
-import sys
+import csv
+import json
+import logging
+import os
 import pickle
 import random
+import sys
 from itertools import chain
-from meld_graph.meld_cohort import MeldSubject, MeldCohort
+
+import h5py
+import nibabel as nb
+import numpy as np
+import pandas as pd
 from neuroCombat import neuroCombat, neuroCombatFromTraining
+
 import meld_graph.distributedCombat as dc
-import meld_graph.mesh_tools as mt
 import meld_graph.meld_plotting as mpt
+import meld_graph.mesh_tools as mt
+from meld_graph.meld_cohort import MeldCohort, MeldSubject
+from meld_graph.paths import (BASE_PATH, DEMOGRAPHIC_FEATURES_FILE,
+                              DK_ATLAS_FILE, MELD_PARAMS_PATH, NVERT)
+
 
 class Preprocess:
     """
@@ -403,13 +401,14 @@ class Preprocess:
 
     def create_lesion_mask(self, radius, cartesian_coords, return_smoothed=True):
         """create irregular polygon lesion mask"""
-        import matplotlib.path as mpltPath
+        import copy
 
+        import matplotlib.path as mpltPath
         # from sklearn.metrics import pairwise_distances
         from scipy import interpolate, ndimage
-        import copy
-        from meld_graph.resampling_meshes import spinning_coords
+
         from meld_graph import mesh_tools as mt
+        from meld_graph.resampling_meshes import spinning_coords
 
         spun_coords = spinning_coords(cartesian_coords)
         spherical_coords = mt.spherical_np(spun_coords)[:, 1:]
@@ -552,6 +551,7 @@ class Preprocess:
         
     def make_boundary_zones(self, smoothing=0, boundary_feature_name=".on_lh.boundary_zone.mgh"):
         import potpourri3d as pp3d
+
         # preload geodesic distance solver
         solver = pp3d.MeshHeatMethodDistanceSolver(self.cohort.surf["coords"], self.cohort.surf["faces"])
 
