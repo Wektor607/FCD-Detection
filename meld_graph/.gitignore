@@ -12,3 +12,5 @@ dataset
 languidemedseg_meld/save_model/
 meld_graph/utils/something_old
 meld_graph/utils/text_generation/transform_text_modes_old.py
+meld_graph/uploads/
+*.hdf5
