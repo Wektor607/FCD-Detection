@@ -86,7 +86,7 @@ def downsample_mesh(surf):
 
 
 if __name__ == "__main__":
-    data_dir = "/home/s17gmikh/FCD-Detection/meld_graph/data/icospheres"
+    data_dir = "/data/icospheres"
     c = MeldCohort(hdf5_file_root="{site_code}_{group}_featurematrix_combat.hdf5", 
                    dataset=None,
                    data_dir=BASE_PATH)

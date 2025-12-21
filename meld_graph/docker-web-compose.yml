@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: fastapi-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment: 
+      - FS_LICENSE=/run/secrets/license.txt
+      - MELD_LICENSE=/run/secrets/meld_license.txt
+    secrets:
+      - license.txt
+      - meld_license.txt
+    user: $DOCKER_USER
+    networks:
+      - appnet
+
+
+  frontend:
+    build: ./frontend
+    container_name: react-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
+
+secrets:
+  license.txt:
+    file: ./license.txt
+  meld_license.txt:
+    file: ./meld_license.txt

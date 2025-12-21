@@ -80,7 +80,7 @@ class StatsRecorder:
 
 if __name__ == "__main__":
 
-    config = load_config("/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/example_experiment_config.py")
+    config = load_config("/meld_graph/scripts/config_files/example_experiment_config.py")
     cohort = MeldCohort(
         hdf5_file_root="{site_code}_featurematrix_combat.hdf5",
         dataset=None,
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         mean_stds_dict[feature]['mean'] = means_stds[0,fi]
         mean_stds_dict[feature]['std'] = means_stds[1,fi]
 
-    with open('/home/s17gmikh/FCD-Detection/meld_graph/data/feature_means_no_combat.json', 'w') as fp:
+    with open('/data/feature_means_no_combat.json', 'w') as fp:
         json.dump(mean_stds_dict, fp)
 
     print('HERE')

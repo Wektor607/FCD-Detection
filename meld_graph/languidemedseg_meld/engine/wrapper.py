@@ -15,8 +15,8 @@ import torch
 from meld_graph.icospheres import IcoSpheres
 from meld_graph.meld_cohort import MeldCohort
 
-from engine.loss_meld import calculate_loss, dice_coeff, tp_fp_fn_tn
-from engine.pooling import HexPool
+from .loss_meld import calculate_loss, dice_coeff, tp_fp_fn_tn
+from .pooling import HexPool
 from languidemedseg_meld.models.model import LanGuideMedSeg
 from utils.utils import convert_preds_to_nifti, summarize_ci
 
@@ -46,7 +46,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         self.save_hyperparameters(args)
         self.config: Any = load_config(
-            "/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
+            "/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
         )
         self.params: Dict[str, Any] = (
             next(iter(self.config.losses))

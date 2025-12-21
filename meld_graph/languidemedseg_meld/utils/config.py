@@ -180,7 +180,7 @@ def inference_config():
     #update experiment 
     exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, 
                             dataset=tmp.name, 
-                            data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats')
+                            data_dir='/data/input/data4sharing/meld_combats')
     exp.data_parameters["hdf5_file_root"] = hdf5_file_root
     exp.data_parameters["dataset"] = tmp.name
 
@@ -188,7 +188,7 @@ def inference_config():
     cohort = MeldCohort(
         hdf5_file_root=exp.data_parameters["hdf5_file_root"],
         dataset=exp.data_parameters["dataset"],
-        data_dir='/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/meld_combats'
+        data_dir='/data/input/data4sharing/meld_combats'
     )
 
     eva = Evaluator(

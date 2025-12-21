@@ -70,3 +70,4 @@ dependencies:
       # api
       - fastapi
       - uvicorn
+      - python-multipart

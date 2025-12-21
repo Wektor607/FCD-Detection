@@ -32,7 +32,8 @@ import scripts.env_setup
 from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
-from meld_graph.paths import (DEFAULT_HDF5_FILE_ROOT,
+from meld_graph.paths import (BASE_PATH,
+                              DEFAULT_HDF5_FILE_ROOT,
                               DEMOGRAPHIC_FEATURES_FILE, EXPERIMENT_PATH,
                               FS_SUBJECTS_PATH, MELD_DATA_PATH, MODEL_PATH)
 from meld_graph.tools_pipeline import (create_dataset_file,
@@ -66,7 +67,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     exp = Experiment.from_folder(experiment_path)
     
     #update experiment 
-    exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, dataset=tmp.name, data_dir='/data/input/data4sharing/meld_combats')
+    exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, dataset=tmp.name, data_dir=BASE_PATH)
     exp.data_parameters["hdf5_file_root"] = hdf5_file_root
     exp.data_parameters["dataset"] = tmp.name
     if aug_mode == 'test':
@@ -77,7 +78,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     cohort = MeldCohort(
                 hdf5_file_root=exp.data_parameters["hdf5_file_root"],
                 dataset=exp.data_parameters["dataset"],
-                data_dir='/data/input/data4sharing/meld_combats'
+                data_dir=BASE_PATH
             )
     
     subject_id = subject_ids[0]
@@ -244,21 +245,13 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
     # initialise variables
     model_name = MODEL_PATH
     experiment_path = os.path.join(EXPERIMENT_PATH, model_name)
-    subjects_dir = FS_SUBJECTS_PATH
+    # subjects_dir = FS_SUBJECTS_PATH
     classifier_output_dir = opj(MELD_DATA_PATH,'output','classifier_outputs', model_name)
-    data_dir = opj(MELD_DATA_PATH,'input')
-    predictions_output_dir = opj(MELD_DATA_PATH,'output','predictions_reports')
+    # data_dir = opj(MELD_DATA_PATH,'input')
+    # predictions_output_dir = opj(MELD_DATA_PATH,'output','predictions_reports')
     # prediction_file = opj(classifier_output_dir, 'results_best_model', 'predictions.hdf5')
     
     subject_ids_failed=[]
-
-    # Skip data augmentation for test samples to ensure deterministic evaluation
-    # (do not modify predictions with training-time transforms)
-    meld_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'MELD_splits.csv'))
-    bonn_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'BONN_splits_full_test.csv'))
-
-    meld_test_split = meld_list[meld_list['split'] == 'test']['subject_id'].tolist()
-    bonn_test_split = bonn_list[bonn_list['split'] == 'test']['subject_id'].tolist()
 
     #predict on new subjects
     results = {}
@@ -332,31 +325,14 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
 
                 # Missed by me <- move from here later
                 "MELD_H101_3T_FCD_00062",
-            ]: #or "_C_" in subject_id:
-            # or subject_id.startswith("MELD_H101_"):
+            ]:
                 continue
             
-            ########################################################################################################################
-            # Убрать для инференса, иначе объект не создается
-            # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
-            # --- пропуск, если это тест ---
-            # if subject_id in meld_test_split or subject_id in bonn_test_split:
-            if subject_id in bonn_test_split:
-                print(f"[SKIP TEST] {subject_id} принадлежит test split → пропуск.")
-                continue
 
             preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
             if os.path.isdir(preproc_root):
                 print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
                 continue
-            # -----------------------------------------------
-            ########################################################################################################################
-            if subject_id in meld_test_split or subject_id in bonn_test_split:
-                aug_mode = 'test'
-                print(f"[TEST SPLIT] {subject_id} in test split, aug_mode set to 'test'")
-            else:
-                aug_mode = 'train'
-                print(f"[TRAIN SPLIT] {subject_id} in train split, aug_mode set to 'train'")
 
             result = predict_subjects(subject_ids=np.array([subject_id]), 
                             output_dir=classifier_output_dir,  
@@ -368,19 +344,6 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
                             return_results=return_results)
             if result is not None:
                 results.update(result)   
-            
-            # if subject_id == "MELD_H10_3T_FCD_0014":
-            #     print(get_m(f'Create pdf report', subject_id, 'STEP 4'))
-            #     generate_prediction_report(
-            #         subject_ids = np.array([subject_id]),
-            #         data_dir = data_dir,
-            #         prediction_path=classifier_output_dir,
-            #         experiment_path=experiment_path, 
-            #         output_dir = predictions_output_dir,
-            #         harmo_code = harmo_code,
-            #         hdf5_file_root = DEFAULT_HDF5_FILE_ROOT
-            #     )
-            #     sys.exit(0)
     else:
         print(get_m(f'Skip predictions', subject_ids, 'STEP 1'))
     
@@ -547,7 +510,7 @@ if __name__ == '__main__':
         import pickle
 
         # базовая директория для всех результатов
-        base_dir = "/home/s17gmikh/FCD-Detection/backend/data_results"
+        base_dir = "/backend/data_results"
         os.makedirs(base_dir, exist_ok=True)
 
         # если results — список, берём первый словарь

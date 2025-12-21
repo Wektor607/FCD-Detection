@@ -203,6 +203,7 @@ class MeldCohort:
         
         group_for_path = "control" if "_C_" in site_code else group
         p = os.path.join(self.data_dir, hdf5_file_root.format(site_code=site_code, group=group_for_path))
+        
         # open existing file or create new one
         if os.path.isfile(p) and not write:
             f = h5py.File(p, "r")
@@ -210,6 +211,12 @@ class MeldCohort:
             f = h5py.File(p, "r+")
         elif not os.path.isfile(p) and write:
             f = h5py.File(p, "a")
+        elif not os.path.isfile(p):
+            alt = os.path.join(self.data_dir, f"{site_code}.hdf5")
+            if os.path.isfile(alt):
+                f = h5py.File(alt, "r")
+            else:
+                return None
         else:
             f = None
         try:
@@ -622,7 +629,7 @@ class MeldSubject:
         # read data from hdf5
         with self.cohort._site_hdf5(self.site_code, self.group, feature=feature, harmo_code=harmo_code) as f:
             hdf5_filename = f.filename if hasattr(f, 'filename') else ""
-            # surf_dir = f[os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)]
+            # surf_dir_path = os.path.join(self.site_code, f[self.site_code].visit(self.find_path), hemi)
             
             if "MELD" in hdf5_filename:
                 surf_dir_path = hemi
@@ -630,7 +637,7 @@ class MeldSubject:
                 surf_dir_path = os.path.join(self.site_code, self.scanner, "patient", self.site_code, hemi)
             else:
                 surf_dir_path = os.path.join("BONN", self.scanner, "patient", self.site_code, hemi)
-
+            
             try:
                 surf_dir = f[surf_dir_path]
             except KeyError:

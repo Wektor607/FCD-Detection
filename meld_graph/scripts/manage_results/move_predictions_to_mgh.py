@@ -7,7 +7,7 @@ import h5py
 import nibabel as nb
 import numpy as np
 
-from languidemedseg_meld.engine.converter_mgh_to_nifti import \
+from languidemedseg_meld.utils.converter_mgh_to_nifti import \
     get_combat_feature_path
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import MELD_DATA_PATH
@@ -73,7 +73,7 @@ def move_predictions_to_mgh(subject_id, subjects_dir, prediction_file, verbose=F
                 arr_full = arr.astype(np.float32)
                 data4d = arr_full[:, None, None]   # (163842,1,1)
 
-                affine = nb.load(Path("/home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing") / "fsaverage_sym" / "mri" / "T1.mgz").affine
+                affine = nb.load(Path("/data/input/data4sharing") / "fsaverage_sym" / "mri" / "T1.mgz").affine
                 demo = nb.MGHImage(
                     dataobj=data4d,
                     affine=affine     # или affine от fsaverage_sym T1.mgz

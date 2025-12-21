@@ -1,21 +1,26 @@
 services:
   meld_graph:
+    build: .
     image: meldproject/meld_graph:latest
     platform: "linux/amd64"
     volumes:
-      - ./docker-data:/data
+      - /home/german-rivman/FCD_BONN/FCD-Detection/meld_graph/data:/data
     environment: 
       - FS_LICENSE=/run/secrets/license.txt
+      - MELD_LICENSE=/run/secrets/meld_license.txt
     secrets:
       - license.txt
+      - meld_license.txt
     user: $DOCKER_USER
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
-              count: 0
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+    #           count: 0
 
 secrets:
   license.txt:
     file: ./license.txt
+  meld_license.txt:
+    file: ./meld_license.txt

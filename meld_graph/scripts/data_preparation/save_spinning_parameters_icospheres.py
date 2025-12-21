@@ -86,7 +86,7 @@ if __name__ == "__main__":
     # initialise params
     ico_index = 7
     num_rotation = 10
-    data_dir = "/home/s17gmikh/FCD-Detection/meld_graph/data/spinning"
+    data_dir = "/data/spinning"
     os.makedirs(data_dir, exist_ok=True)
     file_name = "spinning_ico7_{}.npy"
 

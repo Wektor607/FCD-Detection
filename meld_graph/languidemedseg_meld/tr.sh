@@ -39,6 +39,8 @@ WANDB_MODE=disabled python3 languidemedseg_meld/train_Kfold.py \
   --ckpt_path ./languidemedseg_meld/save_model/exp1_3_gnn_aug \
   --job_name exp3_mixed_3_gnn_aug
 
+WANDB_MODE=disabled python3 languidemedseg_meld/train_Kfold.py   --config languidemedseg_meld/config/training.yaml   --ckpt_path ./save_model/exp1_3_gnn_aug   --job_name exp3_mixed_3_gnn_aug
+
 # --ckpt_path ./save_model/exp1_no_gnn_full_aug --job_name exp3_dominant_nognn_nocontrols_noaug_freeze
 
 # --ckpt_path ./save_model/exp1_no_gnn_full_aug --job_name exp3_no_gnn_hemi_lobe

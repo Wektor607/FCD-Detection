@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # initialise params
     ico_index = 7
     flip_axes = 3
-    data_dir = "/home/s17gmikh/FCD-Detection/meld_graph/data/flipping"
+    data_dir = "/data/flipping"
     os.makedirs(data_dir, exist_ok=True)
     file_name = "flipping_ico7_{}.npy"
 

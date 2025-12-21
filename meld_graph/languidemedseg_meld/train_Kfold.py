@@ -117,7 +117,7 @@ def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fol
                 max_length=args.max_len, 
                 text_emb=True,
 #!!!!!!!!!!!!!!!!!!!!!!! Make like a parameter!
-                text_prob_json="/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/mixed/train_prob.json")
+                text_prob_json="/data/preprocessed/mixed/train_prob.json")
     ds_valid = EpilepDataset(csv_path=args.csv_path, 
                 tokenizer=tokenizer, 
                 feature_path=args.feature_path, 
@@ -125,7 +125,7 @@ def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fol
                 cohort=cohort, 
                 max_length=args.max_len, 
                 text_emb=True,
-                text_prob_json="/home/s17gmikh/FCD-Detection/meld_graph/data/preprocessed/mixed/train_prob.json")
+                text_prob_json="/data/preprocessed/mixed/train_prob.json")
     hc_set = set([sid for sid in train_fold_ids if sid.split("_")[3].startswith("C")])
     labels = [0 if sid in hc_set else 1 for sid in ds_train.subject_ids]
     sampler = LesionOversampleSampler(labels, seed=fold_seed)

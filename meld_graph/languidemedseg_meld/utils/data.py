@@ -65,7 +65,7 @@ class EpilepDataset(Dataset):
         self.data = self.data.set_index("sub").loc[subject_ids]
 
         self.config = load_config(
-            "/home/s17gmikh/FCD-Detection/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
+            "/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
         )
         params = (
             next(iter(self.config.losses))

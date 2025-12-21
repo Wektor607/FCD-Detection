@@ -95,8 +95,7 @@ if __name__ == "__main__":
     # initialise params
     ico_index = 7
     num_warps = 10
-    # data_dir = "../data/warping"
-    data_dir = "/home/s17gmikh/FCD-Detection/meld_graph/data/warping"
+    data_dir = "../data/warping"
     os.makedirs(data_dir, exist_ok=True)
     file_name = "warping_ico7_{}.npy"
 

@@ -38,7 +38,10 @@ app.mount("/results", StaticFiles(directory=RESULT_DIR), name="results")
 
 
 @app.post("/predict")
-async def predict(file: UploadFile, description: str = Form(...), model_type: str = Form(None)):
+async def predict(file: UploadFile, 
+                  description: str = Form(""), 
+                  model_type: str = Form("")):
+    
     file_name = parse_id(file.filename)
     input_path = UPLOAD_DIR / f"{file_name}.hdf5"
     out_dir = RESULT_DIR / file_name
@@ -49,8 +52,9 @@ async def predict(file: UploadFile, description: str = Form(...), model_type: st
         shutil.copyfileobj(file.file, buffer)
 
     cmd = [
-        "./meld_graph/meldgraph.sh",
-        "run_script_prediction_meld.py",
+        "bash",
+        "/app/meldgraph.sh",
+        "run_script_prediction_inference.py",
         "--id", str(file_name),
         "--demographic_file", str(DEFAULT_DEMOGRAPHIC_FILE),
         "--aug_mode", "test",

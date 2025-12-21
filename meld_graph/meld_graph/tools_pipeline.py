@@ -1,4 +1,3 @@
-# Run command: PYTHONPATH=/home/s17gmikh/FCD-Detection python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
 import glob
 import json
 import logging as log
