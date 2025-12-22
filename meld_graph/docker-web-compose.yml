@@ -15,6 +15,12 @@ services:
       - license.txt
       - meld_license.txt
     user: $DOCKER_USER
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              count: 0
     networks:
       - appnet
 

@@ -1,4 +1,5 @@
 import os
+
 from pathlib import Path
 from subprocess import PIPE, Popen
 from typing import Union
@@ -7,6 +8,7 @@ import h5py
 import nibabel as nb
 import numpy as np
 
+from languidemedseg_meld.utils.config import SUBJECTS_DIR
 
 def run_command(command: str, verbose: bool):
     proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE, encoding="utf-8")
@@ -46,12 +48,12 @@ def save_gt_as_mgh(h5_path: str, hemi: str, out_dir: str, subjects_fs_dir: str):
     data = arr1d[:, np.newaxis, np.newaxis].astype(np.float32)
 
     # # make MGHImage with the same affinity as T1.mgz
-    # t1_mgz = subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
-    # affine = nb.load(t1_mgz).affine
+    t1_mgz = SUBJECTS_DIR / "fsaverage_sym" / "mri" / "T1.mgz"
+    affine = nb.load(t1_mgz).affine
 
     # make MGHImage with the same affinity as FLAIR
-    flair_path = subjects_fs_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
-    affine = nb.load(flair_path).affine
+    # flair_path = subjects_fs_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
+    # affine = nb.load(flair_path).affine
 
     img = nb.MGHImage(data, affine)
 
@@ -71,14 +73,14 @@ def convert_gt_to_nii(
     mgz_path = mgh_path.with_suffix(".mgz") #.replace(".mgh", ".mgz")
     nii_path = Path(base) / f"{hemi}.gt.nii.gz"
 
-    fsavg = subjects_dir / "fsaverage_sym" / "mri"
-    # T1 = fsavg / "T1.mgz"
-    T1 = subjects_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
+    fsavg = SUBJECTS_DIR / "fsaverage_sym" / "mri"
+    T1 = fsavg / "T1.mgz"
+    # T1 = subjects_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
     orig = fsavg / "orig.mgz"
 
     # 1) surface → volume
     cmd1 = (
-        f"SUBJECTS_DIR={subjects_dir} "
+        f"SUBJECTS_DIR={SUBJECTS_DIR} "
         f"mri_surf2vol --identity fsaverage_sym "
         f"--template {T1} --o {mgz_path} "
         f"--hemi {hemi} --surfval {mgh_path} --fillribbon"
@@ -88,14 +90,14 @@ def convert_gt_to_nii(
     # 2) optional reprojection via orig
     if os.path.isfile(orig):
         cmd2 = (
-            f"SUBJECTS_DIR={subjects_dir} "
+            f"SUBJECTS_DIR={SUBJECTS_DIR} "
             f"mri_vol2vol --mov {mgz_path} --targ {orig} "
             f"--regheader --o {mgz_path} --nearest"
         )
         run_command(cmd2, verbose)
 
     # 3) MGZ → NIfTI
-    cmd3 = f"SUBJECTS_DIR={subjects_dir} mri_convert {mgz_path} {nii_path} -rt nearest"
+    cmd3 = f"SUBJECTS_DIR={SUBJECTS_DIR} mri_convert {mgz_path} {nii_path} -rt nearest"
     run_command(cmd3, verbose)
     print(f"✅ Save GT NIfTI: {nii_path}")
     return nii_path
@@ -116,11 +118,11 @@ def convert_prediction_mgh_to_nii(
     """
     # 1) Surface→Volume
     vol_mgz = out_mgh.with_suffix(".mgz") #.replace(".mgh", ".mgz")
-    mri_path = subjects_dir / "fsaverage_sym" / "mri"
-    # T1_path = mri_path / "T1.mgz"
-    T1_path = subjects_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
+    mri_path = SUBJECTS_DIR / "fsaverage_sym" / "mri"
+    T1_path = mri_path / "T1.mgz"
+    # T1_path = subjects_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
     cmd1 = (
-        f"SUBJECTS_DIR={subjects_dir} "
+        f"SUBJECTS_DIR={SUBJECTS_DIR} "
         f"mri_surf2vol --identity fsaverage_sym "
         f"--template {T1_path} "
         f"--o {vol_mgz} "
@@ -134,7 +136,7 @@ def convert_prediction_mgh_to_nii(
     orig_path = mri_path / "orig.mgz"
     if os.path.isfile(orig_path):
         cmd2 = (
-            f"SUBJECTS_DIR={subjects_dir} "
+            f"SUBJECTS_DIR={SUBJECTS_DIR} "
             f"mri_vol2vol --mov {vol_mgz} "
             f"--targ {orig_path} "
             f"--regheader "
@@ -145,7 +147,7 @@ def convert_prediction_mgh_to_nii(
 
     # 3) MGZ→NIfTI
     vol_nii = predictions_dir / os.path.basename(out_mgh).replace(".mgh", ".nii.gz")
-    cmd3 = f"SUBJECTS_DIR={subjects_dir} mri_convert {vol_mgz} {vol_nii} -rt nearest"
+    cmd3 = f"SUBJECTS_DIR={SUBJECTS_DIR} mri_convert {vol_mgz} {vol_nii} -rt nearest"
     run_command(cmd3, verbose)
 
     if not os.path.isfile(vol_nii):
@@ -168,6 +170,7 @@ def get_combat_feature_path(combat_hdf5_path: Union[str, Path], sid: str) -> Pat
     candidates = [
         base / f"{sid}_patient_featurematrix_combat.hdf5",
         base / f"{sid}_control_featurematrix_combat.hdf5",
+        base / f"{sid}.hdf5"
     ]
     for path in candidates:
         if path.exists():

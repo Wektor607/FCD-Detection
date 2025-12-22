@@ -21,7 +21,6 @@ from meld_graph.models import PredictionForSaliency
 from meld_graph.paths import MELD_DATA_PATH
 from meld_graph.training import dice_coeff, tp_fp_fn_tn
 
-MELD_PARAMS_PATH = "/data/input/data4sharing"
 # for saliency - do not force people to have this
 try:
     import captum

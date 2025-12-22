@@ -56,10 +56,13 @@ async def predict(file: UploadFile,
         "/app/meldgraph.sh",
         "run_script_prediction_inference.py",
         "--id", str(file_name),
-        "--demographic_file", str(DEFAULT_DEMOGRAPHIC_FILE),
         "--aug_mode", "test",
         "--return_result", "True",
     ]
+
+    if Path(DEFAULT_DEMOGRAPHIC_FILE).exists():
+        cmd.extend(["--demographic_file", str(DEFAULT_DEMOGRAPHIC_FILE)])
+
     result = subprocess.run(cmd, text=True, capture_output=True)
     if result.returncode != 0:
         raise RuntimeError(f"Script failed: {result.stderr}")
@@ -69,7 +72,12 @@ async def predict(file: UploadFile,
         data_dict = pickle.load(f)
 
     img_nii, epi_dict = inference(data_dict, description, model_type)
-    if isinstance(img_nii, list):
+
+    if isinstance(img_nii, dict):
+        if file_name not in img_nii:
+            raise KeyError(f"No prediction for subject {file_name}")
+        img_nii = img_nii[file_name]
+    elif isinstance(img_nii, list):
         img_nii = img_nii[0]
 
     plot_and_save(img_nii, epi_dict, file_name, out_dir, T1_FILE)

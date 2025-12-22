@@ -49,11 +49,10 @@ def get_cfg(argv=[]):
         description="Language-guide Medical Image Segmentation"
     )
     parser.add_argument(
-        "--config", default="./meld_graph/languidemedseg_meld/config/training.yaml", type=str, help="config file"
+        "--config", default="/app/languidemedseg_meld/config/training.yaml", type=str, help="config file"
     )
 
     cli = parser.parse_args(argv)
-
     cfg = config.load_cfg_from_cfg_file(cli.config)
     return cfg
 
@@ -191,12 +190,12 @@ def postprocess_and_save(all_subject_ids, all_probs, eva, cohort: MeldCohort, mo
             model_type, [sid], [[lh_probs, rh_probs]], cohort, 'inference'
         )
 
-    return str(final_nii), {"clusters": clusters_summary,
+    return final_nii[sid], {"clusters": clusters_summary,
                             "report": result_text,
                             "epilepsy": epilepsy_flag}
 
 
-def process_meld_mode(dl_inference: DataLoader, subject_data: dict, cohort: MeldCohort, model_type: str):
+def process_meld_model(dl_inference: DataLoader, subject_data: dict, cohort: MeldCohort, model_type: str):
     """
     Process subjects when model_type == 'MELD'.
 
@@ -241,7 +240,7 @@ def process_meld_mode(dl_inference: DataLoader, subject_data: dict, cohort: Meld
             )
 
     epi_dict = {"clusters": clusters_summary, "report": result_text, "epilepsy": epilepsy_flag}
-    return str(final_nii), epi_dict
+    return final_nii[sid], epi_dict
 
 
 def inference(subject_data, description, model_type):
@@ -260,11 +259,11 @@ def inference(subject_data, description, model_type):
     tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True) if text_emb else None
 
     # create dataset and dataloader
-    dl_inference = create_inference_loader(subject_data, description, tokenizer, cohort, batch_size=1)
+    dl_inference = create_inference_loader(subject_data, description, tokenizer, cohort)
 
     # MELD has a simpler postprocessing flow
     if model_type == "MELD":
-        return process_meld_mode(dl_inference, subject_data, cohort, model_type)
+        return process_meld_model(dl_inference, subject_data, cohort, model_type)
 
     # ensemble inference for other model types
     device = get_device()

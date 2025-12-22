@@ -19,6 +19,11 @@ from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import EXPERIMENT_PATH, MODEL_PATH
 
+from pathlib import Path
+
+DATA_DIR = Path(REPO_ROOT) / "data" / "input" / "meld_combats"
+FREESURFER_HOME = Path(os.environ.get("FREESURFER_HOME", "/opt/freesurfer-7.2.0"))
+SUBJECTS_DIR = Path(os.environ.get("SUBJECTS_DIR", FREESURFER_HOME / "subjects"))
 
 class CfgNode(dict):
     """
@@ -180,7 +185,7 @@ def inference_config():
     #update experiment 
     exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, 
                             dataset=tmp.name, 
-                            data_dir='/data/input/data4sharing/meld_combats')
+                            data_dir=DATA_DIR)
     exp.data_parameters["hdf5_file_root"] = hdf5_file_root
     exp.data_parameters["dataset"] = tmp.name
 
@@ -188,7 +193,7 @@ def inference_config():
     cohort = MeldCohort(
         hdf5_file_root=exp.data_parameters["hdf5_file_root"],
         dataset=exp.data_parameters["dataset"],
-        data_dir='/data/input/data4sharing/meld_combats'
+        data_dir=DATA_DIR
     )
 
     eva = Evaluator(

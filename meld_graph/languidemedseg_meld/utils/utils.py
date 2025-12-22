@@ -25,6 +25,7 @@ from scripts.manage_results.plot_prediction_report import create_surface_plots
 
 from utils.converter_mgh_to_nifti import (convert_prediction_mgh_to_nii,
                                           get_combat_feature_path, save_mgh)
+from utils.config import SUBJECTS_DIR
 
 SEED = 42
 
@@ -75,11 +76,11 @@ def summarize_ci(scores, B=10_000, alpha=0.05, seed=42):
     return float(np.median(x)), float(lo), float(hi)
 
 def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
-    subjects_fs_dir = Path(MELD_DATA_PATH) / "input" / "data4sharing"
+    subjects_fs_dir = Path(MELD_DATA_PATH) / "input" # / "data4sharing" <- later return back for training or change the folder name, which contains data
     predictions_output_root = Path(MELD_DATA_PATH) / "output" / "predictions_reports" / ckpt_path
     os.makedirs(predictions_output_root, exist_ok=True)
 
-    results = {}   # <---- копим результаты по пациентам
+    results = {}
 
     for (sid, pred) in zip(subject_ids, probs_bin):
 
@@ -120,7 +121,8 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
 
             # MGH template
             affine = nib.load(
-                subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
+                # subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
+                SUBJECTS_DIR / "fsaverage_sym" / "mri" / "T1.mgz"
             ).affine
 
             mgh_img = nib.MGHImage(base_arr[np.newaxis, :, np.newaxis], affine)

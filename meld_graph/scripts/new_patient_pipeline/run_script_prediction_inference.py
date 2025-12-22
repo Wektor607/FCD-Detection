@@ -462,7 +462,7 @@ if __name__ == '__main__':
     print(args) 
     
     ### Create demographic file for prediction if not provided
-    demographic_file_tmp = os.path.join(MELD_DATA_PATH, f"input/data4sharing/demographics_file_tmp.csv") #DEMOGRAPHIC_FEATURES_FILE
+    demographic_file_tmp = os.path.join(MELD_DATA_PATH, f"input/demographics_file_tmp.csv") #DEMOGRAPHIC_FEATURES_FILE
     if args.demographic_file is None:
         harmo_code = str(args.harmo_code)
         subject_id=None

@@ -81,7 +81,7 @@ def get_anat_files(subject_id):
     ''' 
     return path of T1 and FLAIR if BIDs format or MELD format
     '''
-    input_dir = os.path.join(MELD_DATA_PATH, "input", "data4sharing")#"ds004199")
+    input_dir = os.path.join(MELD_DATA_PATH, "input")
     subject_data_meld = return_meld_T1_FLAIR(input_dir, subject_id)
     if subject_data_meld is None:
         return None

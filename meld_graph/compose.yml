@@ -4,7 +4,7 @@ services:
     image: meldproject/meld_graph:latest
     platform: "linux/amd64"
     volumes:
-      - /home/german-rivman/FCD_BONN/FCD-Detection/meld_graph/data:/data
+      - /home/mikhelson/FCD-Detection/meld_graph/data:/data # Change on your local path
     environment: 
       - FS_LICENSE=/run/secrets/license.txt
       - MELD_LICENSE=/run/secrets/meld_license.txt
@@ -12,12 +12,12 @@ services:
       - license.txt
       - meld_license.txt
     user: $DOCKER_USER
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: [gpu]
-    #           count: 0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              count: 0
 
 secrets:
   license.txt:

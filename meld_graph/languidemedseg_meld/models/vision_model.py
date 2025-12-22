@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from meld_graph.icospheres import IcoSpheres
+from utils.config import DATA_DIR
 from torch_geometric.data import Batch, Data
 from torch_geometric.nn import GraphNorm, SAGEConv
 
@@ -93,13 +94,13 @@ class VisionModel(nn.Module):
         """
 
         # Step B: locate any subject folder under feature_path/input
-        input_root = self.feature_path / "input" / "data4sharing" / "meld_combats"
-        if not input_root.is_dir():
-            raise FileNotFoundError(f"Feature input directory not found: {input_root}")
+        # input_root = self.feature_path / "input" / "data4sharing" / "meld_combats"
+        if not DATA_DIR.is_dir():
+            raise FileNotFoundError(f"Feature input directory not found: {DATA_DIR}")
 
         subject_dirs = []
         patient_subjects = []
-        for d in input_root.iterdir():
+        for d in DATA_DIR.iterdir():
             file_name = d.name
             if file_name.startswith("MELD_"):
                 if "_control" in file_name:
@@ -110,9 +111,9 @@ class VisionModel(nn.Module):
                     patient_subjects.append(subj)
 
         if not subject_dirs:
-            raise FileNotFoundError(f"No subject directories under {input_root}")
+            raise FileNotFoundError(f"No subject directories under {DATA_DIR}")
         if not patient_subjects:
-            raise FileNotFoundError(f"No patient subject directories under {input_root}")
+            raise FileNotFoundError(f"No patient subject directories under {DATA_DIR}")
 
         # Use the first _patient subject as example
         example_subj = patient_subjects[0]

@@ -62,9 +62,9 @@ def move_predictions_to_mgh(subject_id, subjects_dir, prediction_file, verbose=F
             if os.path.exists(demo_path):
                 demo = nb.load(demo_path)
             else:
-                # если surf_meld нет — берём шаблон из combat HDF5
                 combat_file = get_combat_feature_path(
-                    Path(MELD_DATA_PATH) / "input" / "data4sharing" / "meld_combats",
+                    # Path(MELD_DATA_PATH) / "input" / "data4sharing" / "meld_combats",
+                    Path(MELD_DATA_PATH) / "input" / "meld_combats",
                     subject_id
                 )
                 with h5py.File(combat_file, "r") as f:
@@ -73,7 +73,8 @@ def move_predictions_to_mgh(subject_id, subjects_dir, prediction_file, verbose=F
                 arr_full = arr.astype(np.float32)
                 data4d = arr_full[:, None, None]   # (163842,1,1)
 
-                affine = nb.load(Path("/data/input/data4sharing") / "fsaverage_sym" / "mri" / "T1.mgz").affine
+                # affine = nb.load(Path("/data/input/data4sharing") / "fsaverage_sym" / "mri" / "T1.mgz").affine
+                affine = nb.load(Path("/data/input") / "fsaverage_sym" / "mri" / "T1.mgz").affine
                 demo = nb.MGHImage(
                     dataobj=data4d,
                     affine=affine     # или affine от fsaverage_sym T1.mgz
