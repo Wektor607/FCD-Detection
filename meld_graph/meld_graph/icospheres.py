@@ -1,11 +1,14 @@
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
 import logging
 import os
 from math import pi
-from pathlib import Path
 
 import nibabel as nb
 import numpy as np

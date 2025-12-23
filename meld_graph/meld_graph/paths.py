@@ -41,7 +41,12 @@ try:
 except (NoOptionError, NoSectionError) as e:
     print(f"No meld_params_path defined in {config_fname}!")
     MELD_PARAMS_PATH = ""
-
+try:
+    FEATURE_PATH = config.get('develop', 'feature_path')
+    print(f'Setting FEATURE_PATH to {FEATURE_PATH}')
+except (NoOptionError, NoSectionError) as e:
+    print(f"No base_path defined in {config_fname}!")
+    FEATURE_PATH = ""
 
 # files with and without harmonisation
 CLIPPING_PARAMS_FILE='clip_params_MELD.json'

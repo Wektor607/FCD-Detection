@@ -11,6 +11,7 @@
 
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 
@@ -37,17 +38,19 @@ from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import (BASE_PATH,
                               DEFAULT_HDF5_FILE_ROOT,
                               DEMOGRAPHIC_FEATURES_FILE, EXPERIMENT_PATH,
-                              FS_SUBJECTS_PATH, MELD_DATA_PATH, MODEL_PATH)
+                              FS_SUBJECTS_PATH, MELD_DATA_PATH, MODEL_PATH,
+                              FEATURE_PATH)
 from meld_graph.tools_pipeline import (create_dataset_file,
                                        create_demographic_file, get_m)
-from scripts.manage_results.move_predictions_to_mgh import \
-    move_predictions_to_mgh
-from scripts.manage_results.plot_prediction_report import \
-    generate_prediction_report
-from scripts.manage_results.register_back_to_xhemi import \
-    register_subject_to_xhemi
+# from scripts.manage_results.move_predictions_to_mgh import \
+#     move_predictions_to_mgh
+# from scripts.manage_results.plot_prediction_report import \
+#     generate_prediction_report
+# from scripts.manage_results.register_back_to_xhemi import \
+#     register_subject_to_xhemi
 
 warnings.filterwarnings("ignore")
+os.makedirs(FEATURE_PATH, exist_ok=True)
 
 def save_surface_mgh(arr_1d, out_path: str):
     arr = np.asarray(arr_1d).ravel().astype(np.float32, copy=False)
@@ -56,7 +59,7 @@ def save_surface_mgh(arr_1d, out_path: str):
     nb.save(img, out_path)               # .mgh или .mgz — без разницы
 
 def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=False,
-    experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT, aug_mode='test', return_results=False):       
+    experiment_path=EXPERIMENT_PATH, hdf5_file_root= DEFAULT_HDF5_FILE_ROOT, aug_mode='test'):       
     ''' function to predict on new subject using trained MELD classifier'''
 
     hdf5_file_root = "{site_code}_{group}_featurematrix_combat.hdf5"
@@ -109,119 +112,60 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
         roc_curves_thresholds=None,
         )
 
-    # eva.load_predict_data(save_prediction=False)
-
-    # # вручную сохраняем predictions для каждого пациента
-    # for subject_id in subject_ids:
-    #     pred = eva.data_dictionary[subject_id]["result"]
-    #     eva.save_prediction_for_subject(subject_id, pred, dataset_str="prediction_clustered")
-
+    #threshold predictions
+    eva.threshold_and_cluster()
 
     results_dict = {}
     for subject_id in subject_ids:  
         features        = eva.data_dictionary[subject_id]["feature_maps"]
-        result          = eva.data_dictionary[subject_id]["result"]
-        labels          = eva.data_dictionary[subject_id]["full_labels"]
-        input_labels    = eva.data_dictionary[subject_id]["input_labels"] # labels after cortex mask
-        dist_map_gt     = eva.data_dictionary[subject_id]["geodesic_distance"]
-        # xyzr_gt         = eva.data_dictionary[subject_id]["xyzr"]
-        
-        if return_results:
-            # складываем всё в словарь Python
-            results_dict[subject_id] = {
-                "features": {k: v.detach().cpu().numpy() for k, v in features.items()},
-                "result": result if isinstance(result, np.ndarray) else {
-                    k: v.detach().cpu().numpy() for k, v in result.items()
-                },
-                # "labels": np.asarray(labels),
-                # "input_labels": np.asarray(input_labels),
-                # "dist_map_gt": np.asarray(dist_map_gt),
-            }
-        else:
-            labels_np = np.asarray(labels).reshape(-1)  # (2*N,)
+        result          = eva.data_dictionary[subject_id]["cluster_thresholded"]
 
-            assert labels_np.size % 2 == 0, f"Unexpected labels length: {labels_np.size}"
-            n_hemi = labels_np.size // 2
+        # складываем всё в словарь Python
+        results_dict[subject_id] = {
+            "features": {k: v.detach().cpu().numpy() for k, v in features.items()},
+            "result": result if isinstance(result, np.ndarray) else {
+                k: v.detach().cpu().numpy() for k, v in result.items()
+            },
+        }
 
+        save_dir = Path(FEATURE_PATH) /subject_id / "features"
+        print(save_dir)
+        os.makedirs(save_dir, exist_ok=True)
 
-            lh = labels_np[:n_hemi].astype(np.float32)
-            rh = labels_np[n_hemi:].astype(np.float32)
-            
-            # estimates    = eva.data_dictionary[subject_id]["estimates"]
-            # используем тот output_dir, который пришёл в функцию
-            save_dir = f"./data/preprocessed/meld_files/{subject_id}/features"
-            print(save_dir)
-            os.makedirs(save_dir, exist_ok=True)
+        feat_path = os.path.join(save_dir, "feature_maps.npz")
+        np.savez_compressed(
+            feat_path,
+            **{stage: tensor.detach().cpu().numpy() for stage, tensor in features.items()}
+        )
+        print(f"Saved features to {feat_path}")
 
-            feat_path = os.path.join(save_dir, "feature_maps.npz")
+        res_path = os.path.join(save_dir, "result.npz")
+        if isinstance(result, np.ndarray):
+            np.savez_compressed(res_path, result=result)        
+        elif isinstance(result, dict):
             np.savez_compressed(
-                feat_path,
-                **{stage: tensor.detach().cpu().numpy() for stage, tensor in features.items()}
+                res_path,
+                **{f"pred_{hemi}": arr.detach().cpu().numpy()
+                for hemi, arr in result.items()}
             )
-            print(f"Saved features to {feat_path}")
+        else:
+            raise TypeError(f"Unexpected type result: {type(result)}")
 
-            dist_maps_path = os.path.join(save_dir, "distance_maps_gt.npz")
-            np.savez(dist_maps_path, dist_map_gt)
-            print(f"Saved distance maps GT to {dist_maps_path}")
+        print(f"Saved prediction result to {res_path}")
 
-            # xyzr_path = os.path.join(save_dir, "xyzr_gt.npz")
-            # np.savez(xyzr_path, xyzr_gt)
-            # print(f"Saved xyzr GT to {xyzr_path}")
-
-            # сохраняем labels в .mgh или .mgz (можно .mgz — будет меньше весить)
-            lab_dir  = os.path.join(f"./data/preprocessed/meld_files/{subject_id}", "labels")
-            lh_path = os.path.join(lab_dir, "labels-lh.mgh")  # или "labels-lh.mgz"
-            rh_path = os.path.join(lab_dir, "labels-rh.mgh")  # или "labels-rh.mgz"
-            os.makedirs(lab_dir, exist_ok=True)
-            save_surface_mgh(lh, lh_path)
-            save_surface_mgh(rh, rh_path)
-            print(f"Saved labels to {lh_path} and {rh_path}")
-
-            input_labels_path = os.path.join(lab_dir, "labels_gt.npz")
-            np.savez(input_labels_path, input_labels)
-            print(f"Saved distance maps GT to {input_labels_path}")
-            meta = {
-                "n_vertices": int(n_hemi),
-                "lh_sum": float(lh.sum()),
-                "rh_sum": float(rh.sum()),
-                "lh_has_lesion": bool(lh.sum() > 0),
-                "rh_has_lesion": bool(rh.sum() > 0),
-            }
-            
-            np.savez(os.path.join(lab_dir, "labels-meta.npz"), **meta)
-            # estimates_path = os.path.join(save_dir, "estimates.npz")
-            # np.savez_compressed(estimates_path, 
-            #                     estimates)
-
-            res_path = os.path.join(save_dir, "result.npz")
-            if isinstance(result, np.ndarray):
-                np.savez_compressed(res_path, result=result)        
-            elif isinstance(result, dict):
-                np.savez_compressed(
-                    res_path,
-                    **{f"pred_{hemi}": arr.detach().cpu().numpy()
-                    for hemi, arr in result.items()}
-                )
-            else:
-                raise TypeError(f"Unexpected type result: {type(result)}")
-
-            print(f"Saved prediction result to {res_path}")
-
-    if return_results:
-        return results_dict
-    #threshold predictions
-    eva.threshold_and_cluster()
+    return results_dict
+    
     #write results in csv
-    eva.stat_subjects()
-    #plot images 
+    # eva.stat_subjects()
+    # plot images 
     # if plot_images: 
     #     eva.plot_subjects_prediction()
-    #compute saliency:
+    # compute saliency:
     # if saliency:
     #     eva.calculate_saliency()
     # return None
 
-def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test', return_results=False):
+def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test'):
     harmo_code = str(harmo_code)
     subject_id=None
     subject_ids=None
@@ -232,8 +176,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
             subject_ids=np.array(sub_list_df.ID.values)
         except:
             subject_ids=np.array(np.loadtxt(list_ids, dtype='str', ndmin=1)) 
-        # else:
-        #     sys.exit(get_m(f'Could not open {subject_ids}', None, 'ERROR'))       
+    
     elif sub_id != None:
         subject_id=sub_id
         subject_ids=np.array([sub_id])
@@ -242,8 +185,6 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
         print(get_m(f'Please specify both subject(s) and harmonisation code ...', None, 'ERROR'))
         sys.exit(-1) 
     
-    # ВРЕМЕННО    
-    # subject_ids = np.array([s for s in subject_ids if any(h in s for h in ["H26_", "H27_", "H28_", "H101_"])])
     # initialise variables
     model_name = MODEL_PATH
     experiment_path = os.path.join(EXPERIMENT_PATH, model_name)
@@ -329,12 +270,6 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
                 "MELD_H101_3T_FCD_00062",
             ]:
                 continue
-            
-
-            preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
-            if os.path.isdir(preproc_root):
-                print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
-                continue
 
             result = predict_subjects(subject_ids=np.array([subject_id]), 
                             output_dir=classifier_output_dir,  
@@ -342,8 +277,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
                             saliency=True,
                             experiment_path=experiment_path, 
                             hdf5_file_root= DEFAULT_HDF5_FILE_ROOT,
-                            aug_mode=aug_mode,
-                            return_results=return_results)
+                            aug_mode=aug_mode)
             if result is not None:
                 results.update(result)   
     else:
@@ -403,9 +337,7 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
         print(get_m(f'One step of the pipeline has failed and process has been aborted for subjects {subject_ids_failed}', None, 'ERROR'))
         return False
     
-    if return_results:
-        return results
-    return None
+    return results
 
 if __name__ == '__main__':
     scripts.env_setup.setup()
@@ -505,32 +437,4 @@ if __name__ == '__main__':
                         skip_prediction=args.skip_prediction,
                         verbose = args.debug_mode,
                         aug_mode=args.aug_mode,
-                        return_results=args.return_results
                         )
-    
-    if args.return_results and results is not None:
-        import pickle
-
-        # базовая директория для всех результатов
-        # base_dir = "/backend/data_results"
-        base_dir = os.path.join(OUTPUT_DIR, "prediction_results")
-        os.makedirs(base_dir, exist_ok=True)
-
-        # если results — список, берём первый словарь
-        if isinstance(results, list):
-            results = results[0]
-
-        # берём subject_id (он у тебя ключ в словаре)
-        subject_id = next(iter(results))
-        
-        # создаём папку для конкретного пациента
-        subject_dir = os.path.join(base_dir, subject_id)
-        os.makedirs(subject_dir, exist_ok=True)
-
-        out_path = os.path.join(subject_dir, "results.pkl")
-        with open(out_path, "wb") as f:
-            pickle.dump(results, f)
-
-
-        # выводим в stdout только путь
-        print(out_path)

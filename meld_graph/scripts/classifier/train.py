@@ -1,14 +1,14 @@
-import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
 import argparse
 import logging
 
-# import meld_graph
-# import meld_graph.models
 from meld_graph.experiment import Experiment
-# import meld_graph.dataset
 from meld_graph.paths import load_config
 
 if __name__ == "__main__":

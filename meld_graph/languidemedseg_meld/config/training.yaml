@@ -37,8 +37,8 @@ TRAIN:
 
 MODEL:
   # bert_type   : bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12 #StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
-  # bert_type   : StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
-  bert_type   : microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext
+  bert_type   : StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
+  # bert_type   : microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext
   # bert_type   : zzxslp/RadBERT-RoBERTa-4m
   project_dim : 768
 

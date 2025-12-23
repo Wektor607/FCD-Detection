@@ -1,13 +1,14 @@
 import os
-import pickle
+import numpy as np
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-# ensure package imports for meld_graph and project root
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "meld_graph")))
+from meld_graph.paths import FEATURE_PATH
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
 
 from fastapi import FastAPI, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +35,7 @@ app.add_middleware(
 )
 
 # mount results dir as static files
+app.mount("/opt", StaticFiles(directory="/opt"), name="opt")
 app.mount("/results", StaticFiles(directory=RESULT_DIR), name="results")
 
 
@@ -67,23 +69,24 @@ async def predict(file: UploadFile,
     if result.returncode != 0:
         raise RuntimeError(f"Script failed: {result.stderr}")
 
-    # subject_path = result.stdout.strip().splitlines()[-1]
-    # with open(subject_path, "rb") as f:
-    #     data_dict = pickle.load(f)
-
-    subject_dir = Path(OUTPUT_DIR) / "prediction_results" / file_name
-    subject_path = subject_dir / "results.pkl"
+    subject_path = Path(FEATURE_PATH) / file_name / "features" / "result.npz"
 
     if not subject_path.exists():
         raise FileNotFoundError(
             f"Prediction file not found for subject {file_name} at {subject_path}"
         )
 
-    with open(subject_path, "rb") as f:
-        data_dict = pickle.load(f)
+    with np.load(subject_path, allow_pickle=False) as npz:
+        preds = npz["result"].astype("float32")
+
+        subject_data = {
+            file_name: {
+                "result": preds
+            }
+        }
 
 
-    img_nii, epi_dict = inference(data_dict, description, model_type)
+    img_nii, epi_dict = inference(subject_data, description, model_type)
 
     if isinstance(img_nii, dict):
         if file_name not in img_nii:

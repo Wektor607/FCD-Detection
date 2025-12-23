@@ -15,7 +15,8 @@ from PIL import Image
 from scipy import ndimage
 from torch.utils.data import Sampler
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
 
 import meld_graph.mesh_tools as mt
 from meld_graph.meld_cohort import MeldCohort

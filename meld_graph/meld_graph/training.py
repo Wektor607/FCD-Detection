@@ -1,7 +1,11 @@
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
 import logging
 import os
 import sys
@@ -13,8 +17,6 @@ import pandas as pd
 import psutil
 import sklearn.metrics as skmetrics
 import torch
-import torch_geometric.data
-from scipy.ndimage import gaussian_filter1d
 
 from meld_graph.dataset import GraphDataset, Oversampler
 from meld_graph.paths import EXPERIMENT_PATH

@@ -4,11 +4,13 @@
 import copy
 import os
 import sys
+from pathlib import Path
 
 # make sure repo root is discoverable (when scripts run from nested folders)
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if REPO_ROOT not in sys.path:
-    sys.path.insert(0, REPO_ROOT)
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 import tempfile
 from ast import literal_eval
@@ -19,11 +21,10 @@ from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import EXPERIMENT_PATH, MODEL_PATH
 
-from pathlib import Path
-
-DATA_DIR = Path(REPO_ROOT) / "data" / "input" / "meld_combats"
+DATA_DIR = REPO_ROOT / "data" / "input" / "meld_combats"
 FREESURFER_HOME = Path(os.environ.get("FREESURFER_HOME", "/opt/freesurfer-7.2.0"))
 SUBJECTS_DIR = Path(os.environ.get("SUBJECTS_DIR", FREESURFER_HOME / "subjects"))
+SCRIPTS_DIR = REPO_ROOT / "scripts"
 
 class CfgNode(dict):
     """

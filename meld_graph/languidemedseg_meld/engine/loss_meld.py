@@ -1,8 +1,11 @@
-import os
 import sys
 from functools import partial
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
 import torch
 from monai.losses import DiceLoss as MonaiDiceLoss
 

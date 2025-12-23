@@ -1,12 +1,12 @@
 import os
 import sys
+from pathlib import Path
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "meld_graph")))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
 
 import argparse
 import random
-from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -84,20 +84,28 @@ def create_inference_loader(subject_data: dict, description: str, tokenizer, coh
 
 
 def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.device) -> List[torch.nn.Module]:
-    save_dir = Path("meld_graph") / "languidemedseg_meld" / "save_model"
-    ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 5)]
+    # save_dir = Path("meld_graph") / "languidemedseg_meld" / "save_model"
+    save_dir = Path("data") / "saved_models"
+    i = 4
+    ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt"]
+    # ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 5)]
     # ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt" for i in range(0, 3)]
     att_mechanism = False
     text_emb = False
     for exp, flags in exp_flags.items():
-        if exp in (ckpt_prefix or ""):
+        if exp in ckpt_prefix.lower():
             att_mechanism = flags.get("self_att_mechanism", False)
             text_emb = flags.get("text_emb", False)
-            print(f"[INFO] Experiment '{exp}' flags: self_att_mechanism={att_mechanism}, text_emb={text_emb}")
+            sys.stderr.write(f"[INFO] Experiment '{exp}' flags: self_att_mechanism={att_mechanism}, text_emb={text_emb}")
             break
     
     tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True) if text_emb else None
-    print(f"[INFO] Using ensemble of {len(ckpt_paths)} models:", ckpt_paths)
+    print(
+        f"[INFO] Using ensemble of {len(ckpt_paths)} models:",
+        ckpt_paths,
+        file=sys.stderr,
+    )
+
     models = []
     for i, ckpt_path in enumerate(ckpt_paths):
         model = LanGuideMedSegWrapper.load_from_checkpoint(
@@ -108,6 +116,7 @@ def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.d
             att_mechanism=att_mechanism,
             text_emb=text_emb,
             mode="inference",
+            strict=False,
         )
         model.eval()
         model.to(device)
@@ -127,10 +136,10 @@ def run_ensemble_inference(dl_inference: DataLoader, models: List[torch.nn.Modul
             batch_on_device = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in batch.items()}
             text = batch.get("text", batch_on_device.get("text"))
 
-            print("batch subject_ids:", subject_ids)
+            print("batch subject_ids:", subject_ids, file=sys.stderr)
             for k,v in batch.items():
                 if isinstance(v, torch.Tensor):
-                    print(k, v.shape, float(v.mean()), float(v.std()))
+                    print(k, v.shape, float(v.mean()), float(v.std()), file=sys.stderr)
 
             # collect model predictions for this batch
             B = len(subject_ids)
@@ -258,7 +267,7 @@ def inference(subject_data, description, model_type):
         if exp in (model_type or ""):
             att_mechanism = flags.get("self_att_mechanism", False)
             text_emb = flags.get("text_emb", False)
-            print(f"Experiment '{exp}' flags: self_att_mechanism={att_mechanism}, text_emb={text_emb}")
+            sys.stderr.write(f"Experiment '{exp}' flags: self_att_mechanism={att_mechanism}, text_emb={text_emb}")
             break
 
     tokenizer = AutoTokenizer.from_pretrained(args.bert_type, trust_remote_code=True) if text_emb else None

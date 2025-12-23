@@ -1,5 +1,4 @@
 import { ArrowDown } from "lucide-react";
-import NiiVueViewer from "./NiiVueViewer";
 
 function ResultPreview({ result, file }) {
   return (
@@ -32,20 +31,6 @@ function ResultPreview({ result, file }) {
           />
         </div>
       </div>
-
-      {/* INTERACTIVE NIFTI */}
-      {result.result_nii && result.t1_bg && (
-        <div className="mt-10">
-          <h3 className="text-xl font-semibold text-left mb-3">
-            Interactive 3D NIfTI
-          </h3>
-
-          <NiiVueViewer
-            t1Url={result.t1_bg}
-            predUrl={result.result_nii}
-          />
-        </div>
-      )}
 
       {/* BUTTONS: row */}
       <div className="download-buttons">

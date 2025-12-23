@@ -22,7 +22,6 @@ class LanGuideMedSeg(nn.Module):
     def __init__(
         self,
         bert_type: str,
-        feature_path: str,
         layer_sizes: List[List[int]],
         device: str,
         feature_dim: List[int],
@@ -50,7 +49,6 @@ class LanGuideMedSeg(nn.Module):
         self.text_emb_flag = text_emb
         self.encoder = VisionModel(
             feature_dim, 
-            feature_path, 
             device,
             gnn_min_verts=gnn_min_verts, fold_number=fold_number
         )

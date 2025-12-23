@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import datetime
-import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
+
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -19,14 +22,17 @@ from .loss_meld import calculate_loss, dice_coeff, tp_fp_fn_tn
 from .pooling import HexPool
 from languidemedseg_meld.models.model import LanGuideMedSeg
 from utils.utils import convert_preds_to_nifti, summarize_ci
+from utils.config import SCRIPTS_DIR
 
 
 def load_config(config_file):
     """load config.py file and return config object"""
     import importlib.machinery
     import importlib.util
+    
+    config_path = str(config_file)
 
-    loader = importlib.machinery.SourceFileLoader("config", config_file)
+    loader = importlib.machinery.SourceFileLoader("config", config_path)
     spec = importlib.util.spec_from_loader(loader.name, loader)
     config = importlib.util.module_from_spec(spec)
     loader.exec_module(config)
@@ -46,7 +52,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
         self.save_hyperparameters(args)
         self.config: Any = load_config(
-            "/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
+            SCRIPTS_DIR / "config_files" / "final_ablation_full_with_combat_my.py"
         )
         self.params: Dict[str, Any] = (
             next(iter(self.config.losses))
@@ -62,14 +68,12 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         self.final_predictions = []
         self.epi_dict = None
         if self.mode == 'inference':
-            args.feature_path = Path("meld_graph") / "data"
             self.ckpt_path = model_type
         else:
             self.ckpt_path = Path(args.ckpt_path).stem if args.ckpt_path is not None else None
         
         self.model = LanGuideMedSeg(
             args.bert_type,
-            args.feature_path,
             layer_sizes,
             args.device,
             args.feature_dim,
@@ -97,7 +101,6 @@ class LanGuideMedSegWrapper(pl.LightningModule):
                 setattr(self, f"{stage}_{metric}", [])
 
         self.results = []
-        self.base_path: str = args.feature_path
         self.icospheres = IcoSpheres()
 
         self.ds_levels: List[int] = self.params["network_parameters"]["training_parameters"]["deep_supervision"]["levels"]
