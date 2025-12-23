@@ -23,10 +23,15 @@ function FileInput({ onFileChange, file, showSelected }) {
           />
         </label>
         {showSelected && file && (
-          <span className="file-selected fade-in_file" style={{ marginTop: 4 }}>
-            ✅ Selected: {file.name}
-          </span>
+          <div className="file-toast fade-out">
+            <span className="file-toast-icon">✔</span>
+            <span className="file-toast-text">
+              File selected:
+              <strong className="file-name">{file.name}</strong>
+            </span>
+          </div>
         )}
+
       </div>
     </div>
   );

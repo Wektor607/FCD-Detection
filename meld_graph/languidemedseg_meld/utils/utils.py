@@ -75,6 +75,16 @@ def summarize_ci(scores, B=10_000, alpha=0.05, seed=42):
 
     return float(np.median(x)), float(lo), float(hi)
 
+def threshold_surface_prediction(pred, percentile=99.5):
+    pred = pred.copy()
+    nz = pred[pred > 0]
+    if nz.size == 0:
+        return np.zeros_like(pred)
+    thr = np.percentile(nz, percentile)
+    pred[pred < thr] = 0
+    return pred
+
+
 def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
     subjects_fs_dir = Path(MELD_DATA_PATH) / "input" # / "data4sharing" <- later return back for training or change the folder name, which contains data
     predictions_output_root = Path(MELD_DATA_PATH) / "output" / "predictions_reports" / ckpt_path
@@ -121,8 +131,8 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
 
             # MGH template
             affine = nib.load(
-                # subjects_fs_dir / "fsaverage_sym" / "mri" / "T1.mgz"
                 SUBJECTS_DIR / "fsaverage_sym" / "mri" / "T1.mgz"
+                # "/app/data/input/sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
             ).affine
 
             mgh_img = nib.MGHImage(base_arr[np.newaxis, :, np.newaxis], affine)
@@ -139,8 +149,15 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
             )
 
             surf_vis_path = predictions_dir / f"{hemi}_surface_visualisation.png"
+            # volume_3d_visualisation(
+            #     prediction_surf=overlay, # maybe add np.squeeze
+            #     hemi_name=hemi,
+            #     save_path=surf_vis_path
+            # )
+            surf_pred = threshold_surface_prediction(overlay, percentile=99.5)
+
             volume_3d_visualisation(
-                prediction_surf=overlay, # maybe add np.squeeze
+                prediction_surf=surf_pred,
                 hemi_name=hemi,
                 save_path=surf_vis_path
             )
@@ -154,23 +171,32 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
         rh_nii = predictions_dir / "rh.prediction.nii.gz"
         final_nii = predictions_dir / f"prediction_{sid}.nii.gz"
 
-        def _binarize_nii(path):
-            if not path.exists():
-                return None
-            img = nib.load(str(path))
-            arr = img.get_fdata()
-            arr_bin = (arr > 0).astype(np.uint8)
-            nib.save(nib.Nifti1Image(arr_bin, img.affine, img.header), str(path))
-            return path
+        # def _binarize_nii(path):
+        #     if not path.exists():
+        #         return None
+        #     img = nib.load(str(path))
+        #     arr = img.get_fdata()
+        #     sys.stderr.write(
+        #         f"{path}\n"
+        #         f"  min/max: {np.nanmin(arr)} / {np.nanmax(arr)}\n"
+        #         f"  unique~: {np.unique(arr[~np.isnan(arr)])[:10]}\n"
+        #         f"  fraction > 0: {(arr > 0).mean():.4f}\n"
+        #         f"  fraction > 0.5: {(arr > 0.5).mean():.4f}\n"
+        #     )
 
-        lh_p = _binarize_nii(lh_nii)
-        rh_p = _binarize_nii(rh_nii)
+        #     arr_bin = (arr > 0).astype(np.uint8)
+        #     nib.save(nib.Nifti1Image(arr_bin, img.affine, img.header), str(path))
+        #     return path
 
+        # lh_p = _binarize_nii(lh_nii)
+        # rh_p = _binarize_nii(rh_nii)
+        lh_p = lh_nii if lh_nii.exists() else None
+        rh_p = rh_nii if rh_nii.exists() else None
         if lh_p and rh_p:
             lh_img = nib.load(str(lh_p))
             rh_img = nib.load(str(rh_p))
             combined = np.maximum(lh_img.get_fdata(), rh_img.get_fdata())
-            combined = (combined > 0).astype(np.uint8)
+            # combined = (combined > 0).astype(np.uint8)
             nib.save(nib.Nifti1Image(combined, lh_img.affine, lh_img.header), str(final_nii))
             print(f"🎉 Final combined PRED NIfTI: {final_nii}")
         else:

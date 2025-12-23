@@ -36,12 +36,12 @@ body {
   white-space: nowrap; /* чтобы текст не переносился под лого */
 }
 
-/* Контейнер */
+/* Контейнер
 .home-container {
   display: flex;
   justify-content: center;
   padding: 3rem 1rem; /* минимальный вариант */
-}
+/* }  */
 
 
 /* Контейнер */
@@ -51,8 +51,8 @@ body {
 }
 
 /* Карточка */
-.card {
-  max-width: 900px;
+.card-home {
+  max-width: 600px;
   margin: 0 auto;        /* центрируем по ширине */
   background: #fff;
   padding: 2.5rem;
@@ -200,6 +200,24 @@ body {
   border-radius: 1rem;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
+
+.card.card-wide {
+  max-width: 1000px;   /* ← ВОТ ЭТОГО НЕ ХВАТАЛО */
+  padding: 3rem 2.5rem;
+  animation: expandCard 0.45s ease-out;
+}
+
+@keyframes expandCard {
+  from {
+    transform: scale(0.97);
+    opacity: 0.95;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 
 .btn {
   background: #42a5f5;
@@ -481,4 +499,125 @@ body {
   max-width: 80%;
   text-align: left;
   margin-bottom: 18px;
+}
+
+.result-images {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.file-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+
+  margin-top: 8px;
+  padding: 8px 12px;
+
+  width: 100%;
+  max-width: 520px;   /* 👈 нормальная ширина */
+  box-sizing: border-box;
+
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+
+  color: #065f46;
+  font-size: 0.85rem;
+  line-height: 1.35;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* Текстовый контейнер */
+.file-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  width: 100%;
+}
+
+/* Имя файла */
+.file-name {
+  font-weight: 600;
+
+  word-break: break-all;        /* 👈 ключевая строка */
+  overflow-wrap: anywhere;
+
+  font-size: 0.8rem;
+}
+
+/* Иконка */
+.file-toast-icon {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+/* Анимация */
+.fade-out {
+  animation: fadeToast 3s ease forwards;
+}
+
+@keyframes fadeToast {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.result-divider {
+  margin: 0.8rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.result-images-row {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  align-items: flex-start;
+  margin: 2rem 0;
+}
+
+.result-image-block {
+  flex: 1;
+  max-width: 48%;
+  text-align: center;
+}
+
+.result-image-title {
+  margin-bottom: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* 📱 mobile */
+@media (max-width: 900px) {
+  .result-images-row {
+    flex-direction: column;
+  }
+
+  .result-image-block {
+    max-width: 100%;
+  }
 }

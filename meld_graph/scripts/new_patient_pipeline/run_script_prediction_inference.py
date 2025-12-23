@@ -16,6 +16,8 @@ import sys
 
 import numpy as np
 
+from backend.config import OUTPUT_DIR
+
 if not hasattr(np, "float"):
     np.float = float
 
@@ -510,7 +512,8 @@ if __name__ == '__main__':
         import pickle
 
         # базовая директория для всех результатов
-        base_dir = "/backend/data_results"
+        # base_dir = "/backend/data_results"
+        base_dir = os.path.join(OUTPUT_DIR, "prediction_results")
         os.makedirs(base_dir, exist_ok=True)
 
         # если results — список, берём первый словарь
@@ -518,9 +521,10 @@ if __name__ == '__main__':
             results = results[0]
 
         # берём subject_id (он у тебя ключ в словаре)
-
+        subject_id = next(iter(results))
+        
         # создаём папку для конкретного пациента
-        subject_dir = os.path.join(base_dir, *results.keys())  # достаёт id без хардкода
+        subject_dir = os.path.join(base_dir, subject_id)
         os.makedirs(subject_dir, exist_ok=True)
 
         out_path = os.path.join(subject_dir, "results.pkl")

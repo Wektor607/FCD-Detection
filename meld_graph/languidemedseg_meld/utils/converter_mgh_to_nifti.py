@@ -121,6 +121,7 @@ def convert_prediction_mgh_to_nii(
     mri_path = SUBJECTS_DIR / "fsaverage_sym" / "mri"
     T1_path = mri_path / "T1.mgz"
     # T1_path = subjects_dir / "fsaverage_sym" / "sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
+    # T1_path = "/app/data/input/sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
     cmd1 = (
         f"SUBJECTS_DIR={SUBJECTS_DIR} "
         f"mri_surf2vol --identity fsaverage_sym "
@@ -147,7 +148,7 @@ def convert_prediction_mgh_to_nii(
 
     # 3) MGZ→NIfTI
     vol_nii = predictions_dir / os.path.basename(out_mgh).replace(".mgh", ".nii.gz")
-    cmd3 = f"SUBJECTS_DIR={SUBJECTS_DIR} mri_convert {vol_mgz} {vol_nii} -rt nearest"
+    cmd3 = f"SUBJECTS_DIR={SUBJECTS_DIR} mri_convert {vol_mgz} {vol_nii}"
     run_command(cmd3, verbose)
 
     if not os.path.isfile(vol_nii):

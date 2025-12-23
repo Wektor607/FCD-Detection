@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 # ensure package imports for meld_graph and project root
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "meld_graph")))
 
 from fastapi import FastAPI, Form, UploadFile
@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from languidemedseg_meld.inference import inference
 
-from .config import (DEFAULT_DEMOGRAPHIC_FILE, RESULT_DIR, T1_FILE, UPLOAD_DIR,
+from .config import (OUTPUT_DIR, DEFAULT_DEMOGRAPHIC_FILE, RESULT_DIR, T1_FILE, UPLOAD_DIR,
                      ensure_dirs)
 from .plotting_utils import plot_and_save
 from .utils import parse_id
@@ -67,9 +67,21 @@ async def predict(file: UploadFile,
     if result.returncode != 0:
         raise RuntimeError(f"Script failed: {result.stderr}")
 
-    subject_path = result.stdout.strip().splitlines()[-1]
+    # subject_path = result.stdout.strip().splitlines()[-1]
+    # with open(subject_path, "rb") as f:
+    #     data_dict = pickle.load(f)
+
+    subject_dir = Path(OUTPUT_DIR) / "prediction_results" / file_name
+    subject_path = subject_dir / "results.pkl"
+
+    if not subject_path.exists():
+        raise FileNotFoundError(
+            f"Prediction file not found for subject {file_name} at {subject_path}"
+        )
+
     with open(subject_path, "rb") as f:
         data_dict = pickle.load(f)
+
 
     img_nii, epi_dict = inference(data_dict, description, model_type)
 
@@ -86,17 +98,25 @@ async def predict(file: UploadFile,
 
     return {
         "text": text,
-        "result_png": f"/results/{file_name}/{file_name}.png",
-        "download_png": f"/download/png/{file_name}",
+        "result_2dpng": f"/results/{file_name}/{file_name}.png",
+        "result_3dpng": f"/results/{file_name}/{file_name}_surface_combined.png",
+        "result_nii": f"/results/{file_name}/{file_name}.nii.gz",
+        "t1_bg": T1_FILE,
+        "download_2dpng": f"/download/2dpng/{file_name}",
+        "download_3dpng": f"/download/3dpng/{file_name}",
         "download_nii": f"/download/nii/{file_name}",
     }
 
 
-@app.get("/download/png/{file_name}")
+@app.get("/download/2dpng/{file_name}")
 async def download_png(file_name: str):
     file_path = RESULT_DIR / file_name / f"{file_name}.png"
     return FileResponse(file_path, media_type="image/png", filename=f"{file_name}.png")
 
+@app.get("/download/3dpng/{file_name}")
+async def download_png(file_name: str):
+    file_path = RESULT_DIR / file_name / f"{file_name}_surface_combined.png"
+    return FileResponse(file_path, media_type="image/png", filename=f"{file_name}.png")
 
 @app.get("/download/nii/{file_name}")
 async def download_nii(file_name: str):

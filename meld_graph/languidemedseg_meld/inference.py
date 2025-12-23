@@ -127,6 +127,11 @@ def run_ensemble_inference(dl_inference: DataLoader, models: List[torch.nn.Modul
             batch_on_device = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in batch.items()}
             text = batch.get("text", batch_on_device.get("text"))
 
+            print("batch subject_ids:", subject_ids)
+            for k,v in batch.items():
+                if isinstance(v, torch.Tensor):
+                    print(k, v.shape, float(v.mean()), float(v.std()))
+
             # collect model predictions for this batch
             B = len(subject_ids)
             H = 2
@@ -190,7 +195,7 @@ def postprocess_and_save(all_subject_ids, all_probs, eva, cohort: MeldCohort, mo
             model_type, [sid], [[lh_probs, rh_probs]], cohort, 'inference'
         )
 
-    return final_nii[sid], {"clusters": clusters_summary,
+    return final_nii, {"clusters": clusters_summary,
                             "report": result_text,
                             "epilepsy": epilepsy_flag}
 
@@ -240,7 +245,7 @@ def process_meld_model(dl_inference: DataLoader, subject_data: dict, cohort: Mel
             )
 
     epi_dict = {"clusters": clusters_summary, "report": result_text, "epilepsy": epilepsy_flag}
-    return final_nii[sid], epi_dict
+    return final_nii, epi_dict
 
 
 def inference(subject_data, description, model_type):
@@ -263,8 +268,10 @@ def inference(subject_data, description, model_type):
 
     # MELD has a simpler postprocessing flow
     if model_type == "MELD":
+        sys.stderr.write(f"[INFO] Running MELD inference for model type '{model_type}'\n")
         return process_meld_model(dl_inference, subject_data, cohort, model_type)
 
+    sys.stderr.write(f"[INFO] Running ensemble inference for model type '{model_type}'\n")
     # ensemble inference for other model types
     device = get_device()
     models, tokenizer = load_ensemble_models(model_type, args, eva, exp_flags, device)

@@ -59,7 +59,7 @@ function UploadPage() {
 
   return (
     <div className="upload-page">
-      <div className="card">
+      <div className={`card ${result ? "card-wide" : ""}`}>
         <BackButton />
 
         <h1 className="text-2xl font-bold text-center mb-6">

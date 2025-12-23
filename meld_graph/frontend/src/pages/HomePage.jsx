@@ -13,7 +13,7 @@ function HomePage() {
 
       {/* Контент */}
       <main className="home-container">
-        <div className="card">
+        <div className="card-home">
           <h1>About the project</h1>
 
           <p>

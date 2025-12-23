@@ -37,7 +37,8 @@ SUBJECTS_DIR = Path(
     os.environ.get("SUBJECTS_DIR", FREESURFER_HOME / "subjects")
 )
 
-T1_FILE = SUBJECTS_DIR / "fsaverage_sym" / "mri" / "brainmask.mgz"
+T1_FILE = SUBJECTS_DIR / "fsaverage_sym" / "mri" / "T1.mgz"
+# T1_FILE = "/app/data/input/sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
 # =========================
 
 def ensure_dirs():
