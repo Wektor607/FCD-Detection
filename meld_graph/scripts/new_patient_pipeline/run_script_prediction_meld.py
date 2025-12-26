@@ -24,6 +24,7 @@ import shutil
 import tempfile
 import warnings
 from os.path import join as opj
+from pathlib import Path
 
 import nibabel as nb
 import pandas as pd
@@ -34,7 +35,8 @@ from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import (DEFAULT_HDF5_FILE_ROOT,
                               DEMOGRAPHIC_FEATURES_FILE, EXPERIMENT_PATH,
-                              FS_SUBJECTS_PATH, MELD_DATA_PATH, MODEL_PATH)
+                              FEATURE_PATH, FS_SUBJECTS_PATH, MELD_DATA_PATH,
+                              MODEL_PATH)
 from meld_graph.tools_pipeline import (create_dataset_file,
                                        create_demographic_file, get_m)
 from scripts.manage_results.move_predictions_to_mgh import \
@@ -45,6 +47,7 @@ from scripts.manage_results.register_back_to_xhemi import \
     register_subject_to_xhemi
 
 warnings.filterwarnings("ignore")
+os.makedirs(FEATURE_PATH, exist_ok=True)
 
 def save_surface_mgh(arr_1d, out_path: str):
     arr = np.asarray(arr_1d).ravel().astype(np.float32, copy=False)
@@ -146,7 +149,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
             
             # estimates    = eva.data_dictionary[subject_id]["estimates"]
             # используем тот output_dir, который пришёл в функцию
-            save_dir = f"./data/preprocessed/meld_files/{subject_id}/features"
+            save_dir = Path(FEATURE_PATH) /subject_id / "features"
             print(save_dir)
             os.makedirs(save_dir, exist_ok=True)
 
@@ -166,7 +169,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
             # print(f"Saved xyzr GT to {xyzr_path}")
 
             # сохраняем labels в .mgh или .mgz (можно .mgz — будет меньше весить)
-            lab_dir  = os.path.join(f"./data/preprocessed/meld_files/{subject_id}", "labels")
+            lab_dir  = Path(FEATURE_PATH) /subject_id / "labels"
             lh_path = os.path.join(lab_dir, "labels-lh.mgh")  # или "labels-lh.mgz"
             rh_path = os.path.join(lab_dir, "labels-rh.mgh")  # или "labels-rh.mgz"
             os.makedirs(lab_dir, exist_ok=True)
@@ -218,7 +221,7 @@ def predict_subjects(subject_ids, output_dir, plot_images = False, saliency=Fals
     #     eva.calculate_saliency()
     # return None
 
-def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test', return_results=False):
+def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_prediction_nifti=False, no_report=False, skip_prediction=False, split=False, verbose=False, aug_mode='test', return_results=False, split_file:str=None):
     harmo_code = str(harmo_code)
     subject_id=None
     subject_ids=None
@@ -238,7 +241,25 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
         print(get_m(f'No ids were provided', None, 'ERROR'))
         print(get_m(f'Please specify both subject(s) and harmonisation code ...', None, 'ERROR'))
         sys.exit(-1) 
-    
+
+    if split_file is not None:    
+        split_df = pd.read_csv(split_file)
+
+        valid_subjects = set(split_df["subject_id"].astype(str).values)
+
+        # пересечение
+        subject_ids = np.array([
+            s for s in subject_ids
+            if s in valid_subjects
+        ])
+
+        if len(subject_ids) == 0:
+            raise RuntimeError(
+                "После фильтрации по split-файлу не осталось ни одного subject_id"
+            )
+
+        print(f"[INFO] Subjects after split filtering: {len(subject_ids)}")
+
     # ВРЕМЕННО    
     # subject_ids = np.array([s for s in subject_ids if any(h in s for h in ["H26_", "H27_", "H28_", "H101_"])])
     # initialise variables
@@ -254,11 +275,12 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
 
     # Skip data augmentation for test samples to ensure deterministic evaluation
     # (do not modify predictions with training-time transforms)
-    meld_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'MELD_splits.csv'))
-    bonn_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'BONN_splits_full_test.csv'))
+    # meld_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'MELD_splits.csv'))
+    meld_list = pd.read_csv(opj(MELD_DATA_PATH, 'input', 'data4sharing', 'MELD_BONN_mixed_filtered.csv'))
+    # bonn_list = pd.read_csv(opj(MELD_DATA_PATH, 'preprocessed', 'BONN_splits_full_test.csv'))
 
     meld_test_split = meld_list[meld_list['split'] == 'test']['subject_id'].tolist()
-    bonn_test_split = bonn_list[bonn_list['split'] == 'test']['subject_id'].tolist()
+    # bonn_test_split = bonn_list[bonn_list['split'] == 'test']['subject_id'].tolist()
 
     #predict on new subjects
     results = {}
@@ -341,17 +363,17 @@ def run_script_prediction(list_ids=None, sub_id=None, harmo_code='noHarmo', no_p
             # ------ ПРОПУСК, ЕСЛИ УЖЕ БЫЛО ПРЕОБРАЗОВАНО ------
             # --- пропуск, если это тест ---
             # if subject_id in meld_test_split or subject_id in bonn_test_split:
-            if subject_id in bonn_test_split:
-                print(f"[SKIP TEST] {subject_id} принадлежит test split → пропуск.")
-                continue
+            # if subject_id in bonn_test_split:
+            #     print(f"[SKIP TEST] {subject_id} принадлежит test split → пропуск.")
+            #     continue
 
-            preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
-            if os.path.isdir(preproc_root):
-                print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
-                continue
+            # preproc_root = os.path.join("./data", "preprocessed", "meld_files", subject_id)
+            # if os.path.isdir(preproc_root):
+            #     print(f"[SKIP] {subject_id} уже обработан (папка {preproc_root} существует)")
+            #     continue
             # -----------------------------------------------
             ########################################################################################################################
-            if subject_id in meld_test_split or subject_id in bonn_test_split:
+            if subject_id in meld_test_split: # or subject_id in bonn_test_split:
                 aug_mode = 'test'
                 print(f"[TEST SPLIT] {subject_id} in test split, aug_mode set to 'test'")
             else:
@@ -530,17 +552,24 @@ if __name__ == '__main__':
         shutil.copy(os.path.join(MELD_DATA_PATH,args.demographic_file), demographic_file_tmp)
     
     # Run: ./meldgraph.sh run_script_prediction_meld.py --list_ids /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --demographic_file /home/s17gmikh/FCD-Detection/meld_graph/data/input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --aug_mode train
+    # Run: ./meldgraph.sh run_script_prediction_meld.py --list_ids input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --demographic_file input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv --aug_mode train
+    SPLIT_FILE = opj(
+        MELD_DATA_PATH,
+        "input/data4sharing/MELD_BONN_mixed_filtered.csv"
+    )
+
     results = run_script_prediction(
                         harmo_code = args.harmo_code,
                         list_ids=args.list_ids,
                         sub_id=args.id,
-                        no_prediction_nifti = args.no_prediction_nifti,
-                        no_report = args.no_report,
-                        split = args.split,
+                        no_prediction_nifti=args.no_prediction_nifti,
+                        no_report=args.no_report,
+                        split=args.split,
                         skip_prediction=args.skip_prediction,
-                        verbose = args.debug_mode,
+                        verbose=args.debug_mode,
                         aug_mode=args.aug_mode,
-                        return_results=args.return_results
+                        return_results=args.return_results,
+                        split_file=SPLIT_FILE
                         )
     
     if args.return_results and results is not None:

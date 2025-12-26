@@ -1,7 +1,6 @@
 ## Script used to create the different icosphere used at different level of the unet
 import os
 import sys
-
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

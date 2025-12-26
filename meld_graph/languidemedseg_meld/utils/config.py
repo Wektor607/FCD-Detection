@@ -16,12 +16,14 @@ import tempfile
 from ast import literal_eval
 
 import yaml
+
 from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import EXPERIMENT_PATH, MODEL_PATH
 
-DATA_DIR = REPO_ROOT / "data" / "input" / "meld_combats"
+DATA_DIR = REPO_ROOT / "data" / "input" / "data4sharing" / "meld_combats"
+DATA_DIR_INFERENCE = REPO_ROOT / "data" / "input" / "meld_combats"
 FREESURFER_HOME = Path(os.environ.get("FREESURFER_HOME", "/opt/freesurfer-7.2.0"))
 SUBJECTS_DIR = Path(os.environ.get("SUBJECTS_DIR", FREESURFER_HOME / "subjects"))
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -186,7 +188,7 @@ def inference_config():
     #update experiment 
     exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, 
                             dataset=tmp.name, 
-                            data_dir=DATA_DIR)
+                            data_dir=DATA_DIR_INFERENCE)
     exp.data_parameters["hdf5_file_root"] = hdf5_file_root
     exp.data_parameters["dataset"] = tmp.name
 
@@ -194,7 +196,7 @@ def inference_config():
     cohort = MeldCohort(
         hdf5_file_root=exp.data_parameters["hdf5_file_root"],
         dataset=exp.data_parameters["dataset"],
-        data_dir=DATA_DIR
+        data_dir=DATA_DIR_INFERENCE
     )
 
     eva = Evaluator(

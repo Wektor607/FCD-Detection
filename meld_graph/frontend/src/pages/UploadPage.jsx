@@ -17,8 +17,9 @@ function UploadPage() {
     { name: "MELD", desc: "Original MELD model"},
     { name: "Exp1", desc: "MELD frozen; trained Decoder only (HexUnpool + SpiralConv + head)" },
     { name: "Exp2", desc: "MELD frozen; trained Decoder + self-attention on vision features" },
-    { name: "Exp3_full_text", desc: "MELD frozen; trained Decoder + self-attention + cross-attention to full text encoder" },
-    { name: "Exp3_lobe+hemi", desc: "As Exp3_full_text, but text limited to lobe + hemisphere names" },
+    { name: "Exp3", desc: "MELD frozen; trained Decoder + self-attention + cross-attention" },
+    // { name: "Exp3_full_text", desc: "MELD frozen; trained Decoder + self-attention + cross-attention to full text encoder" },
+    // { name: "Exp3_lobe+hemi", desc: "As Exp3_full_text, but text limited to lobe + hemisphere names" },
   ];
 
   const handleSubmit = async (e) => {

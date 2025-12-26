@@ -34,7 +34,7 @@ export PYTHONPATH=$(pwd):$PYTHONPATH
 
 WANDB_MODE=disabled python3 languidemedseg_meld/test_Kfold.py \
   --config languidemedseg_meld/config/training.yaml \
-  --ckpt_prefix languidemedseg_meld/save_model/exp3_mixed_3_gnn_aug
+  --ckpt_prefix save_model/exp1
 # exp3_no_gnn_mixed_freeeze
 # WANDB_MODE=disabled python3 test.py  --meld_check
 # --meld_check

@@ -23,10 +23,9 @@ from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import (DEFAULT_HDF5_FILE_ROOT, MELD_DATA_PATH,
                               MELD_PARAMS_PATH, SURFACE_PARTIAL)
 from scripts.manage_results.plot_prediction_report import create_surface_plots
-
+from utils.config import SUBJECTS_DIR
 from utils.converter_mgh_to_nifti import (convert_prediction_mgh_to_nii,
                                           get_combat_feature_path, save_mgh)
-from utils.config import SUBJECTS_DIR
 
 SEED = 42
 

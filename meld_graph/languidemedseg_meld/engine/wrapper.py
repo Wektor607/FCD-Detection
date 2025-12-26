@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import sys
-
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -15,14 +14,15 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+
+from languidemedseg_meld.models.model import LanGuideMedSeg
 from meld_graph.icospheres import IcoSpheres
 from meld_graph.meld_cohort import MeldCohort
+from utils.config import SCRIPTS_DIR
+from utils.utils import convert_preds_to_nifti, summarize_ci
 
 from .loss_meld import calculate_loss, dice_coeff, tp_fp_fn_tn
 from .pooling import HexPool
-from languidemedseg_meld.models.model import LanGuideMedSeg
-from utils.utils import convert_preds_to_nifti, summarize_ci
-from utils.config import SCRIPTS_DIR
 
 
 def load_config(config_file):
@@ -99,6 +99,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         for stage in stages:
             for metric in metrics:
                 setattr(self, f"{stage}_{metric}", [])
+            setattr(self, f"{stage}_losses", [])
 
         self.results = []
         self.icospheres = IcoSpheres()
@@ -401,7 +402,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             prog_bar=False,
             sync_dist=True,
         )
-
+        self.train_losses.append(loss.detach())
         return loss
 
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
@@ -414,16 +415,16 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             prog_bar=False,
             sync_dist=True,
         )
+        self.val_losses.append(loss.detach())
         return loss
 
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         loss = self.shared_step(batch, batch_idx, stage="test")
-
+        self.test_losses.append(loss.detach())
         return {"loss": loss}
 
     def shared_epoch_end(
         self,
-        outputs: List[Union[Dict[str, torch.Tensor], torch.Tensor, Tuple[Any, ...]]],
         stage: str = "train",
     ) -> Dict[str, Union[int, float]]:
         """
@@ -432,27 +433,13 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         - for val/test: list[tensor]
         Our task is to correctly extract the loss tensor from each element.
         """
-        losses = []
-        for o in outputs:
-            if isinstance(o, tuple):
-                losses.append(o[0].detach())
-            elif isinstance(o, dict):
-                if hasattr(o["loss"], "detach"):
-                    losses.append(o["loss"].detach())
-                else:
-                    losses.append(o["loss"])
-            elif isinstance(o, torch.Tensor):
-                losses.append(o.detach())
-            else:
-                raise TypeError(
-                    f"[ERROR] Unexpected output type in epoch_end: {type(o)}"
-                )
+        stats = {"epoch": self.current_epoch}
 
-        losses = torch.stack(losses)  # [num_batches]
-        avg_loss = losses.mean().item()
-
-        stats = {"epoch": self.current_epoch, f"{stage}_loss": avg_loss}
-
+        losses = getattr(self, f"{stage}_losses")
+        if len(losses) > 0:
+            avg_loss = torch.stack(losses).mean().item()
+            stats[f"{stage}_loss"] = avg_loss
+            
         dice_scores = getattr(self, f"{stage}_dice_scores")
         ppv_scores  = getattr(self, f"{stage}_ppv_scores")
         iou_scores  = getattr(self, f"{stage}_iou_scores")
@@ -472,8 +459,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         
         return stats
 
-    def training_epoch_end(self, outputs: List[Any]) -> None:
-        stats = self.shared_epoch_end(outputs, stage="train")
+    def on_train_epoch_end(self) -> None:
+        stats = self.shared_epoch_end("train")
         print(
             f"\n[TRAIN epoch {stats['epoch']}] "
             f"loss={stats['train_loss']:.4f}, "
@@ -490,8 +477,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             sync_dist=True,
         )
 
-    def validation_epoch_end(self, outputs: List[Any]) -> None:
-        stats = self.shared_epoch_end(outputs, stage="val")
+    def on_validation_epoch_end(self) -> None:
+        stats = self.shared_epoch_end(stage="val")
         nowtime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print("\n" + "=" * 80 + f" {nowtime}")
         print(
@@ -524,8 +511,8 @@ class LanGuideMedSegWrapper(pl.LightningModule):
                     file=sys.stderr,
                 )
 
-    def test_epoch_end(self, outputs: List[Any]) -> None:
-        stats = self.shared_epoch_end(outputs, stage="test")
+    def on_test_epoch_end(self) -> None:
+        stats = self.shared_epoch_end(stage="test")
         print(
             f"\n[TEST  epoch {stats['epoch']}] "
             f"loss={stats['test_loss']:.4f}, "
@@ -561,20 +548,25 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         df.to_csv(f"{self.ckpt_path}_results.csv", index=False)
 
     def on_train_epoch_start(self) -> None:
-        self.train_dice_scores.clear()
-        self.train_ppv_scores.clear()
-        self.train_iou_scores.clear()
+        self._clear_stage_buffers("train")
 
     def on_validation_epoch_start(self) -> None:
-        self.val_dice_scores.clear()
-        self.val_ppv_scores.clear()
-        self.val_iou_scores.clear()
+        self._clear_stage_buffers("val")
 
     def on_test_epoch_start(self) -> None:
-        self.test_dice_scores.clear()
-        self.test_ppv_scores.clear()
-        self.test_iou_scores.clear()
-
+        self._clear_stage_buffers("test")
 
     def get_history(self) -> pd.DataFrame:
         return pd.DataFrame(self.history.values())
+
+    def _clear_stage_buffers(self, stage: str):
+        metrics = [
+            "dice_scores",
+            "ppv_scores",
+            "iou_scores",
+            "number_fp_clusters",
+            "number_tp_clusters",
+            "losses",
+        ]
+        for m in metrics:
+            getattr(self, f"{stage}_{m}").clear()

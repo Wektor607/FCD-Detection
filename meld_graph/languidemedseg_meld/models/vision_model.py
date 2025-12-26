@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -6,11 +7,12 @@ from typing import Dict, List, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
-from meld_graph.icospheres import IcoSpheres
-from meld_graph.paths import FEATURE_PATH
-from utils.config import REPO_ROOT, DATA_DIR
 from torch_geometric.data import Batch, Data
 from torch_geometric.nn import GraphNorm, SAGEConv
+
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.paths import FEATURE_PATH
+from utils.config import DATA_DIR, REPO_ROOT
 
 
 # TODO: Conduct experiments with different GNN layers (GAT, GCN, etc.)

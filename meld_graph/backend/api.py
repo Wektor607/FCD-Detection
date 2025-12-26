@@ -1,9 +1,10 @@
 import os
-import numpy as np
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+import numpy as np
 
 from meld_graph.paths import FEATURE_PATH
 
@@ -17,8 +18,8 @@ from fastapi.staticfiles import StaticFiles
 
 from languidemedseg_meld.inference import inference
 
-from .config import (OUTPUT_DIR, DEFAULT_DEMOGRAPHIC_FILE, RESULT_DIR, T1_FILE, UPLOAD_DIR,
-                     ensure_dirs)
+from .config import (DEFAULT_DEMOGRAPHIC_FILE, OUTPUT_DIR, RESULT_DIR, T1_FILE,
+                     UPLOAD_DIR, ensure_dirs)
 from .plotting_utils import plot_and_save
 from .utils import parse_id
 
@@ -95,7 +96,7 @@ async def predict(file: UploadFile,
     elif isinstance(img_nii, list):
         img_nii = img_nii[0]
 
-    plot_and_save(img_nii, epi_dict, file_name, out_dir, T1_FILE)
+    plot_and_save(img_nii, epi_dict, file_name, out_dir, T1_FILE, model_type)
 
     text = f"{epi_dict['report']}"
 

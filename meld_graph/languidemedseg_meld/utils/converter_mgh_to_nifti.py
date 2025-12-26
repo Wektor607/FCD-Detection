@@ -1,5 +1,4 @@
 import os
-
 from pathlib import Path
 from subprocess import PIPE, Popen
 from typing import Union
@@ -9,6 +8,7 @@ import nibabel as nb
 import numpy as np
 
 from languidemedseg_meld.utils.config import SUBJECTS_DIR
+
 
 def run_command(command: str, verbose: bool):
     proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE, encoding="utf-8")

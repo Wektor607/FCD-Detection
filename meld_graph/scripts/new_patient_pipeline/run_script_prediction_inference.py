@@ -11,9 +11,9 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 
@@ -35,13 +35,13 @@ import scripts.env_setup
 from meld_graph.evaluation import Evaluator
 from meld_graph.experiment import Experiment
 from meld_graph.meld_cohort import MeldCohort
-from meld_graph.paths import (BASE_PATH,
-                              DEFAULT_HDF5_FILE_ROOT,
+from meld_graph.paths import (BASE_PATH, DEFAULT_HDF5_FILE_ROOT,
                               DEMOGRAPHIC_FEATURES_FILE, EXPERIMENT_PATH,
-                              FS_SUBJECTS_PATH, MELD_DATA_PATH, MODEL_PATH,
-                              FEATURE_PATH)
+                              FEATURE_PATH, FS_SUBJECTS_PATH, MELD_DATA_PATH,
+                              MODEL_PATH)
 from meld_graph.tools_pipeline import (create_dataset_file,
                                        create_demographic_file, get_m)
+
 # from scripts.manage_results.move_predictions_to_mgh import \
 #     move_predictions_to_mgh
 # from scripts.manage_results.plot_prediction_report import \

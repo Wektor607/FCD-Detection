@@ -12,6 +12,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 import torch.multiprocessing
+from engine.wrapper import LanGuideMedSegWrapper
 # from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import (Callback, EarlyStopping,
                                          ModelCheckpoint)
@@ -20,7 +21,6 @@ from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
 import utils.config as config
-from engine.wrapper import LanGuideMedSegWrapper
 from utils.data import EpilepDataset
 from utils.utils import LesionOversampleSampler
 
@@ -115,17 +115,17 @@ def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fol
                 subject_ids=train_fold_ids, 
                 cohort=cohort, 
                 max_length=args.max_len, 
-                text_emb=True,
+                text_emb=True,)
 #!!!!!!!!!!!!!!!!!!!!!!! Make like a parameter!
-                text_prob_json="/data/preprocessed/mixed/train_prob.json")
+                # text_prob_json="/data/preprocessed/mixed/train_prob.json")
     ds_valid = EpilepDataset(csv_path=args.csv_path, 
                 tokenizer=tokenizer, 
                 feature_path=args.feature_path, 
                 subject_ids=val_fold_ids, 
                 cohort=cohort, 
                 max_length=args.max_len, 
-                text_emb=True,
-                text_prob_json="/data/preprocessed/mixed/train_prob.json")
+                text_emb=True,)
+                # text_prob_json="/data/preprocessed/mixed/train_prob.json")
     hc_set = set([sid for sid in train_fold_ids if sid.split("_")[3].startswith("C")])
     labels = [0 if sid in hc_set else 1 for sid in ds_train.subject_ids]
     sampler = LesionOversampleSampler(labels, seed=fold_seed)

@@ -13,7 +13,6 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.multiprocessing
-from meld_graph.meld_cohort import MeldCohort
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer
@@ -25,6 +24,7 @@ from languidemedseg_meld.utils.utils import (convert_preds_to_nifti,
                                              get_device, move_to_device,
                                              summarize_clusters,
                                              worker_init_fn)
+from meld_graph.meld_cohort import MeldCohort
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 

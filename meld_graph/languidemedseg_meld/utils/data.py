@@ -5,9 +5,8 @@ import json
 import os
 import random
 import sys
-from typing import Any, Dict, List, Optional
-
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
@@ -15,9 +14,12 @@ sys.path.insert(0, str(REPO_ROOT))
 import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import Dataset
+
 from meld_graph.data_preprocessing import Preprocess as Prep
 from meld_graph.meld_cohort import MeldCohort
-from torch.utils.data import Dataset
+from meld_graph.paths import FEATURE_PATH
+from utils.config import SCRIPTS_DIR
 
 
 def load_config(config_file: str) -> Any:
@@ -67,7 +69,7 @@ class EpilepDataset(Dataset):
         self.data = self.data.set_index("sub").loc[subject_ids]
 
         self.config = load_config(
-            "/meld_graph/scripts/config_files/final_ablation_full_with_combat_my.py"
+            str(SCRIPTS_DIR / "config_files" / "final_ablation_full_with_combat_my.py")
         )
         params = (
             next(iter(self.config.losses))
@@ -192,13 +194,7 @@ class EpilepDataset(Dataset):
         return len(self.subject_ids)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        features_dir = (
-            Path(self.feature_path)
-            / "preprocessed"
-            / "meld_files"
-            / self.subject_ids[idx]
-            / "features"
-        )
+        features_dir = Path(FEATURE_PATH) /self.subject_ids[idx] / "features"
         dist_npz_path = features_dir / "distance_maps_gt.npz"
 
         subject_data_list = self.prep.get_data_preprocessed(

@@ -7,12 +7,12 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from meld_graph.icospheres import IcoSpheres
-from meld_graph.spiralconv import SpiralConv
 from torch_geometric.data import Batch, Data
 
 from languidemedseg_meld.engine.pooling import HexPool, HexUnpool
 from languidemedseg_meld.models.layers import GuideDecoder
+from meld_graph.icospheres import IcoSpheres
+from meld_graph.spiralconv import SpiralConv
 
 from .language_model import BERTModel
 from .vision_model import VisionModel

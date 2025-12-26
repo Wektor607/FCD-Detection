@@ -17,9 +17,9 @@ TRAIN:
   # N >= 162: only stage1-6 GNN block
   # N >= 42: all GNN block stages
 
-  gnn_min_verts   : 10242 # 3
+  # gnn_min_verts   : 10242 # 3
   # gnn_min_verts   : 642 # 5
-  # gnn_min_verts   : 200000000
+  gnn_min_verts   : 200000000
   num_unfreeze_layers: 0
   unfreeze_decoder: False
   num_freeze_epochs: 5
@@ -37,14 +37,15 @@ TRAIN:
 
 MODEL:
   # bert_type   : bionlp/bluebert_pubmed_mimic_uncased_L-12_H-768_A-12 #StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
-  bert_type   : StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
-  # bert_type   : microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext
+  # bert_type   : StanfordAIMI/RadBERT # Try: PubMedBERT, BioClinicalBERT
+  bert_type   : microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext
   # bert_type   : zzxslp/RadBERT-RoBERTa-4m
   project_dim : 768
 
   feature_path    : data
 
 DATA:
-  csv_path        : data/preprocessed/final_aug_text/MELD_BONN_hemisphere_lobe.csv # MELD_dataset_without_text.csv # H101_reports_fullhemisphere_lobe.csv
-  split_path      : data/preprocessed/MELD_splits.csv 
-  # split_path      : ../data/preprocessed/BONN_splits_full_test.csv
+  csv_path        : data/input/data4sharing/MELD_BONN_mixed.csv
+  split_path      : data/input/data4sharing/MELD_BONN_mixed_filtered.csv
+  # csv_path        : data/preprocessed/final_aug_text/MELD_BONN_hemisphere_lobe.csv # MELD_dataset_without_text.csv # H101_reports_fullhemisphere_lobe.csv
+  # split_path      : data/preprocessed/MELD_splits.csv 
