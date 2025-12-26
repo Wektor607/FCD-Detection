@@ -26,22 +26,32 @@ Finally, the chapter concludes with an overview of the thesis structure.
 % By projecting textual and visual features into a shared latent space, such information can be effectively aligned and leveraged to enhance model performance.
 
 Automatic detection of tumors using medical imaging has been widely studied across different internal organs.
-Recent advances in deep learning and transformer-based approaches have led to impressive results in the diagnosis of lung cancer~\cite{Durgam2025LungCancer}, brain tumors~\cite{Abdusalomov2023BrainTumor}, kidney \ac{ct}~\cite{Sharma2025KidneyCT}, and breast cancer~\cite{Mehmood2025BreastCancer}. 
+Recent advances in deep learning and transformer-based approaches have led to impressive results in tumor detection tasks, including lung cancer~\cite{Durgam2025LungCancer}, brain tumors~\cite{Abdusalomov2023BrainTumor}, kidney tumors on \ac{ct} imaging~\cite{Sharma2025KidneyCT}, and breast cancer~\cite{Mehmood2025BreastCancer}. 
 These studies demonstrate the potential of modern computer vision techniques to achieve clinically significant results in various diagnostic tasks.  
 
-However, the detection of epileptogenic lesions, in particular \ac{fcd}, remains a much more difficult task. 
-Unlike tumors, such lesions usually do not change in size over time, and their subtle appearance makes them difficult to identify even for experienced neuroradiologists. 
-In addition, the lack of large publicly available annotated datasets has significantly slowed progress in this area. 
-To address this problem, within the framework of the \ac{meld} project~\cite{Ripart2025MELD}, a large-scale collaborative dataset has recently been created and graph neural network–based approaches have been developed for epileptogenic lesion detection. 
-Although this represents the most advanced solution to date, performance remains limited, underscoring the continued complexity of this task.
+However, the detection of epileptogenic lesions, in particular \ac{fcd}, remains substantially more challenging.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{pictures/FCD_example.png}
+    \caption{Typical features of focal cortical dysplasias (FCDs) visible in MRI~\cite{walger2023ai_fcd}}
+    \label{unseen_fcds}
+\end{figure}
 
-At the same time, recent progress in text-guided and multimodal learning suggests that combining visual information with textual cues may help models focus on anatomically meaningful regions.  
-For tasks with limited training data, such as epileptogenic lesion detection, textual annotations can serve as an additional source of structure, providing guidance toward relevant anatomical context.  
-This motivates investigating whether integrating such information, even in a coarse form (e.g., hemisphere or lobe labels), can compensate for the scarcity of annotated datasets and improve detection performance.
+Unlike tumors, which often show progressive growth and well--defined boundaries, epileptogenic lesions typically remain stable in size and present with subtle imaging features, as illustrated in Fig.~\ref{unseen_fcds}, complicating their identification even for trained neuroradiologists~\cite{walger2023ai_fcd}.
+Earlier approaches~\cite{wagner2011morphometric_fcd, dev2019automatic_fcd, house2021automated_fcd} to automated FCD detection mainly used volumetric convolutional neural networks trained on 3D MRI data, such as T1-weighted and FLAIR images. 
+However, these methods were usually developed using relatively small datasets, often including only a few dozen to a few hundred patients, which limited their reliability and ability to generalize to unseen data. 
+In addition, volumetric CNN-based approaches do not directly model the cortical surface or its shape, even though FCD-related abnormalities mainly affect the cortex. 
+In contrast, the \ac{meld} project~\cite{Ripart2025MELD} uses a surface-based representation of the cortex and applies graph neural networks to model cortical structure and local relationships, allowing the use of large multi-center datasets and addressing important limitations of earlier volumetric methods.
+Although this represents one of the most advanced solutions to date, performance remains limited, underscoring the continued complexity of the detection task.
+
+At the same time, recent progress in text-guided and multimodal learning suggests that combining visual information with textual descriptions may help models focus on clinically relevant anatomical regions.  
+In the context of epileptogenic lesion detection, such textual information can reflect prior clinical knowledge derived from examinations other than MRI, such as EEG findings or seizure semiology.  
+For tasks with limited training data, textual annotations can therefore serve as an additional source of structure by guiding the model toward regions that are clinically suspected, even when MRI findings are subtle.  
+This motivates investigating whether integrating such information, even in a coarse form (e.g., hemisphere or lobe labels), can help compensate for the scarcity of annotated datasets and improve detection performance.
 
 In this thesis, we build upon the surface-based feature maps produced by the pretrained MELD model, which represent the cortical surface as a sparse graph.  
-This raises the question of whether additional GNN layers can further refine these representations by accumulating information across larger neighborhoods.  
-Understanding the benefits and limitations of such graph-based aggregation is particularly relevant in sparse settings, where the model’s ability to capture long-range context may directly influence lesion detectability.
+Given this graph-based representation, a natural next step is to investigate whether additional \ac{gnn} layers can further improve lesion detection by aggregating information across larger neighborhoods on the cortical surface.  
+Understanding the benefits and limitations of such graph-based aggregation is particularly important in sparse settings, where capturing long-range context may directly influence lesion detection.
 
 \section{Aims of the Thesis}
 The main objective of this thesis is to investigate how the integration of textual and visual information 
@@ -64,14 +74,8 @@ and the sensitivity of epileptogenic lesion detection.
 
 The main contributions of this thesis can be summarized as follows:
 
-\begin{enumerate}
-    % \item Introduced a state-of-the-art multimodal model for detecting epileptogenic lesions by combining visual features with language-guided information.
-    % \item Conducted extensive experiments to evaluate different design choices, such as the number of connections in the \ac{gnn} blocks, in order to improve segmentation results.
-    % \item Analyzed the impact of different types of textual descriptions (including full atlas annotations, hemisphere and lobe names, etc.) on model accuracy and sensitivity.
-    % \item Provided thorough documentation and usage guidelines for the developed code.
-    % \item Created a user-friendly framework for working with different types of pretrained models.
-    
-    \item Introduced a state-of-the-art multimodal model for epileptogenic lesion detection that integrates surface-based visual features with language-guided information.
+\begin{enumerate}    
+    \item Introduced a state-of-the-art multimodal model for epileptogenic lesion detection that integrates surface-based visual features with textual information.
     \item Conducted a systematic evaluation of design choices related to graph-based feature aggregation, including different configurations of GNN blocks.
     \item Assessed the effect of multiple types of textual descriptions (full atlas annotations, hemisphere and lobe labels, etc.) on model accuracy and sensitivity.
     \item Delivered comprehensive documentation and usage guidelines for the implemented methods.
