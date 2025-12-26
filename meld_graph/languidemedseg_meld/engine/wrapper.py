@@ -18,7 +18,7 @@ import torch
 from languidemedseg_meld.models.model import LanGuideMedSeg
 from meld_graph.icospheres import IcoSpheres
 from meld_graph.meld_cohort import MeldCohort
-from utils.config import SCRIPTS_DIR
+from utils.config import SCRIPTS_DIR, DATA_DIR
 from utils.utils import convert_preds_to_nifti, summarize_ci
 
 from .loss_meld import calculate_loss, dice_coeff, tp_fp_fn_tn
@@ -86,7 +86,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
             text_emb=text_emb
         )
 
-        self.c = MeldCohort()
+        self.c = MeldCohort(data_dir=DATA_DIR)
 
         # cache cortex mask on CPU to avoid recreating tensor every batch
         self.cortex_mask_cpu = torch.from_numpy(self.c.cortex_mask)

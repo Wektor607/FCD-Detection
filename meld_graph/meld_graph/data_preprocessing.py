@@ -159,7 +159,7 @@ class Preprocess:
         combine_hemis=None,
         harmo_code=None,
         only_lesion=False,
-        only_features=False
+        only_features=False,
     ):
         """
         Preprocess features data for a single subject depending on params.
@@ -177,6 +177,7 @@ class Preprocess:
         Returns:
             features_left, features_right, lesion_left, lesion_right
         """
+
         subj = MeldSubject(subject, cohort=self.cohort)
         subject_data = []
         # load data & lesion

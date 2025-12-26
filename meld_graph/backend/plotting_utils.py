@@ -52,7 +52,7 @@ def plot_and_save(img_nii, epi_dict, file_name: str, out_dir: Path, t1_file: str
     nii_out_path = out_dir / f"{file_name}.nii.gz"
     nib.save(img_float, nii_out_path)
 
-    # copy surface PNG (если он реально обновляется!)
+    # copy surface PNG
     src = OUTPUT_DIR / "predictions_reports"/ model_type / file_name / "predictions" / f"{file_name}_surface_combined.png"
     dst = out_dir / f"{file_name}_surface_combined.png"
 

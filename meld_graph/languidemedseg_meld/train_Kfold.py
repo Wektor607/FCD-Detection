@@ -116,7 +116,6 @@ def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fol
                 cohort=cohort, 
                 max_length=args.max_len, 
                 text_emb=True,)
-#!!!!!!!!!!!!!!!!!!!!!!! Make like a parameter!
                 # text_prob_json="/data/preprocessed/mixed/train_prob.json")
     ds_valid = EpilepDataset(csv_path=args.csv_path, 
                 tokenizer=tokenizer, 
@@ -130,15 +129,19 @@ def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fol
     labels = [0 if sid in hc_set else 1 for sid in ds_train.subject_ids]
     sampler = LesionOversampleSampler(labels, seed=fold_seed)
     
-    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, sampler=sampler, num_workers=args.train_batch_size, pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
-    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, num_workers=args.valid_batch_size, pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
+    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, sampler=sampler, 
+                          num_workers=args.train_batch_size, 
+                          pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
+    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, 
+                          num_workers=args.valid_batch_size, 
+                          pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
     
     return dl_train, dl_valid
 
 if __name__ == "__main__":
     args = get_cfg()
 
-    eva, cohort, exp_flags = config.inference_config()
+    eva, cohort, exp_flags = config.inference_config(data_dir=config.DATA_DIR)
     # wandb_logger = WandbLogger(project=args.project_name, log_model=True)
     
     df = pd.read_csv(args.split_path, sep=",")
@@ -185,8 +188,8 @@ if __name__ == "__main__":
         # trainer device setup
         if torch.cuda.is_available():
             accelerator = "gpu"
-            devices = "auto"
-            strategy = "ddp_sharded"
+            devices = 1 #"auto"
+            strategy = None #"ddp_sharded"
         else:
             accelerator = "cpu"
             args.device = "cpu"

@@ -19,7 +19,7 @@ from torch.utils.data import Dataset
 from meld_graph.data_preprocessing import Preprocess as Prep
 from meld_graph.meld_cohort import MeldCohort
 from meld_graph.paths import FEATURE_PATH
-from utils.config import SCRIPTS_DIR
+from utils.config import SCRIPTS_DIR, DATA_DIR
 
 
 def load_config(config_file: str) -> Any:

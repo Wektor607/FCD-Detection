@@ -1,103 +1,322 @@
-<img src="https://raw.githubusercontent.com//MELDProject/meld_graph/main/docs/images/MELD_logo.png" alt="MELD logo" width="100" align="left"/> 
+# Multimodal FCD Detection Model  
+### Docker Setup & Training Guide
 
-# MELD Graph 
+This repository contains the code for a **new multimodal architecture for FCD detection**,  
+built on top of the [**MELD Graph**](https://github.com/MELDProject/meld_graph/tree/main?tab=readme-ov-file) pipeline and fully wrapped in Docker.
 
-**Full documentation: [here](https://meld-graph.readthedocs.io/en/latest/index.html)**
+⚠️ **Important notes**
 
-**Intro to MELD Graph and installation videos: [here](https://youtu.be/PIM1gwYNLns)**
+* **Memory requirements:** at least **20 GB RAM** is recommended  
+  (especially for MELD preprocessing and training inside Docker)
+* Please check the official [**MELD documentation**](https://meld-graph.readthedocs.io/en/latest/install_docker.html)
+* If the instructions below are unclear, we highly recommend watching the official  
+  [**installation video**](https://www.youtube.com/watch?v=oduOe6NDXLA)
+* For model training, GPUs such as **NVIDIA A40 or A100** are recommended,  
+  or other GPUs with a **similar amount of VRAM**.
 
-Graph based FCD lesion segmentation for the [MELD project](https://meldproject.github.io/).
+---
 
-This package is a pipeline to segment FCD-lesions from MRI scans. 
+## 1. Prerequisites
 
-**<span style="color: red;">SIGN UP TO THE MELD GRAPH MAILING LIST</span>**:
-We request that all MELD Graph users sign up to the mailing list. If you are using MELD Graph, please send an email to `meld.study@gmail.com` with the subject 'Request to be added to the MELD Graph mailing list' and provide use with your name and institute. This will ensure that we can update you about bug fixs and new releases. 
+### 1.1 Install Docker
 
-**<span style="color: red;">EXISTING USERS: PLEASE UPDATE TO VERSION V2.2.2</span>**:
-We have released MELD Graph V2.2.2 which fixes a couple of issues found by users. For more information about the release please see [MELD Graph V2.2.2](https://github.com/MELDProject/meld_graph/releases/tag/v2.2.2). To update your code please follow the guidelines [Updating MELD Graph to V2.2.2](https://meld-graph.readthedocs.io/en/latest/FAQs.html#Updating-MELD-Graph-to-V2.2.2) from our FAQ.
+Follow the official instructions:
+
+* [https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
+
+Verify:
+
+```bash
+docker --version
+```
+
+---
+
+### 1.2 Install NVIDIA Container Toolkit (GPU support)
+
+Required to run training on GPU.
+
+Follow:
+[https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+Verify:
+
+```bash
+docker run --rm --gpus all nvidia/cuda:12.1.0-base nvidia-smi
+```
+
+---
+
+### 1.3 Get FreeSurfer License
+
+* Register and download license here:
+  [https://surfer.nmr.mgh.harvard.edu/registration.html](https://surfer.nmr.mgh.harvard.edu/registration.html)
+
+You will receive a file called:
+
+```
+license.txt
+```
+
+Move the license file to the **meld_graph root folder** (where `Dockerfile` is located):
+
+```
+meld_graph/
+├── Dockerfile
+├── compose.yml
+├── license.txt   ← HERE
+```
+
+---
+
+### 1.4 MELD License
+
+You [**must fill out the MELD form**](https://docs.google.com/forms/d/e/1FAIpQLSdocMWtxbmh9T7Sv8NT4f0Kpev-tmRI-kngDhUeBF9VcZXcfg/viewform) to obtain the MELD license.
+Place it next to `license.txt`:
+
+```
+meld_license.txt
+```
+
+---
+
+## 2. Data Setup
+
+### 2.1 Update Data Path (IMPORTANT)
+
+Edit `compose.yml`:
+
+```yaml
+volumes:
+  - {YOUR_PATH}/meld_graph/data:/data
+```
+
+⚠️ This path **must point to your local data directory**.
+
+---
+
+### 2.2 Required Files
+
+The following file is required:
+
+```
+
+/data/MELD_splits.csv
+
+```
+
+This file must contain **two columns**:
+
+```
+
+subject_id,split
+patient_1,test
+patient_2,trainval
+...
+
+```
+
+where:
+- `subject_id` — unique subject identifier  
+- `split` — data split assignment (`trainval` or `test`)
+
+⚠️ **Note:** A demographic file is **not required** for this pipeline.
 
 
-![overview](https://raw.githubusercontent.com//MELDProject/meld_graph/main/docs/images/Fig1_pipeline.jpg)
+---
 
-*Code Authors : Mathilde Ripart, Hannah Spitzer, Sophie Adler, Konrad Wagstyl*
+## 3. Model Setup
 
-## Notes
+### 3.1 Using MELD Pretrained Model
 
-This package is intended to be used as a research tool to segment FCD lesions in patients with focal epilepsy where a FCD is suspected. It can be run on 1.5T or 3T MRI data. A 3D T1 is required and it is optional but advised to include the 3D FLAIR. 
+Run once:
 
-It is not appropriate to use this algorithm on patients with:
-- suspected hippocampal sclerosis
-- hypothalamic hamartoma
-- periventricular nodular heterotopia
-- other focal epilepsy pathologies
-- previous resection cavities
+```bash
+DOCKER_USER="$(id -u):$(id -g)" \
+docker compose run meld_graph \
+python scripts/new_patient_pipeline/prepare_classifier.py
+```
 
-**Harmonisation** - MRI data from different MRI scanners looks subtly different. This means that feature measurements, e.g. cortical thickness measurements, differ depending on which MRI scanner a patient was scanned on. We harmonise features (using NeuroCombat) to adust for site based differences. We advise new users to harmonise data from their MRI scanner to the MELD graph dataset. Please follow the guidelines to harmonise the data from your site. Note: the model will still produce predictions on new, unharmonised subjects but the number of false positive predictions is higher if the data is not harmonised.
+---
 
-This package also contains code for training and evaluating graph-based U-net lesion segmentation models operating on icosphere meshes. \
-In addition to lesion segmentation, the model also contain auxiliary distance regression and hemisphere classification losses.
+### 3.2 Using Pretrained Models
 
-For more information on how the algorithm was developed and expected performance - check our papers: 
-- [Ripart et al.,2025 JAMA Neurology -  Detection of epileptogenic focal cortical dysplasia using graph neural networks: a MELD study](https://jamanetwork.com/journals/jamaneurology/fullarticle/2830410)
-- [Spitzer, Ripart et al., 2022 Brain - the original MELD FCD pipeline and dataset](https://academic.oup.com/brain/advance-article/doi/10.1093/brain/awac224/6659752)
-- [Spitzer et al., 2023 MICCAI - the updated graph-based model architecture](https://arxiv.org/abs/2306.01375)
+Create the following directory and place the pretrained model checkpoints in this directory:
 
+```bash
+data/saved_models/
+```
 
-## Disclaimer
+📦 **Pretrained models availability**
 
-The MELD surface-based graph FCD detection algorithm is intended for research purposes only and has not been reviewed or approved by the Medicines and Healthcare products Regulatory Agency (MHRA), European Medicine Agency (EMA) or by any other agency. Any clinical application of the software is at the sole risk of the party engaged in such application. There is no warranty of any kind that the software will produce useful results in any way. Use of the software is at the recipient's own risk.
+* A public download link will be provided later.
+* Until then, please contact the author via email: **[mikhelson.g@gmail.com](mailto:mikhelson.g@gmail.com)**
+---
 
-## Installation & Use of the MELD FCD prediction pipeline
+## 4. Training
 
-### Installations available 
-You can install and use the MELD FCD prediction pipeline with :
-- [**docker container**](https://meld-graph.readthedocs.io/en/latest/install_docker.html) recommended for easy installation of the pipeline as all the prerequisite packages are already embedded into the container. Note: Dockers are not working on High Performance Computing (HCP) systems
-- [**native installation**](https://meld-graph.readthedocs.io/en/latest/install_native.html) recommended for Mac and users that want to modify the code and/or use the code to train/test their own classifier. 
-- [**singularity container**](https://meld-graph.readthedocs.io/en/latest/install_singularity.html) enables to run a container on High Performance Computing (HCP) systems.
+### 4.1 Build Image
 
-**IMPORTANT NOTE**: The installations listed above are not supported on Virtual Machines. Please install MELD Graph on full Linux, Windows or MAC computers
+```bash
+DOCKER_BUILDKIT=0 docker compose -f compose.yml build
+```
 
-**YouTube tutorials available for the [docker installation](https://youtu.be/oduOe6NDXLA) and [native installation](https://youtu.be/jUCahJ-AebM)**
+---
 
+### 4.2 Start Container
 
-### Running the pipeline 
-Once installed you will be able to use the MELD FCD prediction pipeline on your data following the steps:
-1. Prepare your data : [guidelines](https://meld-graph.readthedocs.io/en/latest/prepare_data.html)
-2. Compute the harmonisation parameters : [guidelines](https://meld-graph.readthedocs.io/en/latest/harmonisation.html) (OPTIONAL but highly recommended)
-3. Run the prediction pipeline: [guidelines](https://meld-graph.readthedocs.io/en/latest/run_prediction_pipeline.html)
-4. Interpret the results: [guidelines](https://meld-graph.readthedocs.io/en/latest/interpret_results.html)
+```bash
+docker compose up -d meld_graph
+```
 
-**YouTube tutorials available to run the [harmonisation step](https://youtu.be/te_TR6sA5sQ), to run the [prediction pipeline](https://youtu.be/OZg1HSzqKyc) and to [interpret the pipeline results](https://youtu.be/dSyd1zOn4F8)**
+---
 
-**FAQs** 
-If you have a question or if you are running into issues at any stage (installation/use/interpretation), have a look at our [FAQs](https://meld-graph.readthedocs.io/en/latest/FAQs.html) page as we may have already have a solution. 
+### 4.3 Enter Container
 
-**What is the harmonisation process ?**
+```bash
+docker compose exec meld_graph bash
+```
 
-Scanners can induce a bias in the MRI data. The MELD pipeline recommends adjusting for these scanners differences by running a preliminary harmonisation step to compute the harmonisation parameters for that specific scanner. Note: this step needs to be run only once, and requires data from at least 20 subjects acquired on the same scanner and demographic information (e.g age and sex). See [harmonisation instructions](https://meld-graph.readthedocs.io/en/latest/harmonisation.html) for more details. 
+---
 
-Note: The MELD pipeline can also be run without harmonisation, with a small drop in performance.
+### 4.4 Run Training
 
-## Additional information
-With the native installation of the MELD classifier you can reproduce the figures from our paper and train/evaluate your own models.
-For more details, check out the guides linked below:
-- [Notebooks to reproduce figures](https://meld-graph.readthedocs.io/en/latest/figure_notebooks.html)
-- [Train and evaluate models](https://meld-graph.readthedocs.io/en/latest/train_evaluate.html)
+```bash
+WANDB_MODE=disabled \
+python languidemedseg_meld/train_Kfold.py \
+  --config languidemedseg_meld/config/training.yaml \
+  --job_name exp2
+```
 
-## Contribute
-If you'd like to contribute to this code base, have a look at our [contribution guide](https://meld-graph.readthedocs.io/en/latest/contributing.html)
+⚠️ **Note on ensemble training and random seeds**
 
+During our experiments, we trained an **ensemble of 5 models**.
+To increase ensemble diversity, **random seeds were manually changed between runs**.
 
-## Acknowledgments
+Although the training script defines a base seed (`SEED = 42`), each cross-validation fold
+is trained with a **fold-specific seed**:
 
-We would like to thank 
-- the [MELD consortium](https://meldproject.github.io//docs/collaborator_list.pdf) for providing the data to train this classifier and their expertise to build this pipeline.\
-- [Lennart Walger](https://github.com/1-w) and [Andrew Chen](https://github.com/andy1764), for their help testing and improving the MELD pipeline to v1.1.0. \
-- [Ulysses Popple](https://github.com/ulyssesdotcodes) for his help building the docs and dockers.
-- [Cornelius Kronlage](https://github.com/ckronlage) highlighting issues in v2.2.1 and suggesting solutions in v2.2.2
+```
+fold_seed = SEED + fold
+```
 
-## Contacts
+This seed affects data shuffling, sampling, model initialization, and all other stochastic
+components of training.
 
-Contact the MELD team at `meld.study@gmail.com`
+If you plan to reproduce the ensemble setup, make sure to **vary the base seed across runs**
+(e.g. by modifying the `SEED` value in the training script).
+Running multiple trainings with the same seed will result in highly correlated models and
+significantly reduce the effectiveness of the ensemble.
 
-*Please note that we are a small team and only have one day a week dedicated to the support of the MELD tools ([MELD Graph](https://github.com/MELDProject/meld_graph) and [AID-HS](https://github.com/MELDProject/AID-HS)). We will answer your emails as soon as we can!*
+---
+
+### 4.5 Run Testing
+
+```markdown
+```bash
+WANDB_MODE=disabled \
+python3 languidemedseg_meld/test_Kfold.py \
+  --config languidemedseg_meld/config/training.yaml \
+  --ckpt_prefix saved_models/exp2
+````
+
+⚠️ **Note on ensemble evaluation**
+
+The testing script supports **ensemble inference** by loading multiple checkpoints
+corresponding to different cross-validation folds.
+
+By default, the ensemble is constructed using the following logic in the test script:
+
+```python
+ckpt_paths = [
+    ckpt_prefix.parent / f"{ckpt_prefix.name}_fold{i+1}.ckpt"
+    for i in range(5)
+]
+```
+
+This assumes that:
+
+* models were trained using **5-fold cross-validation**, and
+* checkpoint files follow the naming pattern
+  `<ckpt_prefix>_fold1.ckpt, ..., <ckpt_prefix>_fold5.ckpt`.
+
+If you trained a different number of folds or used a custom naming scheme,
+please adjust this section of the code accordingly.
+
+---
+
+## 5. Web Interface
+
+### 5.1 Run Web Stack
+
+```bash
+DOCKER_BUILDKIT=0 \
+docker compose -f docker-web-compose.yml up --build
+```
+
+---
+
+## 6. Common Issues
+
+### ❌ GPU not detected
+
+Check:
+
+```bash
+nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.1.0-base nvidia-smi
+```
+
+---
+
+### ❌ Bus error / DataLoader crash
+
+Cause: insufficient shared memory (`/dev/shm`)
+
+Fix:
+
+```bash
+docker compose up -d --shm-size=8g
+```
+
+---
+
+## 7. Cleanup (Disk Space)
+
+Remove stopped containers:
+
+```bash
+docker container prune
+```
+
+Remove unused images:
+
+```bash
+docker image prune
+```
+
+Full cleanup:
+
+```bash
+docker system prune -a
+```
+
+---
+
+## 8. System Requirements
+
+| Resource | Minimum  | Recommended  |
+| -------- | -------- | ------------ |
+| RAM | ❌ 8 GB | ✅ ≥20 GB (recommended 32 GB) |
+| GPU      | Optional | ✅ NVIDIA A40 / A100 GPU |
+| Disk     | 50+ GB   | 100+ GB      |
+
+---
+
+## Contact / Notes
+
+If something breaks — **it’s usually paths, licenses, or RAM/GPU**.  
+Please double-check those first.
+
+For questions, bug reports, or access to pretrained models, feel free to contact:  
+**mikhelson.g@gmail.com**

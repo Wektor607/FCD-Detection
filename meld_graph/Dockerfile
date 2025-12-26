@@ -131,3 +131,4 @@ ENV KEEP_DATA_PATH=1
 ENV SILENT=1
 
 ENTRYPOINT ["/bin/bash","entrypoint.sh"]
+CMD ["bash"]

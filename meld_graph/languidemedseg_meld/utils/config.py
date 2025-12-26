@@ -177,7 +177,7 @@ def _check_and_coerce_cfg_value_type(replacement, original, key, full_key):
         )
     )
 
-def inference_config():
+def inference_config(data_dir=DATA_DIR_INFERENCE):
     hdf5_file_root = "{site_code}_{group}_featurematrix_combat.hdf5"
     # create dataset csv
     tmp = tempfile.NamedTemporaryFile(mode="w")
@@ -188,16 +188,11 @@ def inference_config():
     #update experiment 
     exp.cohort = MeldCohort(hdf5_file_root=hdf5_file_root, 
                             dataset=tmp.name, 
-                            data_dir=DATA_DIR_INFERENCE)
+                            data_dir=data_dir)
     exp.data_parameters["hdf5_file_root"] = hdf5_file_root
     exp.data_parameters["dataset"] = tmp.name
 
     exp.experiment_path = experiment_path
-    cohort = MeldCohort(
-        hdf5_file_root=exp.data_parameters["hdf5_file_root"],
-        dataset=exp.data_parameters["dataset"],
-        data_dir=DATA_DIR_INFERENCE
-    )
 
     eva = Evaluator(
         experiment=exp,
@@ -216,4 +211,4 @@ def inference_config():
         # добавьте другие эксперименты по необходимости
     }
 
-    return eva, cohort, exp_flags
+    return eva, exp.cohort, exp_flags

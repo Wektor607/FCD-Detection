@@ -31,27 +31,27 @@ SEED = 42
 
 class LesionOversampleSampler(Sampler):
     """
-    Сэмплер, который берёт ВСЕ healthy-примеры ровно по одному разу,
-    а lesion-примеры — с replacement, чтобы заполнить всю эпоху.
+        A sampler that takes ALL the healthy examples exactly once,
+        and lesion examples are with replacement to fill the entire epoch.
     """
 
     def __init__(self, labels, seed=42):
         self.labels = labels
         random.seed(seed)
-        # индексы здоровых и lesion
+        
         self.hc_idx = [i for i, label in enumerate(labels) if label == 0]
         self.les_idx = [i for i, label in enumerate(labels) if label == 1]
-        # хотим ровно len(labels) выборок за эпoху
+        
         self.epoch_size = len(labels)
 
     def __iter__(self):
-        # начинаем с всех hc-индексов
+        
         idxs = self.hc_idx.copy()
-        # сколько нужно докинуть lesion'ов
+        
         n_les_to_sample = self.epoch_size - len(idxs)
-        # добавляем lesion с replacement
+        
         idxs += random.choices(self.les_idx, k=n_les_to_sample)
-        # перемешиваем всю эпоху
+        
         random.shuffle(idxs)
         return iter(idxs)
 
@@ -86,19 +86,13 @@ def threshold_surface_prediction(pred, percentile=99.5):
 
 
 def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
-    subjects_fs_dir = Path(MELD_DATA_PATH) / "input" # / "data4sharing" <- later return back for training or change the folder name, which contains data
+    subjects_fs_dir = Path(MELD_DATA_PATH) / "input"
     predictions_output_root = Path(MELD_DATA_PATH) / "output" / "predictions_reports" / ckpt_path
     os.makedirs(predictions_output_root, exist_ok=True)
 
     results = {}
 
     for (sid, pred) in zip(subject_ids, probs_bin):
-
-        # Skip-list
-        # if sid in ["MELD_H3_3T_FCD_0018", "MELD_H4_15T_FCD_0021", "MELD_H6_3T_FCD_0017"]:
-        #     print(f"Skipping {sid} as per request")
-        #     continue   
-
         # Convert prediction tensor → numpy
         predictions = pred.detach().cpu().numpy() if hasattr(pred, "detach") else np.asarray(pred)
 
@@ -132,7 +126,6 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
             # MGH template
             affine = nib.load(
                 SUBJECTS_DIR / "fsaverage_sym" / "mri" / "T1.mgz"
-                # "/app/data/input/sub-00170_acq-T2sel_FLAIR_likeT1.nii.gz"
             ).affine
 
             mgh_img = nib.MGHImage(base_arr[np.newaxis, :, np.newaxis], affine)
@@ -149,11 +142,6 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
             )
 
             surf_vis_path = predictions_dir / f"{hemi}_surface_visualisation.png"
-            # volume_3d_visualisation(
-            #     prediction_surf=overlay, # maybe add np.squeeze
-            #     hemi_name=hemi,
-            #     save_path=surf_vis_path
-            # )
             surf_pred = threshold_surface_prediction(overlay, percentile=99.5)
 
             volume_3d_visualisation(
@@ -171,32 +159,13 @@ def convert_preds_to_nifti(ckpt_path, subject_ids, probs_bin, c, mode="test"):
         rh_nii = predictions_dir / "rh.prediction.nii.gz"
         final_nii = predictions_dir / f"prediction_{sid}.nii.gz"
 
-        # def _binarize_nii(path):
-        #     if not path.exists():
-        #         return None
-        #     img = nib.load(str(path))
-        #     arr = img.get_fdata()
-        #     sys.stderr.write(
-        #         f"{path}\n"
-        #         f"  min/max: {np.nanmin(arr)} / {np.nanmax(arr)}\n"
-        #         f"  unique~: {np.unique(arr[~np.isnan(arr)])[:10]}\n"
-        #         f"  fraction > 0: {(arr > 0).mean():.4f}\n"
-        #         f"  fraction > 0.5: {(arr > 0.5).mean():.4f}\n"
-        #     )
-
-        #     arr_bin = (arr > 0).astype(np.uint8)
-        #     nib.save(nib.Nifti1Image(arr_bin, img.affine, img.header), str(path))
-        #     return path
-
-        # lh_p = _binarize_nii(lh_nii)
-        # rh_p = _binarize_nii(rh_nii)
         lh_p = lh_nii if lh_nii.exists() else None
         rh_p = rh_nii if rh_nii.exists() else None
         if lh_p and rh_p:
             lh_img = nib.load(str(lh_p))
             rh_img = nib.load(str(rh_p))
             combined = np.maximum(lh_img.get_fdata(), rh_img.get_fdata())
-            # combined = (combined > 0).astype(np.uint8)
+            
             nib.save(nib.Nifti1Image(combined, lh_img.affine, lh_img.header), str(final_nii))
             print(f"🎉 Final combined PRED NIfTI: {final_nii}")
         else:

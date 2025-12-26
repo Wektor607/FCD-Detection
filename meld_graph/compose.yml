@@ -3,11 +3,16 @@ services:
     build: .
     image: meldproject/meld_graph:latest
     platform: "linux/amd64"
-    volumes:
-      - /home/mikhelson/FCD-Detection/meld_graph/data:/data # Change on your local path
-    environment: 
+    runtime: nvidia
+    tty: true
+    stdin_open: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - FS_LICENSE=/run/secrets/license.txt
       - MELD_LICENSE=/run/secrets/meld_license.txt
+    volumes:
+      - /home/mikhelson/FCD-Detection/meld_graph/data:/data # Change on your local path
     secrets:
       - license.txt
       - meld_license.txt
@@ -17,7 +22,6 @@ services:
         reservations:
           devices:
             - capabilities: [gpu]
-              count: 0
 
 secrets:
   license.txt:
