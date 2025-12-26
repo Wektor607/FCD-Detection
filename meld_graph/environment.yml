@@ -2,7 +2,7 @@ name: FCD-meld
 
 channels:
   - conda-forge
-  - defaults  # добавьте этот канал для совместимости
+  - defaults
 
 dependencies:
   - python=3.9.18
