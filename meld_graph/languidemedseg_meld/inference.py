@@ -84,7 +84,6 @@ def create_inference_loader(subject_data: dict, description: str, tokenizer, coh
 
 
 def load_ensemble_models(ckpt_prefix: str, args, eva, exp_flags, device: torch.device) -> List[torch.nn.Module]:
-    # save_dir = Path("meld_graph") / "languidemedseg_meld" / "save_model"
     save_dir = Path("data") / "saved_models"
     i = 4
     ckpt_paths = [save_dir / f"{ckpt_prefix}_fold{i+1}.ckpt"]
@@ -185,7 +184,6 @@ def postprocess_and_save(all_subject_ids, all_probs, eva, cohort: MeldCohort, mo
         out = eva.threshold_and_cluster(data_dictionary=mini, save_prediction=False)
         probs_flat = out[sid]["cluster_thresholded"]
 
-        # Собираем информацию о кластерах
         probs_2h = probs_flat.reshape(H, -1)
         lh_probs = probs_2h[0]
         rh_probs = probs_2h[1]
@@ -234,7 +232,6 @@ def process_meld_model(dl_inference: DataLoader, subject_data: dict, cohort: Mel
             else:
                 probs_flat = out[sid]["cluster_thresholded"]
 
-            # Собираем информацию о кластерах
             probs_2h = probs_flat.reshape(H, -1)
             lh_probs = probs_2h[0]
             rh_probs = probs_2h[1]
