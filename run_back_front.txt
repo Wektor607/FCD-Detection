@@ -1,5 +1,0 @@
-Backend:
-PYTHONPATH=/home/s17gmikh/FCD-Detection python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
-
-Frontend
-npm start
