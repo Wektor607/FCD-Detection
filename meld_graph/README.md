@@ -153,6 +153,49 @@ data/saved_models/
 * Until then, please contact the author via email: **[mikhelson.g@gmail.com](mailto:mikhelson.g@gmail.com)**
 ---
 
+### 3.3 Feature Generation (MELD Graph)
+
+Before starting model training, make sure that **surface-based features at multiple hierarchy levels**
+have been generated from the HDF5 data using the MELD Graph pipeline.
+
+If your data are already available in **HDF5 format**, run the following command to generate
+multi-level features:
+
+```bash
+./meldgraph.sh run_script_prediction_meld.py \
+  --list_ids input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv \
+  --demographic_file input/data4sharing/demographics_qc_allgroups_withH27H28H101.csv \
+  --aug_mode train
+```
+
+This step generates surface-based features at different icosphere levels, which are required
+by the multimodal model during training and inference.
+
+⚠️ **Note:**
+If you only have **raw MRI data** and need to convert them into the MELD-compatible HDF5 format,
+please follow the official MELD Graph harmonisation and preprocessing instructions:
+[https://meld-graph.readthedocs.io/en/latest/harmonisation.html](https://meld-graph.readthedocs.io/en/latest/harmonisation.html)
+
+---
+
+### 3.4 Text Generation
+
+For the multimodal setup, **textual descriptions must be generated** for each subject
+before training and inference.
+
+Instructions and scripts for generating text descriptions are provided here:
+
+```
+
+meld_graph/utils/text_generation/README.md
+
+```
+
+Please follow the steps described in this README to generate the required text inputs,
+which are then used by the language-guided component of the model.
+
+---
+
 ## 4. Training
 
 ### 4.1 Build Image
