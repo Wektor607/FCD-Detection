@@ -32,21 +32,21 @@ These studies demonstrate the potential of modern computer vision techniques to 
 However, the detection of epileptogenic lesions, in particular \ac{fcd}, remains substantially more challenging.
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\textwidth]{pictures/FCD_example.png}
-    \caption{Typical features of focal cortical dysplasias (FCDs) visible in MRI~\cite{walger2023ai_fcd}}
+    \includegraphics[width=0.8\textwidth]{pictures/FCD_example.png}
+    \caption{Typical features of focal cortical dysplasias (FCDs) visible in \ac{mri}~\cite{walger2023ai_fcd}}
     \label{unseen_fcds}
 \end{figure}
 
 Unlike tumors, which often show progressive growth and well--defined boundaries, epileptogenic lesions typically remain stable in size and present with subtle imaging features, as illustrated in Fig.~\ref{unseen_fcds}, complicating their identification even for trained neuroradiologists~\cite{walger2023ai_fcd}.
-Earlier approaches~\cite{wagner2011morphometric_fcd, dev2019automatic_fcd, house2021automated_fcd} to automated FCD detection mainly used volumetric convolutional neural networks trained on 3D MRI data, such as T1-weighted and FLAIR images. 
+Earlier approaches~\cite{wagner2011morphometric_fcd, dev2019automatic_fcd, house2021automated_fcd} to automated FCD detection mainly used volumetric convolutional neural networks trained on 3D \ac{mri} data, such as T1-weighted and FLAIR images. 
 However, these methods were usually developed using relatively small datasets, often including only a few dozen to a few hundred patients, which limited their reliability and ability to generalize to unseen data. 
 In addition, volumetric CNN-based approaches do not directly model the cortical surface or its shape, even though FCD-related abnormalities mainly affect the cortex. 
 In contrast, the \ac{meld} project~\cite{Ripart2025MELD} uses a surface-based representation of the cortex and applies graph neural networks to model cortical structure and local relationships, allowing the use of large multi-center datasets and addressing important limitations of earlier volumetric methods.
 Although this represents one of the most advanced solutions to date, performance remains limited, underscoring the continued complexity of the detection task.
 
 At the same time, recent progress in text-guided and multimodal learning suggests that combining visual information with textual descriptions may help models focus on clinically relevant anatomical regions.  
-In the context of epileptogenic lesion detection, such textual information can reflect prior clinical knowledge derived from examinations other than MRI, such as EEG findings or seizure semiology.  
-For tasks with limited training data, textual annotations can therefore serve as an additional source of structure by guiding the model toward regions that are clinically suspected, even when MRI findings are subtle.  
+In the context of epileptogenic lesion detection, such textual information can reflect prior clinical knowledge derived from examinations other than \ac{mri}, such as EEG findings or seizure semiology.  
+For tasks with limited training data, textual annotations can therefore serve as an additional source of structure by guiding the model toward regions that are clinically suspected, even when \ac{mri} findings are subtle.  
 This motivates investigating whether integrating such information, even in a coarse form (e.g., hemisphere or lobe labels), can help compensate for the scarcity of annotated datasets and improve detection performance.
 
 In this thesis, we build upon the surface-based feature maps produced by the pretrained MELD model, which represent the cortical surface as a sparse graph.  

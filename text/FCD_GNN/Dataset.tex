@@ -8,14 +8,14 @@ Without this resource, it would not have been possible to conduct a systematic e
 
 \section{Bonn Dataset}
 
-The Bonn scientific group has published a publicly available presurgical MRI dataset on \textbf{OpenNeuro}, entitled 
+The Bonn scientific group has published a presurgical MRI dataset on \textbf{OpenNeuro}, entitled 
 “\textit{An open presurgery MRI dataset of people with epilepsy and focal cortical dysplasia type II}”~\cite{Rueber2023_BonnFCDDataset}.  
 This dataset comprises \textbf{170 participants}, including \textbf{85 individuals with FCD type II} and \textbf{85 healthy controls}. 
 For each participant, the following data are available:
 
 \begin{itemize}
     \item High-resolution \textbf{3D T1-weighted} MRI scans (isotropic voxels, 1\,mm$^{3}$ or 0.8\,mm$^{3}$ resolution, depending on the subject);
-    \item Corresponding \textbf{isotropic 3D FLAIR} imaging, available for most participants;
+    \item Corresponding \textbf{isotropic 3D FLAIR} imaging;
     \item \textbf{Manually delineated regions of interest (ROIs)} identifying FCD lesions, provided for patients only;
     \item A set of \textbf{clinical and demographic variables} (including age, sex, lesion laterality and location, histopathological subtype IIa/IIb, MRI-negative status, and postoperative outcome according to Engel classification).
 \end{itemize}
@@ -46,7 +46,6 @@ participants.tsv
 participants.json
 participants_with_scanner.tsv
 dataset_description.json
-meld_bids_config.json
 \end{verbatim}
 
 The file \texttt{participants.tsv} contains demographic and clinical information 
@@ -75,13 +74,16 @@ For each participant, the dataset includes:
 \begin{itemize}
     \item Structural \ac{mri}: \textbf{3D T1-weighted} (acquired for all participants) and \textbf{3D FLAIR}, which was included only 
     for participants for whom this sequence was available;
-    \item Lesion annotations: \textbf{manually delineated \ac{roi}} identifying FCD lesions (patients only). For MRI-negative cases, \textbf{postsurgical resection cavities} were used to guide ROI definition;
+    \item Lesion annotations: \textbf{manually delineated \ac{roi}} identifying FCD lesions (patients only).
+    For MRI-negative cases, i.e., patients in whom no visible lesion is detected on conventional MRI despite histologically confirmed FCD, \textbf{postsurgical resection cavities} were used to guide ROI definition;
+
     \item Demographic and clinical metadata;
     \item Predefined splits for training, validation, and test cohorts.
 \end{itemize}
 
 \subsection*{Dataset Structure}
-
+To reduce inter-site variability arising from differences in scanners and acquisition protocols across centers, 
+the MELD dataset provides surface-based features that have been harmonized using the ComBat method~\cite{fortin2018combat}.
 The provided ComBat-harmonized \texttt{.hdf5} files do not contain the multiscale
 representations used in the MELD pipeline. Instead, they store only per-vertex
 cortical attributes extracted by FreeSurfer (e.g., cortical thickness,
@@ -109,11 +111,7 @@ In addition to the raw measurements, features were further processed into
 \textbf{raw values}, \textbf{control-normalized features}, and \textbf{asymmetry features} 
 (left vs.~right hemisphere). Cortical thickness was additionally adjusted by regressing out curvature. 
 Altogether, this yielded \textbf{34 input features per participant}, computed at \textbf{163{,}842 vertices} 
-on a bilaterally symmetrical cortical surface template~\cite{Ripart2025MELD}.
-
-Since \ac{mri} features vary across scanners and sites, potentially impairing generalization, 
-an \textbf{intersite harmonization} procedure was applied using the distributed \textbf{ComBat} algorithm, 
-a well-established statistical method for removing scanner/site effects~\cite{Ripart2025MELD}.
+on a bilaterally symmetrical cortical surface template~\cite{Ripart2025MELD}. Scanner-related variability was addressed through the ComBat harmonization applied in the released MELD features.
 
 For conversion from volume space to FreeSurfer surface space, detailed instructions are available in the MELD documentation~\cite{MELDdocs}.
 In practice, however, it is often more practical to request preprocessed files directly from the authors, 
@@ -123,9 +121,8 @@ since converting a single image to surface space is computationally expensive: a
 \section{Data Augmentation}
 In the original study MELD authors applied augmentations in three stages: 
 \begin{itemize}
-    \item \textbf{Lesion--mask augmentation}: deforming the lesion region together with its mask and 
-    surface-based features to produce anatomically coherent augmented samples;
-    \item \textbf{Mesh--space transforms}: applying geometric transformations to the cortical surface mesh;
+    \item \textbf{Lesion--mask augmentation}: deforming the lesion region together with its corresponding lesion mask and surface-based features to produce anatomically coherent augmented samples;
+    \item \textbf{Mesh--space transforms}: applying geometric transformations to the cortical surface mesh, consistently affecting both features and lesion masks;
     \item \textbf{Intensity transforms}: modifying the intensity features at each vertex.
 \end{itemize}
 Each transform is applied independently with probability $p$ defined in the experiment configuration. 
@@ -147,11 +144,17 @@ D'=\texttt{fast\_geodesics}(L'),
 \qquad
 \widetilde{L}=\texttt{smoothing}(L',\,\text{iteration}=10).
 \]
-This procedure is applied only if the lesion mask is non–empty.  
-In our configurations, however, the recomputed distances and smoothed labels were not used further.
+This procedure is applied only if the lesion mask is non-empty.  
+After augmentation, the geodesic distances and smoothed labels are recomputed to ensure a consistent lesion shape. 
+However, in our training setup, only the resulting binary lesion mask is used for supervision, 
+while the recomputed distances and smoothed labels are not used directly in the loss function.
 
 \subsection*{Mesh--space transforms (icosphere re–indexing)}
-We use precomputed index maps (provided by the MELD authors in their \href{https://github.com/MELDProject/meld_graph/tree/main/data}{GitHub repository}) and apply them once per sample to all vertex–wise tensors (features, labels, distances, etc.). 
+We use precomputed vertex index mappings provided by the MELD authors, 
+which define fixed permutations of vertices on the icosphere mesh. 
+These mappings are generated offline for each transformation type 
+(spinning, warping, and flipping) and are applied uniformly to all vertex-wise tensors 
+(features, labels, distances, etc.) to preserve anatomical correspondence (\href{https://github.com/MELDProject/meld_graph/tree/main/data}{GitHub repository}).
 The MELD framework defines three types of such maps:
 \begin{itemize}
   \item \textbf{Spinning} — index remapping that corresponds to a rigid rotation of the icosphere.
@@ -160,8 +163,10 @@ The MELD framework defines three types of such maps:
 %   \emph{Note:} because SpiralConv is order–sensitive, flipping requires reversing the spiral neighbour order; in our final experiments we set $p(\text{flip}){=}0$ to avoid this mismatch.
 \end{itemize}
 
-\subsection*{Per–vertex intensity transforms}
-All intensity transforms act channel–wise on \texttt{features}:
+\subsection*{Per-vertex feature intensity transforms}
+All per-vertex intensity transformations are applied to all feature channels. 
+For each transformation, parameters are sampled per channel; 
+unless stated otherwise, the same parameters are applied consistently across all vertices within a channel:
 \begin{itemize}
 \item \textbf{Gaussian noise}: add $\epsilon\sim\mathcal{N}(0,\sigma^2)$ with $\sigma^2 \sim \mathcal{U}(0,0.1)$.
 \item \textbf{Brightness scaling}: multiply each channel by $m_c\sim\mathcal{U}(0.75,1.25)$.
@@ -196,11 +201,11 @@ These operations are not implemented in the original authors’ code and were no
 
 \section{Types of Atlas Descriptions}
 
-We generated textual descriptions with \texttt{AtlasReader}~\cite{notter2019atlasreader}. 
-Given each ROI, we first register it to the template space and then overlay anatomical atlases to quantify its anatomical context. 
-For every atlas region, we compute the percentage of the ROI volume that overlaps that region and report the resulting region–percentage table. 
+We generated textual descriptions with \texttt{AtlasReader}~\cite{notter2019atlasreader}.
+Given each ROI, it is first registered to template space and anatomical atlases are overlaid to quantify its anatomical context.
+For every atlas region, we compute the percentage of the ROI volume that overlaps that region and report the resulting region–percentage table.
+When visual inputs are augmented, the corresponding textual descriptions are regenerated from the transformed lesion location to remain anatomically consistent, ensuring alignment between visual and textual modalities.
 In this work, we used the Harvard--Oxford (cortical and subcortical) probabilistic atlas~\cite{harvardoxford_rrid}.
-% and the AAL atlas~\cite{tzourio2002aal}.
 
 However, strong validation scores obtained using full anatomical descriptions do not guarantee 
 robustness at deployment: in real-world scenarios, neither precise overlap percentages nor complete 

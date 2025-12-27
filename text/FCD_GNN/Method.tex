@@ -14,10 +14,12 @@ and each component is described in detail below.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{Architecture.png}
-    \caption{Overview of the proposed multimodal segmentation architecture. The input to the MELD encoder is an MRI scan in NIfTI format, which is first transformed into FreeSurfer space.
+    \includegraphics[width=0.7\textwidth]{Architecture.png}
+    \caption{Overview of the proposed multimodal segmentation architecture. 
+    The input to the MELD encoder is an MRI scan in NIfTI format, which is first transformed into FreeSurfer space, a standardized surface-based cortical representation obtained by reconstructing the cerebral cortex from volumetric MRI.
+    In this space, surface-based visual features include cortical thickness, curvature, sulcal depth, as well as intensity-based measures derived from T1-weighted and FLAIR images.
     The resulting surface-based visual features from each stage of the MELD encoder are then processed by their corresponding GNN block.
-    In parallel, the textual annotation is encoded by a pretrained language model, and the visual and textual representations are fused through the GuideDecoder blocks.
+    In parallel, atlas-derived textual anatomical annotations are encoded by a pretrained language model, and the visual and textual representations are fused through the GuideDecoder blocks.
     Each stage has its own GuideDecoder, which integrates the multimodal information and passes it to the next level via upsampling. 
     Finally, the fused features are decoded into the predicted FCD mask, which is output in NIfTI format.
     \textit{Note.} The number of GNN blocks shown is illustrative and does not reflect a fixed architectural requirement; it is included solely for visualization purposes.}
@@ -124,7 +126,7 @@ Positional encodings are then added to both modalities to preserve their orderin
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{pictures/GuideDecoder.png}
+    \includegraphics[width=0.7\textwidth]{pictures/GuideDecoder.png}
     \caption{Structure of the GuideDecoder block. 
     At each stage, the block receives image tokens from the visual encoder and text embeddings projected into the visual feature space. 
     The visual tokens are refined through multi-head attention and fused with the projected text tokens via cross-attention. 
@@ -145,13 +147,13 @@ the visual encoder. A final convolutional layer transforms the fused features in
 prediction map.
 
 In our implementation, the overall design of the GuideDecoder is preserved, 
-but we introduce two modifications to adapt the architecture to surface--based representations. 
+but we introduce two modifications to adapt the architecture to surface-based representations. 
 First, we replace the standard 2D upsampling with the \texttt{HexUnpool} operator 
 (see Appendix~\nameref{sec:hexunpool}), which performs mean unpooling on the icosphere mesh. 
 Second, instead of the original \texttt{DynUNetBlock}\footnote{\url{https://docs.monai.io/en/0.3.0/_modules/monai/networks/blocks/dynunet_block.html}} 
 from the MONAI framework, which consists of convolution, normalization, and activation layers, 
-we employ a custom \texttt{SpiralConv}-based block~\cite{gong2019spiralnet} that directly operates on the cortical surface mesh 
-after upsampling and fusion with skip connections.
+the standard convolution is substituted with a \texttt{SpiralConv} operator~\cite{gong2019spiralnet}, 
+enabling convolutional feature aggregation directly on the cortical surface mesh after upsampling and fusion with skip connections.
 
 \section{Loss function}
 Following best practices for medical image segmentation and to ensure a fair comparison with the \ac{meld} model, we employed a composite loss. 
@@ -177,11 +179,11 @@ L_{dice} = 1 - \frac{2 \sum_{i=1}^n y_i \hat{y}_i}{\sum_{i=1}^n y_i^2 + \sum_{i=
 \end{equation}
 
 It is important to note that we considered two different implementations of this loss. 
-In the \href{https://docs.monai.io/en/stable/losses.html}{MONAI library}, the Dice score is calculated for each sample and then averaged over the batch (macro-average), 
-whereas in the MELD implementation the aggregation is performed immediately over the entire batch (micro-average). 
-Under strong class imbalance between background and lesion voxels, the micro-averaged version shifts the loss contribution towards the background, 
-which reduces the gradient signal for rare lesions and leads to training instability. 
-For this reason, we used the MONAI implementation, which provided higher metric values and enabled the model to detect more \ac{fcd}s.
+In the \href{https://docs.monai.io/en/stable/losses.html}{MONAI library}, the Dice score is computed for each sample and then averaged over the batch (macro--averaging), 
+whereas in the MELD implementation the aggregation is performed immediately over the entire batch (micro--averaging). 
+In our experiments, we observed that under strong class imbalance between background and lesion voxels, the micro--averaged version shifts the loss contribution towards the background, 
+which reduces the gradient signal for rare lesion voxels and leads to training instability. 
+Based on these empirical observations, we used the MONAI implementation, which provided higher metric values and enabled the model to detect more \ac{fcd}s.
 
 \subsection*{Distance Loss}
 To provide the network with additional contextual information and reduce false positives, we include a distance regression loss $L_{dist}$. 

@@ -76,22 +76,26 @@ mean, pooling, or LSTM-based operators, enabling inductive learning on unseen
 graphs.
 
 Hierarchical GNN architectures extend this idea to multi-resolution settings,
-analogous to U-Net models~\cite{Ronneberger2015UNet} in Euclidean domains. 
-They downsample and upsample graphs using pooling/unpooling operators, which
-enables coarse-to-fine feature extraction on complex surfaces. 
-This paradigm is particularly relevant for cortical-surface analysis, where the 
+analogous to U-Net models~\cite{Ronneberger2015UNet} in Euclidean domains and
+graph U-Net architectures~\cite{Gao2019GraphUNet}. 
+They downsample and upsample graphs using pooling and unpooling operators, which
+enable coarse-to-fine feature extraction on complex surfaces. 
+This paradigm is particularly relevant for cortical-surface analysis, where the
 brain can be represented as a multi-resolution mesh.  
-Notably, the MELD Graph model~\cite{Ripart2025MELD} employs a GNN-U-Net 
-architecture built on multi-resolution cortical graphs and has demonstrated that
-graph-based convolutions are effective for detecting subtle morphological 
-abnormalities associated with focal cortical dysplasia (FCD). 
-In this thesis, we build upon these principles to integrate cortical surface 
-features with textual clinical information, enabling multimodal segmentation 
+
+Building on these principles, the MELD project~\cite{Ripart2025MELD} applies a
+GNN-U-Net architecture to multi-resolution cortical graphs and demonstrates that
+graph-based convolutions are effective for detecting subtle morphological
+abnormalities associated with \ac{fcd}.  
+
+In this thesis, we build upon these principles to integrate cortical surface
+features with textual clinical information, enabling multimodal segmentation
 within a unified GNN-based framework.
 
-\section{Large Language Models}
-Large Language Models (LLMs) are transformer-based architectures trained on 
-large text corpora to learn contextual semantic representations. 
+
+\section{Large Language Models} 
+\ac{llm}s are typically based on transformer architectures and are trained on large text corpora to learn contextual semantic representations.
+
 Given a sequence of token embeddings $X = (x_1,\dots,x_T)$, an LLM encoder 
 produces hidden states
 \begin{equation}
@@ -117,61 +121,72 @@ context:
 where $X_{\setminus i}$ denotes the input sequence with token $x_i$ masked.
 
 LLMs trained with these objectives produce rich, high-level semantic embeddings 
-that capture lexical, syntactic, and domain-specific patterns in text. 
+that capture lexical, syntactic, and domain-specific patterns in text~\cite{devlin2019bert}. 
 In medical imaging, domain-adapted LLMs such as BioBERT~\cite{Lee2019BioBERT} 
 provide contextual text embeddings that can guide segmentation models through 
-cross-attention or contrastive alignment, improving robustness and interpretability 
+cross-attention or contrastive alignment~\cite{Radford2021CLIP}, improving robustness and interpretability 
 in multimodal medical applications.
 
 \section{State-of-the-Art Methods}
-Early work on \ac{fcd} detection focused exclusively on vision-based methods~\cite{Durgam2025LungCancer, Abdusalomov2023BrainTumor, Sharma2025KidneyCT, Mehmood2025BreastCancer}. 
-It is noteworthy that one of the newest models, the \ac{meld} Graph~\cite{Ripart2025MELD}, represents the surface of the cerebral cortex as a graph with multiple resolutions and applies a \ac{gnn}-U-Net to segment lesions. It provides high 
-sensitivity and specificity by identifying characteristic peaks (more than 20\% in saliency) and determining calibration reliability using the expected 
-calibration error. However, it has not been tested on patients with multiple \ac{fcd}s, it lacks cross-attentional mechanisms for more complete integration of 
-features, and it does not integrate textual clinical information or evaluate zero-shot generalization across FCD subtypes.
+Building on early vision-based approaches in medical imaging, initial automated methods for FCD detection relied on convolutional neural networks operating directly on MRI data. 
+Dev et al.~\cite{dev2019automatic_fcd} proposed a fully convolutional neural network for the automatic detection and localization of focal cortical dysplasia (FCD) using volumetric MRI. 
+Their approach performs voxel-wise segmentation on multimodal MRI data, enabling direct lesion identification without manual feature engineering. 
+However, the method was trained on a relatively small, single-center dataset, which may limit its robustness and generalizability across different populations and imaging protocols.
 
-A second line of research explores language-guided segmentation by embedding text semantics into the segmentation pipeline. 
-Early methods~\cite{Tomar2022TGANet, Li2023LViT} simply tokenized text and merged embeddings with image features via attention, 
-but struggled to capture high-level semantics. 
-More recent approaches~\cite{Lee2023TextGuided, Zhong2023Ariadne} employ deep pretrained text encoders (e.g., CXR-BERT~\cite{CXR-BERT}) fused with ConvNeXt-Tiny~\cite{Liu2022ConvNeXt} image features. 
-In~\cite{Li2024LGMSeg}, the authors introduce two novel modules: the Target-sensitive Semantic Distance Module (TSDM), 
-which computes contrastive distances between segmentation masks to focus on disease-related regions, 
-and the Language-guided Target Enhancement Module (LTEM), which applies cross-attention to reinforce critical image areas. 
-A bi-directional contrastive loss (averaged cross-entropy in both ``image $\rightarrow$ text'' and ``text $\rightarrow$ image'' directions) yields more fine-grained guidance 
-and enables models trained on 25\% of the data to outperform single-modal baselines trained on full datasets. 
-However, these improvements come at the cost of higher architectural complexity and a strong reliance on high-quality textual annotations, 
-which may limit robustness and generalizability in real-world clinical settings.
+Along similar lines, House et al.~\cite{house2021automated_fcd} introduced a clinically integrated 3D convolutional neural network for the automated detection and segmentation of FCD lesions from routine T1-weighted and FLAIR MRI sequences. 
+A key contribution of this work is its prospective validation within a real-world clinical workflow. 
+Nevertheless, the model exhibits substantially lower detection performance for subtle or non-sclerotic FCD subtypes compared to more pronounced Taylor-type FCD, suggesting a bias toward more conspicuous lesion patterns and limited generalization across the full pathological spectrum.
 
-To address unpaired multi-modal data, MulModSeg~\cite{Li2025Mulmodseg} conditions text embeddings on imaging modality using frozen CLIP~\cite{Radford2021CLIP}/BioBERT~\cite{Lee2019BioBERT}/Med-CLIP~\cite{Wang2022MedCLIP} encoders 
-combined with medical prompts, and alternates training between vision and text branches (3D-UNet\cite{Cicek2016UNet3D} or SwinUNETR~\cite{Hatamizadeh2022SwinUNETR}). This scheme improves generalization 
-without requiring paired \ac{ct}/MR scans. Experiments show that varying the \ac{ct}:MR ratio in training data shifts performance, underscoring the importance 
-of balanced modality representation. However, effectiveness depends critically on prompt template design and alternating-training convergence.
+A more recent and substantial advancement is represented by the \ac{meld} Graph model~\cite{Ripart2025MELD}, which departs from volumetric representations by modeling the cerebral cortex as a multi-resolution graph and applying a \ac{gnn}-U-Net architecture for lesion segmentation. 
+By explicitly capturing cortical surface morphology, the MELD approach achieves high sensitivity and specificity, supported by saliency-based peak analysis and calibration assessment using the expected calibration error. 
+Despite these strengths, the model has not been evaluated on patients with multiple FCD lesions, does not incorporate cross-attentional mechanisms for richer feature integration, and does not leverage textual clinical information across FCD subtypes.
 
-% Organ-aware multi-scale segmentation models (OMT-SAM) ~\cite{Zhang2025OrganAware} extend text prompting to specify organs or tissues, overcoming MedSAM’s reliance on geometric 
-% prompts. Pretrained CLIP encoders produce paired image/text features at multiple ViT layers; a cross-attention fusion yields rich prompt embeddings. 
-% Since small targets are underrepresented by BCE loss alone, combining Dice loss and BCE loss better captures fine structures. OMT-SAM reports 
-% improvements in DSC, NSD, and HD95 for organ segmentation, but requires sophisticated text prompt engineering and still depends on ViT performance on 
-% small lesions.
+The integration of multimodal data, as demonstrated by models like Ariadne’s Thread~\cite{Zhong2023Ariadne}, offers to close this gap. 
+Its approach leverages a cross-attention mechanism to align and combine features from visual and textual encoders, yielding robust performance even with limited training data, a critical advantage for \ac{fcd} detection task. 
+Inspired by these developments, we introduce a novel text-integrated framework for FCD detection. 
+Specifically, we adopt the pretrained MELD Graph as a robust visual backbone and extend it by incorporating atlas-derived textual descriptions within an architecture inspired by Ariadne’s Thread.
+% Early work on \ac{fcd} detection focused exclusively on vision-based methods~\cite{Durgam2025LungCancer, Abdusalomov2023BrainTumor, Sharma2025KidneyCT, Mehmood2025BreastCancer}. 
+% It is noteworthy that one of the newest models, the \ac{meld} Graph~\cite{Ripart2025MELD}, represents the surface of the cerebral cortex as a graph with multiple resolutions and applies a \ac{gnn}-U-Net to segment lesions. It provides high 
+% sensitivity and specificity by identifying characteristic peaks (more than 20\% in saliency) and determining calibration reliability using the expected 
+% calibration error. However, it has not been tested on patients with multiple \ac{fcd}s, it lacks cross-attentional mechanisms for more complete integration of 
+% features, and it does not integrate textual clinical information or evaluate zero-shot generalization across FCD subtypes.
 
-Finally, weakly supervised methods such as SimTxtSeg~\cite{Xie2024SimTxtSeg} leverage simple text cues 
-(e.g., ``lesion in the left hemisphere'') to guide segmentation without requiring pixel-level annotations. 
-SimTxtSeg was evaluated using standard segmentation metrics, including Dice similarity coefficient (DSC), 
-Intersection over Union (IoU), Positive Predictive Value (PPV), Normalized Surface Dice (NSD), and the 
-95\% Hausdorff Distance (HD95), alongside cross-entropy loss. These results demonstrate that even coarse 
-textual hints can substantially improve mask quality over vision-only baselines. However, such approaches 
-typically rely on consistent, high-quality text labels and have not yet been validated on rare pathologies 
-such as \ac{fcd}.
+% A second line of research explores language-guided segmentation by embedding text semantics into the segmentation pipeline. 
+% Early methods~\cite{Tomar2022TGANet, Li2023LViT} simply tokenized text and merged embeddings with image features via attention, 
+% but struggled to capture high-level semantics. 
+% More recent approaches~\cite{Lee2023TextGuided, Zhong2023Ariadne} employ deep pretrained text encoders (e.g., CXR-BERT~\cite{CXR-BERT}) fused with ConvNeXt-Tiny~\cite{Liu2022ConvNeXt} image features. 
+% In~\cite{Li2024LGMSeg}, the authors introduce two novel modules: the Target-sensitive Semantic Distance Module (TSDM), 
+% which computes contrastive distances between segmentation masks to focus on disease-related regions, 
+% and the Language-guided Target Enhancement Module (LTEM), which applies cross-attention to reinforce critical image areas. 
+% A bi-directional contrastive loss (averaged cross-entropy in both ``image $\rightarrow$ text'' and ``text $\rightarrow$ image'' directions) yields more fine-grained guidance 
+% and enables models trained on 25\% of the data to outperform single-modal baselines trained on full datasets. 
+% However, these improvements come at the cost of higher architectural complexity and a strong reliance on high-quality textual annotations, 
+% which may limit robustness and generalizability in real-world clinical settings.
 
-Building on these insights, we draw inspiration from Ariadne’s Thread~\cite{Zhong2023Ariadne}, which employs 
-lightweight text prompts and a GuideDecoder to segment infected regions in chest X-rays. Remarkably, this method 
-achieves over a 6\% Dice improvement compared to unimodal baselines while using only 10\% of the training set, 
-highlighting the potential of multimodal prompting in low-data regimes. For our FCD task, we adopt the \ac{meld} 
-Graph model as a pretrained backbone, since it was trained on the largest dataset among the methods surveyed, 
-providing a robust basis for feature extraction and downstream adaptation.
+% To address unpaired multi-modal data, MulModSeg~\cite{Li2025Mulmodseg} conditions text embeddings on imaging modality using frozen CLIP~\cite{Radford2021CLIP}/BioBERT~\cite{Lee2019BioBERT}/Med-CLIP~\cite{Wang2022MedCLIP} encoders 
+% combined with medical prompts, and alternates training between vision and text branches (3D-UNet\cite{Cicek2016UNet3D} or SwinUNETR~\cite{Hatamizadeh2022SwinUNETR}). This scheme improves generalization 
+% without requiring paired \ac{ct}/MR scans. Experiments show that varying the \ac{ct}:MR ratio in training data shifts performance, underscoring the importance 
+% of balanced modality representation. However, effectiveness depends critically on prompt template design and alternating-training convergence.
 
-As far as we know, no prior work has applied text-guided segmentation to the \ac{fcd} detection task, underscoring the novelty of our approach. 
-In this work, we demonstrate that incorporating textual information benefits \ac{fcd} detection. 
-To this end, we integrate atlas-derived textual descriptions with visual features in a multi-resolution GNN framework, using cross-attention fusion and contrastive alignment to improve robustness and detection accuracy across heterogeneous datasets.
+% Finally, weakly supervised methods such as SimTxtSeg~\cite{Xie2024SimTxtSeg} leverage simple text cues 
+% (e.g., ``lesion in the left hemisphere'') to guide segmentation without requiring pixel-level annotations. 
+% SimTxtSeg was evaluated using standard segmentation metrics, including Dice similarity coefficient (DSC), 
+% Intersection over Union (IoU), Positive Predictive Value (PPV), Normalized Surface Dice (NSD), and the 
+% 95\% Hausdorff Distance (HD95), alongside cross-entropy loss. These results demonstrate that even coarse 
+% textual hints can substantially improve mask quality over vision-only baselines. However, such approaches 
+% typically rely on consistent, high-quality text labels and have not yet been validated on rare pathologies 
+% such as \ac{fcd}.
+
+% Building on these insights, we draw inspiration from Ariadne’s Thread~\cite{Zhong2023Ariadne}, which employs 
+% lightweight text prompts and a GuideDecoder to segment infected regions in chest X-rays. Remarkably, this method 
+% achieves over a 6\% Dice improvement compared to unimodal baselines while using only 10\% of the training set, 
+% highlighting the potential of multimodal prompting in low-data regimes. For our FCD task, we adopt the \ac{meld} 
+% Graph model as a pretrained backbone, since it was trained on the largest dataset among the methods surveyed, 
+% providing a robust basis for feature extraction and downstream adaptation.
+
+% As far as we know, no prior work has applied text-guided segmentation to the \ac{fcd} detection task, underscoring the novelty of our approach. 
+% In this work, we demonstrate that incorporating textual information benefits \ac{fcd} detection. 
+% To this end, we integrate atlas-derived textual descriptions with visual features in a multi-resolution GNN framework, using cross-attention fusion and contrastive alignment to improve robustness and detection accuracy across heterogeneous datasets.
 
 \end{document}
 
