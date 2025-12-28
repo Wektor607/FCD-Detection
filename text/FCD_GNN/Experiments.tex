@@ -42,10 +42,7 @@ with a projection dimension of 768.
 To address class imbalances, non-lesional hemispheres were undersampled, 
 ensuring that approximately one third of training examples contained a lesion. 
 Data augmentation strategies included: 
-% random flipping ($p=0.5$), 
-% Gaussian blur ($p=0.2$), spinning and warping ($p=0.2$ each), 
-% brightness, contrast, gamma correction and Gaussian noise ($p=0.15$ each), 
-% and low-resolution simulation ($p=0.25$).
+
 \begin{table}[H]
 \centering
 \caption{Data augmentation strategies applied during training~\cite{Ripart2025MELD}.}
@@ -67,9 +64,13 @@ Data augmentation strategies included:
 \subsection*{Hardware} 
 All experiments were performed on the \emph{Bender} high-performance computing cluster at the University of Bonn, 
 equipped with NVIDIA A100 GPUs (80~GiB each) and AMD EPYC CPUs. 
+
 A detailed description of the system can be found in the official documentation\footnote{\url{https://www.hpc.uni-bonn.de/en/systems/bender}}. 
 Our implementation used PyTorch~2.1.0+cu121, TorchVision~0.16.0+cu121, TorchAudio~2.1.0+cu121, Torch Geometric~2.5.3, Torch Scatter~2.1.2, 
-TorchMetrics~0.11.4, and Python~3.9.18.  
+TorchMetrics~0.11.4, and Python~3.9.18. 
+
+To ensure reproducibility, a complete software environment has been provided via Docker.
+The corresponding Dockerfiles and installation instructions are available in our GitHub repository\footnote{\url{https://github.com/Wektor607/FCD-Detection/tree/docker-inference-fix/meld_graph}}.
 
 \section{Web Interface}
 To make it easier to use different pretrained models, we developed a web interface that offers an accessible and intuitive way for users to interact with the lesion detection system.
@@ -94,7 +95,7 @@ The workflow begins on the upload page, where the user selects one of the traine
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{pictures/photo_3.png}
+    \includegraphics[width=0.6\textwidth]{pictures/photo_3.png}
     \caption{Dropdown menu for selecting among trained models.}
 
 \end{figure}
@@ -105,18 +106,26 @@ Each option is accompanied by a short explanation—similar in style to modern L
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{pictures/photo_4.png}
+    \includegraphics[width=0.6\textwidth]{pictures/photo_4.png}
     \caption{Example of a successfully uploaded file ready for processing.}
 \end{figure}
 
-Once a file is uploaded successfully, the interface confirms that the case is ready for processing and allows the user to initiate inference. After the prediction is complete, the results page displays the detected lesion regions and provides two export formats: PNG images for quick visual inspection and NIfTI volumes for more advanced analysis in 3D medical imaging software. This enables both general users and developers to efficiently inspect, validate, and further process the model outputs.
+Once a file is uploaded successfully, the interface confirms that the case is ready for processing and allows the user to initiate inference.
+After the prediction is complete, the results page provides two complementary views of the output:
+\begin{enumerate}[label=(\roman*)]
+\item representative 2D MRI slices with the predicted lesion regions overlaid for quick inspection, and
+\item a 3D cortical surface visualization rendered for both hemispheres (left and right), shown from two complementary viewpoints (anterior and posterior) to improve interpretability and spatial understanding.
+\end{enumerate}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{pictures/photo_5.png}
-    \caption{Prediction result with detected lesion regions, with download options for PNG (for general users) and NIfTI (for developers; viewable in 3D medical imaging tools for further analysis).}
-
+    \includegraphics[width=0.6\textwidth]{pictures/photo_5.png}
+    \caption{Web interface showing the inference output: 2D MRI slice overlays and a 3D cortical surface rendering for both hemispheres (LH/RH) from complementary viewpoints (anterior/posterior). All outputs can be exported as PNG (2D/3D) and as a NIfTI volume for further analysis in 3D medical imaging tools.}
+    \label{fig:web_inference_result}
 \end{figure}
+
+All generated visualizations can be downloaded as PNG files (2D slices and 3D renderings), and the full volumetric prediction is additionally provided in NIfTI format for further analysis in standard 3D medical imaging software.
+This design supports both general users (rapid visual validation) and developers/researchers (downstream processing and quantitative evaluation).
 
 \section{Basic Experiments}
 To systematically assess the contribution of each component of the proposed multimodal architecture, we gradually enabled individual modules of the decoder — geometry-based upsampling, self-attention, and finally text-conditioned cross-attention.
@@ -136,14 +145,13 @@ The pretrained \texttt{Exp1} model (described below) is used to initialize the d
 We consider the following configurations:
 
 \begin{itemize}
-    \item \textbf{MELD.} Serves as the baseline model.
+    \item \textbf{MELD.} The pretrained \ac{meld} model was evaluated on the test set without any additional training or fine-tuning and is used as the baseline.
 
     \item \textbf{Exp1 (Unpool + Spiral, no text).}
-    In this setting, the self- and cross-attention mechanisms of the \texttt{GuideDecoder} are disabled,
-    while the remaining reshaping and upsampling components are kept (see Fig.~\ref{fig:exp1_arch}).
-    The vision features from the MELD encoder are reshaped and passed directly into the geometry-based
-    upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and then to the segmentation head.
-    No textual input is used in this variant, so the model relies purely on image-derived features.
+    In this configuration, the pretrained \ac{meld} model is used to provide multi--scale visual features extracted from its decoder at each stage.
+    The text branch and the self--/cross--attention modules of the \texttt{GuideDecoder} are disabled, while the geometry--based upsampling components are retained (see Fig.~\ref{fig:exp1_arch}).
+    The decoder features from \ac{meld} are reshaped and passed directly through the upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and then to the segmentation head.
+    No textual input is used in this variant, so the prediction relies solely on image--derived features.
 
     \begin{figure}[H]
         \centering
@@ -152,15 +160,11 @@ We consider the following configurations:
         \label{fig:exp1_arch}
     \end{figure}
 
-    \item \textbf{Exp2 (GuideDecoder: self-attention only).} 
-
-    A stack of \texttt{GuideDecoder} blocks is inserted into the decoder before each upsampling stage. 
-    Since the MELD U-Net decoder has a depth of 7 (i.e., 6 upsampling levels), we include 
-    six \texttt{GuideDecoder} blocks at stages D6–D1, from the coarsest to the finest resolution. 
-    The upsampling path and segmentation head remain identical to Exp1. 
-    In this experiment the text branch is disabled, so each \texttt{GuideDecoder} performs only 
-    self-attention–based refinement of the visual features before they are upsampled 
-    (see Fig.~\ref{fig:exp2_arch}).
+    \item \textbf{Exp2 (GuideDecoder: self-attention only).}
+    As in Exp1, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
+    One \texttt{GuideDecoder} block is inserted at each decoder level (D6--D1), i.e., one block per upsampling stage, to refine the features using self--attention before the subsequent upsampling step (see Fig.~\ref{fig:exp2_arch}).
+    The text branch remains disabled; therefore, cross--attention is not applied and each \texttt{GuideDecoder} performs self--attention only.
+    The upsampling path and segmentation head are kept identical to Exp1.
 
     \begin{figure}[H]
         \centering
@@ -169,17 +173,55 @@ We consider the following configurations:
         \label{fig:exp2_arch}
     \end{figure}
     
-    \item \textbf{Exp3 (GuideDecoder + Text).} 
-    The full \texttt{GuideDecoder}, incorporating self-attention on image tokens and cross-modal attention between image and text embeddings, is used (see Fig.~\ref{fig:basic_model}). The only difference across variants is the textual conditioning:
-    \begin{itemize}
-        \item \emph{full} (complete Atlas annotations): \textit{48.86\% Left Middle Frontal Gyrus; 30.63\% Left Precentral Gyrus; 20.51\% Left Superior Frontal Gyrus}
-    \item \emph{hemi} (hemisphere only): \textit{Left Hemisphere} ; 
-    \item \emph{lobe\_regions} (lobe regions only): \textit{Left Middle Frontal Gyrus; Precentral Gyrus; Superior Frontal Gyrus};
-    % \emph{lobe} (general lobe name only),
-    \item \emph{hemi+lobe\_regions} (hemisphere + lobe regions): \textit{Left Hemisphere; Middle Frontal Gyrus; Precentral Gyrus; Superior Frontal Gyrus} ;
-    \item \emph{hemi+lobe} (hemisphere + lobe): \textit{Left Hemisphere; Frontal lobe}.
-    \end{itemize}
+    \item \textbf{Exp3 (GuideDecoder + Text).}
+    As in Exp1--Exp2, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
+    In contrast to Exp2, the full \texttt{GuideDecoder} is enabled, i.e., self--attention on image tokens and cross--attention between image and text embeddings are applied (see Fig.~\ref{fig:basic_model}).
+    The only difference across variants is the textual conditioning (Table~\ref{tab:text_variants}):
+    % For healthy subjects (no lesion present), the textual input is set to \textit{``No lesion detected.''}
+
+    % \begin{itemize}
+    %     \item \emph{full} (complete Atlas annotations): \textit{48.86\% Left Middle Frontal Gyrus; 30.63\% Left Precentral Gyrus; 20.51\% Left Superior Frontal Gyrus}
+    % \item \emph{hemi} (hemisphere only): \textit{Left Hemisphere} ; 
+    % \item \emph{lobe\_regions} (lobe regions only): \textit{Left Middle Frontal Gyrus; Precentral Gyrus; Superior Frontal Gyrus};
+    % % \emph{lobe} (general lobe name only),
+    % \item \emph{hemi+lobe\_regions} (hemisphere + lobe regions): \textit{Left Hemisphere; Middle Frontal Gyrus; Precentral Gyrus; Superior Frontal Gyrus} ;
+    % \item \emph{hemi+lobe} (hemisphere + lobe): \textit{Left Hemisphere; Frontal lobe}.
+    % \end{itemize}
     
+    \begin{table}[t]
+    \centering
+    \caption{Text conditioning variants used in Exp3.}
+    \label{tab:text_variants}
+    \small
+    \setlength{\tabcolsep}{6pt}
+    \renewcommand{\arraystretch}{1.15}
+        \begin{tabularx}{\textwidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+            \toprule
+            \textbf{Name} & \textbf{Description} & \textbf{Example} \\
+            \midrule
+            full & Complete atlas--based lesion description with region names and their percentages &
+            48.86\% Left Middle Frontal Gyrus; 30.63\% Left Precentral Gyrus; \dots \\
+            \midrule
+            hemi & Hemisphere only & Left hemisphere \\
+            \midrule
+            lobe\_regions & Lobe regions only (subset of atlas regions) &
+            Left Middle Frontal Gyrus; Precentral Gyrus; \dots \\
+            \midrule
+            hemi+lobe\_regions & Hemisphere + lobe regions &
+            Left hemisphere; Middle Frontal Gyrus; \dots \\
+            \midrule
+            hemi+lobe & Hemisphere + lobe name & Left hemisphere; Frontal lobe \\
+            \midrule
+            no\_text & No textual conditioning is provided (equivalent to assuming the full brain without additional localisation cues) &
+            full brain \\
+            \bottomrule
+        \end{tabularx}
+
+        \vspace{2mm}
+        {\footnotesize\textit{Note:} For healthy subjects (no lesion present), the textual input is set to \textit{``No lesion detected.''}}
+    \end{table}
+
+
     \begin{figure}[H]
         \centering
         \includegraphics[width=\textwidth]{pictures/BasicModelExp3.png}
@@ -188,19 +230,17 @@ We consider the following configurations:
     \end{figure}
 
     \item \textbf{Exp3\_mixed (GuideDecoder + Text).} 
-    Same as \textbf{Exp3}, but Atlas descriptions were randomly sampled from one of 
-\{\emph{hemisphere only}, \emph{lobe\_regions only}, \emph{hemisphere + lobe\_regions}, \emph{full text}, \emph{no text}\}.
+    Same as \textbf{Exp3}, but Atlas descriptions were randomly sampled from the text conditioning variants listed in Table~\ref{tab:text_variants}.
 
-For each subject, we first generated a full Atlas-based description and then derived all partial textual variants. 
-During training, a single variant was randomly selected at every data loading step, 
-so that the same subject could appear with different textual inputs across epochs, 
-while the visual augmentations remained fixed.
+    For each subject, a full Atlas--based description was generated once and all partial textual variants were derived from it.
+    During training, one textual variant was randomly sampled independently for each sample at every data loading step.
+    Consequently, the same subject could be paired with different textual inputs across epochs.
+
 \end{itemize}
 
 \subsection*{Main cohort}
 
-Table~\ref{tab:main_cohort} presents the median performance on the main cohort (i.e., data from the same distribution as used during training).
-
+Table~\ref{tab:main_cohort} presents the median performance on the \ac{meld} test set (main cohort).
 In the RadBERT group, defined as all variants using the default RadBERT language encoder 
 (without alternative LLMs such as BlueBERT or PubMedBERT), the prompt combining 
 \textit{hemisphere and lobe-region} terms detected the most lesions, though with only slightly higher Dice, PPV$_\text{pixels}$, and IoU.
@@ -321,12 +361,16 @@ performance, underscoring the substantial impact of the language encoder.
     \footnotesize
     \item \textit{Note.} Colors denote rank within each column:
     \colorbox{green!15}{best}, \colorbox{cyan!15}{second}, \colorbox{orange!15}{third}.
-    \item \textit{Exp labels.} \textbf{Exp3: hemi} -- hemisphere conditioning; 
-    \textbf{lobe\_regions} -- lobe- and region-level prompts; 
-    \textbf{hemi+lobe} -- hemisphere + coarse lobe name; 
-    \textbf{hemi+lobe+BlueBERT} -- same as previous but with BlueBERT instead of RadBERT; 
-    \textbf{full\_desc} -- full free-text description; 
-    \textbf{Exp1} and \textbf{Exp2} are ablation baselines.
+    \item \textit{Metrics: } Dice, IoU, PPV$_{\text{pixels}}$, and PPV$_{\text{clusters}}$ are computed on patients only (N = 259). 
+    Sensitivity is reported for patients (N = 259), whereas specificity is reported for healthy controls (N = 193).
+    \item \textit{Exp3 prompt variants:}
+    \texttt{hemi} -- hemisphere prompt;
+    \texttt{lobe\_regions} -- lobe--region prompt;
+    \texttt{hemi+lobe} -- hemisphere + coarse lobe prompt;
+    \texttt{hemi+lobe+BlueBERT} -- same as previous but with BlueBERT instead of RadBERT; 
+    \texttt{hemi+lobe\_regions} -- hemisphere + lobe--region prompt;
+    \texttt{full\_desc} -- full atlas prompt.
+    \item \textbf{Exp1} and \textbf{Exp2} are ablation baselines.
     \end{tablenotes}
     
     \end{threeparttable}

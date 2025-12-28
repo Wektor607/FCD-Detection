@@ -99,6 +99,13 @@ hyperintensity, seizure outcome,} and scanner information.
 The dataset release also includes predefined train/validation/test splits, which
 we follow to ensure comparability with prior MELD studies.
 
+\subsection*{Cohorts and evaluation protocol}
+In this thesis, the \ac{meld} dataset is used as the \textbf{main cohort}.
+We follow the predefined \ac{meld} train/validation/test split for model development and report results on the corresponding \textbf{MELD test set}.
+
+In addition, the Bonn dataset is treated as an \textbf{independent external cohort} and is used \textbf{exclusively for testing}.
+
+Although the overall \ac{meld} consortium includes data from Bonn, the Bonn cohort used in this work is kept separate from the \ac{meld} development split and serves only as an external test set.
 
 \section{FreeSurfer Processing}
 Each image was processed with the FreeSurfer framework~\cite{Fischl2012FreeSurfer}, from which \textbf{11 core surface-based features} were extracted:
