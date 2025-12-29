@@ -101,7 +101,7 @@ The workflow begins on the upload page, where the user selects one of the traine
 \end{figure}
 
 To support different use cases and experimental settings, the interface includes a model selection menu listing all available trained variants. 
-These include the baseline MELD model, two vision-only architectures (Exp1 and Exp2) with minor architectural differences, and the multimodal Exp3 model trained on various textual inputs. 
+These include the baseline MELD model, two vision-only architectures (\texttt{Vision--only} and \texttt{Vision--only+SA}) with minor architectural differences, and the multimodal \texttt{Vision+LM} model trained on various textual inputs. 
 Each option is accompanied by a short explanation—similar in style to modern LLM model pickers -- helping users choose between faster or more accurate configurations.
 
 \begin{figure}[H]
@@ -139,7 +139,7 @@ This analysis (see Appendix~\nameref{sec:semantic_analysis}) motivated the inclu
 
 Across all variants, the geometry-based upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and the final segmentation head are always trained, while the encoders remain frozen (Fig.~\ref{fig:basic_model}). 
 The experimental variants differ only in (i) whether the \texttt{GuideDecoder} is inserted before the upsampling path and (ii) which textual features are incorporated. 
-The pretrained \texttt{Exp1} model (described below) is used to initialize the decoder for all variants except the MELD-only baseline, which is trained from scratch.
+The pretrained \texttt{\texttt{Vision--only}} model (described below) is used to initialize the decoder for all variants except the MELD-only baseline, which is trained from scratch.
 
 
 We consider the following configurations:
@@ -147,7 +147,7 @@ We consider the following configurations:
 \begin{itemize}
     \item \textbf{MELD.} The pretrained \ac{meld} model was evaluated on the test set without any additional training or fine-tuning and is used as the baseline.
 
-    \item \textbf{Exp1 (Unpool + Spiral, no text).}
+    \item \textbf{Vision--only (Unpool + Spiral, no text).}
     In this configuration, the pretrained \ac{meld} model is used to provide multi--scale visual features extracted from its decoder at each stage.
     The text branch and the self--/cross--attention modules of the \texttt{GuideDecoder} are disabled, while the geometry--based upsampling components are retained (see Fig.~\ref{fig:exp1_arch}).
     The decoder features from \ac{meld} are reshaped and passed directly through the upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and then to the segmentation head.
@@ -156,26 +156,26 @@ We consider the following configurations:
     \begin{figure}[H]
         \centering
         \includegraphics[width=\textwidth]{pictures/BasicModelExp1.png}
-        \caption{Architecture of Exp1: the text branch and the self-/cross-attention modules in the \texttt{GuideDecoder} are disabled, and MELD vision features are fed directly into the geometry-based upsampling path and segmentation head.}
+        \caption{Architecture of Vision--only: the text branch and the self-/cross-attention modules in the \texttt{GuideDecoder} are disabled, and MELD vision features are fed directly into the geometry-based upsampling path and segmentation head.}
         \label{fig:exp1_arch}
     \end{figure}
 
-    \item \textbf{Exp2 (GuideDecoder: self-attention only).}
-    As in Exp1, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
+    \item \textbf{Vision--only+SA (GuideDecoder: self-attention only).}
+    As in \texttt{Vision--only}, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
     One \texttt{GuideDecoder} block is inserted at each decoder level (D6--D1), i.e., one block per upsampling stage, to refine the features using self--attention before the subsequent upsampling step (see Fig.~\ref{fig:exp2_arch}).
     The text branch remains disabled; therefore, cross--attention is not applied and each \texttt{GuideDecoder} performs self--attention only.
-    The upsampling path and segmentation head are kept identical to Exp1.
+    The upsampling path and segmentation head are kept identical to \texttt{Vision--only}.
 
     \begin{figure}[H]
         \centering
         \includegraphics[width=\textwidth]{pictures/BasicModelExp2.png}
-        \caption{Architecture of Exp2: each \texttt{GuideDecoder} block contains a self-attention head, while the text branch remains disabled.}
+        \caption{Architecture of \texttt{Vision--only+SA}: each \texttt{GuideDecoder} block contains a self-attention head, while the text branch remains disabled.}
         \label{fig:exp2_arch}
     \end{figure}
     
-    \item \textbf{Exp3 (GuideDecoder + Text).}
-    As in Exp1--Exp2, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
-    In contrast to Exp2, the full \texttt{GuideDecoder} is enabled, i.e., self--attention on image tokens and cross--attention between image and text embeddings are applied (see Fig.~\ref{fig:basic_model}).
+    \item \textbf{Vision+LM (GuideDecoder + Text).}
+    As in \texttt{Vision--only} and \texttt{Vision--only+SA}, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
+    In contrast to \texttt{Vision--only+SA}, the full \texttt{GuideDecoder} is enabled, i.e., self--attention on image tokens and cross--attention between image and text embeddings are applied (see Fig.~\ref{fig:basic_model}).
     The only difference across variants is the textual conditioning (Table~\ref{tab:text_variants}):
     % For healthy subjects (no lesion present), the textual input is set to \textit{``No lesion detected.''}
 
@@ -190,7 +190,7 @@ We consider the following configurations:
     
     \begin{table}[t]
     \centering
-    \caption{Text conditioning variants used in Exp3.}
+    \caption{Text conditioning variants used in \texttt{Vision+LM}.}
     \label{tab:text_variants}
     \small
     \setlength{\tabcolsep}{6pt}
@@ -225,12 +225,12 @@ We consider the following configurations:
     \begin{figure}[H]
         \centering
         \includegraphics[width=\textwidth]{pictures/BasicModelExp3.png}
-        \caption{Architecture of Exp3: the full \texttt{GuideDecoder} is used, incorporating both self-attention on visual tokens and cross-attention between visual features and text embeddings.}
+        \caption{Architecture of \texttt{Vision+LM}: the full \texttt{GuideDecoder} is used, incorporating both self-attention on visual tokens and cross-attention between visual features and text embeddings.}
         \label{fig:basic_model}
     \end{figure}
 
-    \item \textbf{Exp3\_mixed (GuideDecoder + Text).} 
-    Same as \textbf{Exp3}, but Atlas descriptions were randomly sampled from the text conditioning variants listed in Table~\ref{tab:text_variants}.
+    \item \textbf{Vision+LM\_mixed (GuideDecoder + Text).} 
+    Same as \textbf{Vision+LM}, but Atlas descriptions were randomly sampled from the text conditioning variants listed in Table~\ref{tab:text_variants}.
 
     For each subject, a full Atlas--based description was generated once and all partial textual variants were derived from it.
     During training, one textual variant was randomly sampled independently for each sample at every data loading step.
@@ -273,7 +273,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{58 (n=112) \\ (51.3--64.8)}&
     \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
     \hline
-    Exp1 &
+    Vision--only &
     \makecell{0.238\\(0.125--0.313)} &
     \makecell{0.198\\(0.130--0.318)} &
     0.361 &
@@ -282,7 +282,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{31.1 (n=60) \\ (24.9--37.8)} &
     \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
     \hline
-    Exp2 &
+    Vision--only+SA &
     \makecell{\colorbox{cyan!15}{0.256} \\ (0.125--0.326)} &
     \makecell{0.204\\ (0.122--0.322)} &
     0.333 &
@@ -291,7 +291,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{24.9 (n=48) \\ (19.2--31.1)} &
     \makecell{70.7 (n=183) \\ (65.3--76.1)} \\
     \hline
-    Exp3: hemi &
+    Vision+LM: hemi &
     \makecell{0.231\\(0.148--0.285)} &
     \makecell{0.188\\(0.131--0.298)} &
     \colorbox{cyan!15}{0.483} &
@@ -300,7 +300,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{\colorbox{green!15}{100.0 (n=193)} \\ (100.0--100.0)} &
     \makecell{71.0 (n=184) \\ (65.6--76.4)} \\
     \hline
-    Exp3: lobe\_regions &
+    Vision+LM: lobe\_regions &
     \makecell{\colorbox{orange!15}{0.254}\\(0.159--0.332)} &
     \makecell{0.231\\(0.168--0.320)} &
     0.404 &
@@ -309,7 +309,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{\colorbox{green!15}{100.0 (n=193)} \\ (100.0--100.0)} &
     \makecell{\colorbox{orange!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
     \hline
-    Exp3: \makecell{hemi +\\ lobe\_regions} &
+    Vision+LM: \makecell{hemi +\\ lobe\_regions} &
     \makecell{\colorbox{green!15}{0.264}\\(0.180--0.342)} &
     \makecell{\colorbox{orange!15}{0.238}\\(0.160--0.327)} &
     0.333 &
@@ -318,7 +318,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{\colorbox{cyan!15}{99.5 (n=192)} \\ (98.4--100.0)} & 
     \makecell{\colorbox{cyan!15}{74.5 (n=193)} \\ (69.1--79.9) } \\
     \hline
-    Exp3: hemi + lobe &
+    Vision+LM: hemi + lobe &
     \makecell{0.239\\(0.113--0.302)} &
     \makecell{\colorbox{cyan!15}{0.242}\\(0.166--0.353)} &
     0.456 &
@@ -327,7 +327,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{\colorbox{cyan!15}{99.5 (n=192)} \\ (98.4--100.0)} & 
     \makecell{71.4 (n=185) \\ (66.0--76.8)} \\
     \hline
-    Exp3: \makecell{hemi + lobe + \\ BlueBERT} &
+    Vision+LM: \makecell{hemi + lobe + \\ BlueBERT} &
     \makecell{0.230\\(0.125--0.305)} &
     \makecell{0.231\\(0.146--0.330)} &
     0.443 &
@@ -336,7 +336,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{\colorbox{orange!15}{99.0 (n=191)} \\ (97.4--100.0)} &
     \makecell{71.8 (n=186) \\ (66.4--77.2)} \\
     \hline
-    Exp3: \makecell{hemi + lobe + \\ PubmedBERT} &
+    Vision+LM: \makecell{hemi + lobe + \\ PubmedBERT} &
     \makecell{0.233\\(0.139--0.330)} &
     \makecell{\colorbox{cyan!15}{0.242}\\(0.153--0.342)} &
     0.334 &
@@ -345,7 +345,7 @@ performance, underscoring the substantial impact of the language encoder.
     \makecell{\colorbox{green!15}{100.0 (n=193)} \\ (100.0--100.0)} &
     \makecell{\colorbox{green!15}{76.4 (n=198)} \\ (71.4--81.5)} \\
     \hline
-    Exp3: full\_desc &
+    Vision+LM: full\_desc &
     \makecell{0.246\\(0.145--0.330)} &
     \makecell{\colorbox{green!15}{0.259}\\(0.178--0.360)} &
     \colorbox{orange!15}{0.478} &
@@ -363,14 +363,14 @@ performance, underscoring the substantial impact of the language encoder.
     \colorbox{green!15}{best}, \colorbox{cyan!15}{second}, \colorbox{orange!15}{third}.
     \item \textit{Metrics: } Dice, IoU, PPV$_{\text{pixels}}$, and PPV$_{\text{clusters}}$ are computed on patients only (N = 259). 
     Sensitivity is reported for patients (N = 259), whereas specificity is reported for healthy controls (N = 193).
-    \item \textit{Exp3 prompt variants:}
+    \item \textit{Vision+LM prompt variants:}
     \texttt{hemi} -- hemisphere prompt;
     \texttt{lobe\_regions} -- lobe--region prompt;
     \texttt{hemi+lobe} -- hemisphere + coarse lobe prompt;
     \texttt{hemi+lobe+BlueBERT} -- same as previous but with BlueBERT instead of RadBERT; 
     \texttt{hemi+lobe\_regions} -- hemisphere + lobe--region prompt;
     \texttt{full\_desc} -- full atlas prompt.
-    \item \textbf{Exp1} and \textbf{Exp2} are ablation baselines.
+    \item \textbf{Vision--only} and \textbf{Vision--only+SA} are ablation baselines.
     \end{tablenotes}
     
     \end{threeparttable}
@@ -390,11 +390,11 @@ Although its Dice, PPV and IoU scores were slightly lower than those of the \tex
 
     
 We also report specificity, defined as the proportion of healthy patients with no predicted clusters. 
-Across all \textit{Exp3 models}, specificity was $\sim$36--42 percentage points higher than that of MELD. 
+Across all \textit{Vision+LM models}, specificity was $\sim$36--42 percentage points higher than that of MELD. 
 This indicates that the text-conditioned models distinguish healthy from non-healthy cases substantially better.
 
 We also report specificity, defined as the proportion of healthy controls with no predicted lesion clusters.
-Across all \textit{Exp3 models}, specificity was higher than that of MELD by approximately 36--42 percentage points.
+Across all \textit{Vision+LM models}, specificity was higher than that of MELD by approximately 36--42 percentage points.
 This indicates that the text--conditioned models distinguish healthy from non--healthy cases substantially better.
 
 
@@ -437,7 +437,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
     \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
     \hline
-    Exp1 &
+    Vision--only &
     \makecell{\colorbox{cyan!15}{0.376}\\(0.238--0.529)} &
     \makecell{0.443\\(0.243--0.619)} &
     0.350 &
@@ -446,7 +446,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{39.8 (n=33) \\ (28.9--50.6)} &
     \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
     \hline
-    Exp2  &
+    Vision--only+SA  &
     \makecell{0.342\\ (0.155--0.494)} &
     \makecell{0.381\\ (0.177--0.651)} &
     0.379 &
@@ -455,7 +455,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{37.3 (n=31) \\ (27.7--48.2)} &
     \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
     \hline
-    Exp3: hemi  &
+    Vision+LM: hemi  &
     \makecell{0.372\\(0.261--0.515)} &
     \makecell{0.380\\(0.181--0.601)} &
     \colorbox{cyan!15}{0.468} &
@@ -464,7 +464,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{\colorbox{green!15}{100.0 (n=83)} \\ (100.0--100.0)} &
     \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
     \hline
-    Exp3: lobe\_regions  &
+    Vision+LM: lobe\_regions  &
     \makecell{\colorbox{orange!15}{0.373}\\(0.283--0.507)} &
     \makecell{0.407\\(0.233--0.589)} &
     0.257 &
@@ -473,7 +473,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{\colorbox{green!15}{100.0 (n=83)} \\ (100.0--100.0)} &
     \makecell{\colorbox{cyan!15}{78.0 (n=64)} \\ (68.3--86.6)} \\
     \hline
-    Exp3: \makecell{hemi+\\lobe\_regions}  &
+    Vision+LM: \makecell{hemi+\\lobe\_regions}  &
     \makecell{0.363\\(0.190--0.513)} &
     \makecell{0.434\\(0.209--0.657)} &
     0.359 &
@@ -482,7 +482,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{\colorbox{orange!15}{97.6 (n=81)} \\ (94.0--100.0)} &
     \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
     \hline
-    Exp3: hemi+lobe  &
+    Vision+LM: hemi+lobe  &
     \makecell{0.327\\(0.164--0.512)} &
     \makecell{0.411\\(0.236--0.667)} &
     \colorbox{green!15}{0.545} &
@@ -491,7 +491,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{\colorbox{cyan!15}{98.8 (n=82)} \\ (96.4--100.0)} &
     \makecell{72.0 (n=59) \\ (62.2--81.7)} \\
     \hline
-    Exp3: \makecell{hemi+lobe+\\BlueBERT} &
+    Vision+LM: \makecell{hemi+lobe+\\BlueBERT} &
     \makecell{0.362\\(0.260--0.498)} &
     \makecell{\colorbox{cyan!15}{0.469}\\(0.267--0.620)} &
     0.356 &
@@ -500,7 +500,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{96.4 (n=80) \\ (91.6--100.0)} &
     \makecell{\colorbox{orange!15}{76.8 (n=63)} \\ (67.1--85.4)} \\
     \hline
-    Exp3: \makecell{hemi+lobe+ \\ PubmedBERT} &
+    Vision+LM: \makecell{hemi+lobe+ \\ PubmedBERT} &
     \makecell{0.347\\(0.195--0.529)} &
     \makecell{\colorbox{orange!15}{0.457}\\(0.202--0.730)} &
     0.258 &
@@ -509,7 +509,7 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \makecell{\colorbox{green!15}{100.0 (n=83)} \\ (100.0--100.0)} &
     \makecell{\colorbox{green!15}{80.5 (n=66)} \\ (72.0--89.0)} \\
     \hline
-    Exp3: full\_desc  &
+    Vision+LM: full\_desc  &
     \makecell{\colorbox{green!15}{0.423}\\(0.267--0.506)} &
     \makecell{\colorbox{green!15}{0.484}\\(0.315-0.693)} &
     0.460 &
@@ -527,14 +527,14 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \colorbox{green!15}{best}, \colorbox{cyan!15}{second}, \colorbox{orange!15}{third}.
     \item \textit{Metrics: } Dice, IoU, PPV$_{\text{pixels}}$, and PPV$_{\text{clusters}}$ are computed on patients only (N = 259). 
     Sensitivity is reported for patients (N = 259), whereas specificity is reported for healthy controls (N = 193).
-    \item \textit{Exp3 prompt variants:}
+    \item \textit{Vision+LM prompt variants:}
     \texttt{hemi} -- hemisphere prompt;
     \texttt{lobe\_regions} -- lobe--region prompt;
     \texttt{hemi+lobe} -- hemisphere + coarse lobe prompt;
     \texttt{hemi+lobe+BlueBERT} -- same as previous but with BlueBERT instead of RadBERT; 
     \texttt{hemi+lobe\_regions} -- hemisphere + lobe--region prompt;
     \texttt{full\_desc} -- full atlas prompt.
-    \item \textbf{Exp1} and \textbf{Exp2} are ablation baselines.
+    \item \textbf{Vision--only} and \textbf{Vision--only+SA} are ablation baselines.
     \end{tablenotes}
     \end{threeparttable}
     
@@ -556,7 +556,7 @@ key objective in this study, while maintaining acceptable segmentation quality.
 
 \subsection*{Examples}
 Below, we present two representative cases in which the proposed model produces improved predictions.
-Each figure shows (from left to right) the ground-truth lesion mask, the prediction of the baseline MELD model, and the prediction of the proposed Exp3 model with PubMedBERT using the \texttt{hemi+lobe} prompt.
+Each figure shows (from left to right) the ground-truth lesion mask, the prediction of the baseline MELD model, and the prediction of the proposed \texttt{Vision+LM} model with PubMedBERT using the \texttt{hemi+lobe} prompt.
 
 \begin{figure}[H]
     \centering
@@ -572,7 +572,7 @@ Each figure shows (from left to right) the ground-truth lesion mask, the predict
     % \label{fig:qual_example2}
 \end{figure}
 
-Finally, we present an example comparing the same Exp3 model conditioned on different textual descriptions, namely the \textit{hemi} and \textit{hemi + lobe} prompts.
+Finally, we present an example comparing the same \texttt{Vision+LM} model conditioned on different textual descriptions, namely the \textit{hemi} and \textit{hemi + lobe} prompts.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.9\textwidth]{pictures/MELD_H3_3T_FCD_0018.png}
@@ -583,10 +583,10 @@ Finally, we present an example comparing the same Exp3 model conditioned on diff
 \clearpage
 \section{Mixed Text}
 This section investigates training with \textit{mixed text prompts} and the effect of a short decoder warm--up phase.
-We start from the Exp3 architecture and compare two training schedules:
+We start from the \texttt{Vision+LM} architecture and compare two training schedules:
 \begin{enumerate}
-  \item \textbf{Decoder open from the start}: the \texttt{GuideDecoder} is initialized with pretrained weights from \textit{Exp1} and optimized from the first epoch.
-  \item \textbf{Decoder warm--up (5 epochs)}: the model is initialized from the Exp1 checkpoint; during the first five epochs, we optimize only the text--fusion parameters in the \texttt{GuideDecoder} (self--/cross--attention and the text projection), while the \ac{meld} visual backbone, the text encoder (RadBERT), the SpiralConv--based upsampling path, and the segmentation head remain frozen.
+  \item \textbf{Decoder open from the start}: the \texttt{GuideDecoder} is initialized with pretrained weights from \textit{Vision--only} and optimized from the first epoch.
+  \item \textbf{Decoder warm--up (5 epochs)}: the model is initialized from the \texttt{Vision--only} checkpoint; during the first five epochs, we optimize only the text--fusion parameters in the \texttt{GuideDecoder} (self--/cross--attention and the text projection), while the \ac{meld} visual backbone, the text encoder (RadBERT), the SpiralConv--based upsampling path, and the segmentation head remain frozen.
   The choice of five epochs is pragmatic: each experiment uses an ensemble of models, training a single model takes roughly 8 hours, and typical runs span 20--30 epochs; therefore, a 5-epoch warm--up was considered sufficient.
 \end{enumerate}
 
@@ -603,7 +603,7 @@ We interpret this as evidence that the warm--up phase allows the \texttt{GuideDe
 \begin{table}[H]
 \centering
 \tiny
-\caption{Different text types for \textbf{Exp3\_mixed} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder open from the start} — GuideDecoder trained from the first epoch. Main cohort — correct descriptions.}
+\caption{Different text types for \textbf{Vision+LM\_mixed} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder open from the start} — GuideDecoder trained from the first epoch. Main cohort — correct descriptions.}
 
 \label{tab:main_cohort_mixed_correct}
 \begin{tabular}{lccccccc}
@@ -626,7 +626,7 @@ MELD & -- &
 \makecell{58 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
-Exp1 & -- &
+Vision--only & -- &
 \makecell{0.238\\(0.125--0.313)} &
 \makecell{0.198\\(0.130--0.318)} &
 0.361 &
@@ -634,7 +634,7 @@ Exp1 & -- &
 \makecell{31.1 (n=60) \\ (24.9--37.8)} &
 \makecell{\colorbox{orange!15}{69.1 (n=179)} \\ (63.3--74.9)} \\
 \hline
-Exp2 & -- &
+Vision--only+SA & -- &
 \makecell{\colorbox{green!15}{0.256} \\ (0.125--0.326)} &
 \makecell{0.204\\ (0.122--0.322)} &
 0.333 &
@@ -642,7 +642,7 @@ Exp2 & -- &
 \makecell{24.9 (n=48) \\ (19.2--31.1)} &
 \makecell{\colorbox{green!15}{70.7 (n=183)} \\ (65.3--76.1)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 hemi &  
 \makecell{0.235 \\ (0.107--0.294)} &
 \makecell{0.222 \\ (0.144--0.303)} &
@@ -652,7 +652,7 @@ hemi &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{\colorbox{orange!15}{69.1 (n=179)} \\ (63.3--74.9)} \\
 \hline
-Exp3\_mixed &
+Vision+LM\_mixed &
 lobe\_regions &
 \makecell{\colorbox{orange!15}{0.243} \\ (0.081--0.323)} &
 \makecell{\colorbox{cyan!15}{0.246} \\ (0.151--0.345)} &
@@ -662,7 +662,7 @@ lobe\_regions &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{66.4 (n=172) \\ (60.6--72.2)} \\
 \hline
-Exp3\_mixed &
+Vision+LM\_mixed &
 \makecell{hemi+ \\ lobe\_regions} &
 \makecell{0.241 \\ (0.097--0.312)} &
 \makecell{\colorbox{orange!15}{0.235} \\ (0.152--0.346)} &
@@ -672,7 +672,7 @@ Exp3\_mixed &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{68.7 (n=178) \\ (62.9--74.1)} \\
 \hline
-Exp3\_mixed &
+Vision+LM\_mixed &
 hemi+lobe & 
 \makecell{0.241 \\ (0.095--0.321)} &
 \makecell{0.233 \\ (0.145--0.335)} &
@@ -682,7 +682,7 @@ hemi+lobe &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{67.2 (n=174) \\ (61.4--73.0)} \\
 \hline
-Exp3\_mixed &
+Vision+LM\_mixed &
 full\_desc &
 \makecell{\colorbox{cyan!15}{0.251} \\ (0.124--0.300)} &
 \makecell{\colorbox{green!15}{0.256} \\ (0.167--0.351)} &
@@ -701,7 +701,7 @@ full\_desc &
 \begin{table}[H]
 \centering
 \tiny
-\caption{Different text types for \textbf{Exp3\_mixed freeze 5 epochs} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder warm-up for 5 epochs} — GuideDecoder unfrozen after epoch 5. Main cohort — correct descriptions.}
+\caption{Different text types for \textbf{Vision+LM\_mixed freeze 5 epochs} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder warm-up for 5 epochs} — GuideDecoder unfrozen after epoch 5. Main cohort — correct descriptions.}
 
 \label{tab:main_cohort_mixed_5_epochs_correct}
 \begin{tabular}{lccccccc}
@@ -724,7 +724,7 @@ MELD & -- &
 \makecell{58 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
-Exp1 & -- &
+Vision--only & -- &
 \makecell{\colorbox{cyan!15}{0.238}\\(0.125--0.313)} &
 \makecell{0.198\\(0.130--0.318)} &
 0.361 &
@@ -732,7 +732,7 @@ Exp1 & -- &
 \makecell{31.1 (n=60) \\ (24.9--37.8)} &
 \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
 \hline
-Exp2 & -- &
+Vision--only+SA & -- &
 \makecell{\colorbox{green!15}{0.256} \\ (0.125--0.326)} &
 \makecell{0.204\\ (0.122--0.322)} &
 0.333 &
@@ -740,7 +740,7 @@ Exp2 & -- &
 \makecell{24.9 (n=48) \\ (19.2--31.1)} &
 \makecell{70.7 (n=183) \\ (65.3--76.1)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 hemi &
 \makecell{0.225 \\ (0.131--0.294)} &
 \makecell{0.215 \\ (0.137--0.325)} &
@@ -750,7 +750,7 @@ hemi &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{\colorbox{cyan!15}{73.7 (n=191)} \\ (68.3--79.2)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 lobe\_regions &
 \makecell{0.207 \\ (0.123--0.330)} &
 \makecell{\colorbox{cyan!15}{0.244} \\ (0.160--0.307)} &
@@ -760,7 +760,7 @@ lobe\_regions &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{71.8 (n=186) \\ (66.4--77.2)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 \makecell{hemi+ \\lobe\_regions} &
 \makecell{0.219 \\ (0.148--0.323)} &
 \makecell{\colorbox{orange!15}{0.216} \\ (0.154--0.291)} &
@@ -770,7 +770,7 @@ Exp3\_mixed &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{\colorbox{orange!15}{73.0 (n=189)} \\ (67.6--78.4)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 \makecell{hemi+ \\lobe} &
 \makecell{0.228 \\ (0.129--0.321)} &
 \makecell{\colorbox{green!15}{0.247} \\ (0.180--0.330)} &
@@ -780,7 +780,7 @@ Exp3\_mixed &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{71.0 (n=184) \\ (65.6--76.4)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 full\_desc &
 \makecell{\colorbox{orange!15}{0.230} \\ (0.140--0.297)} &
 \makecell{0.204 \\ (0.141--0.275)} &
@@ -844,7 +844,7 @@ MELD & -- &
 \makecell{58 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
-Exp1 & -- &
+Vision--only & -- &
 \makecell{0.238\\(0.125--0.313)} &
 \makecell{0.198\\(0.130--0.318)} &
 0.361 &
@@ -852,7 +852,7 @@ Exp1 & -- &
 \makecell{31.1 (n=60) \\ (24.9--37.8)} &
 \makecell{\colorbox{orange!15}{69.1 (n=179)} \\ (63.3--74.9)} \\
 \hline
-Exp2 & -- &
+Vision--only+SA & -- &
 \makecell{\colorbox{green!15}{0.256} \\ (0.125--0.326)} &
 \makecell{0.204\\ (0.122--0.322)} &
 0.333 &
@@ -860,7 +860,7 @@ Exp2 & -- &
 \makecell{24.9 (n=48) \\ (19.2--31.1)} &
 \makecell{\colorbox{green!15}{70.7 (n=183)} \\ (65.3--76.1)} \\
 \hline
-Exp3\_mixed & wrong\_hemi &
+Vision+LM\_mixed & wrong\_hemi &
 \makecell{0.234 \\ (0.109--0.304)} &
 \makecell{0.217 \\ (0.144--0.296)} &
 \colorbox{cyan!15}{0.509} &
@@ -869,7 +869,7 @@ Exp3\_mixed & wrong\_hemi &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{\colorbox{cyan!15}{69.5 (n=180)} \\ (63.7--74.9)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 \makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
 \makecell{0.240 \\ (0.097--0.312)} &
 \makecell{\colorbox{green!15}{0.241} \\ (0.152--0.346)} &
@@ -879,7 +879,7 @@ Exp3\_mixed &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{67.6 (n=175) \\ (61.8--73.4)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 \makecell{wrong\_hemi + \\ correct\_lobe} &
 \makecell{0.239 \\ (0.088--0.317)} &
 \makecell{\colorbox{orange!15}{0.228} \\ (0.146--0.332)} &
@@ -889,7 +889,7 @@ Exp3\_mixed &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{67.6 (n=175) \\ (61.8--73.4)} \\
 \hline
-Exp3\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
+Vision+LM\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
 \makecell{0.241 \\ (0.098--0.320)} &
 \makecell{0.222 \\ (0.147--0.343)} &
 0.489 &
@@ -898,7 +898,7 @@ Exp3\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{68.0 (n=176) \\ (62.2--73.7)} \\
 \hline
-Exp3\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe} &
+Vision+LM\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe} &
 \makecell{\colorbox{orange!15}{0.243} \\ (0.083--0.317)} &
 \makecell{\colorbox{cyan!15}{0.234} \\ (0.148--0.331)} &
 0.498 &
@@ -907,7 +907,7 @@ Exp3\_mixed & \makecell{wrong\_hemi + \\ wrong\_lobe} &
 \makecell{79.3 (n=153) \\ (73.6--85.0)} &
 \makecell{67.2 (n=174) \\ (61.4--73.0)} \\
 \hline
-Exp3\_mixed & no\_text &
+Vision+LM\_mixed & no\_text &
 \makecell{\colorbox{cyan!15}{0.249} \\ (0.080--0.296)} &
 \makecell{0.192 \\ (0.127--0.289)} &
 0.443 &
@@ -954,7 +954,7 @@ MELD & -- &
 \makecell{58 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
-Exp1 & -- &
+Vision--only & -- &
 \makecell{\colorbox{orange!15}{0.238}\\(0.125--0.313)} &
 \makecell{0.198\\(0.130--0.318)} &
 0.361 &
@@ -962,7 +962,7 @@ Exp1 & -- &
 \makecell{31.1 (n=60) \\ (24.9--37.8)} &
 \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
 \hline
-Exp2 & -- &
+Vision--only+SA & -- &
 \makecell{\colorbox{green!15}{0.256} \\ (0.125--0.326)} &
 \makecell{0.204\\ (0.122--0.322)} &
 0.333 &
@@ -970,7 +970,7 @@ Exp2 & -- &
 \makecell{24.9 (n=48) \\ (19.2--31.1)} &
 \makecell{70.7 (n=183) \\ (65.3--76.1)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 wrong\_hemi &
 \makecell{0.231 \\ (0.119--0.287)} &
 \makecell{\colorbox{orange!15}{0.207} \\ (0.139--0.303)} &
@@ -980,7 +980,7 @@ wrong\_hemi &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{\colorbox{cyan!15}{73.7 (n=191)} \\ (68.3--79.2)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 \makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
 \makecell{0.216 \\ (0.153--0.322)} &
 \makecell{\colorbox{cyan!15}{0.216} \\ (0.153--0.291)} &
@@ -990,7 +990,7 @@ Exp3\_mixed &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{\colorbox{orange!15}{73.0 (n=189)} \\ (67.6--78.4)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 \makecell{wrong\_hemi + \\ correct\_lobe} &
 \makecell{0.222 \\ (0.120--0.318)} &
 \makecell{\colorbox{green!15}{0.243} \\ (0.166--0.329)} &
@@ -1000,7 +1000,7 @@ Exp3\_mixed &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{70.7 (n=183) \\ (65.3--76.1)} \\
 \hline
-Exp3\_mixed &
+Vision+LM\_mixed &
 \makecell{wrong\_hemi+\\wrong\_lobe\_regions} &
 \makecell{0.224 \\ (0.135--0.330)} &
 \makecell{\colorbox{orange!15}{0.207} \\ (0.149--0.298)} &
@@ -1010,7 +1010,7 @@ Exp3\_mixed &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{\colorbox{green!15}{74.1 (n=192)} \\ (68.7--79.5)} \\
 \hline
-Exp3\_mixed &
+Vision+LM\_mixed &
 \makecell{wrong\_hemi+\\wrong\_lobe} &
 \makecell{0.219 \\ (0.114--0.331)} &
 \makecell{\colorbox{green!15}{0.243} \\ (0.164--0.346)} &
@@ -1020,7 +1020,7 @@ Exp3\_mixed &
 \makecell{88.1 (n=170) \\ (83.4--92.2)} &
 \makecell{71.0 (n=184) \\ (65.6--76.4)} \\
 \hline
-Exp3\_mixed & 
+Vision+LM\_mixed & 
 no\_text &
 \makecell{\colorbox{cyan!15}{0.245} \\ (0.102--0.295)} &
 \makecell{0.205 \\ (0.132--0.292)} &
@@ -1044,7 +1044,7 @@ structural information is present, even when the text itself is incorrect.
 \begin{table}[ht]
     \centering
     \tiny
-    \caption{Different text types for \textbf{Exp3\_mixed} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder open from the start} — GuideDecoder trained from the first epoch. Independent cohort — correct descriptions.}
+    \caption{Different text types for \textbf{Vision+LM\_mixed} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder open from the start} — GuideDecoder trained from the first epoch. Independent cohort — correct descriptions.}
     
     \label{tab:independent_cohort_mixed}
     \begin{tabular}{lccccccc}
@@ -1067,7 +1067,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
     \makecell{\colorbox{orange!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
     \hline
-    Exp1 & -- &
+    Vision--only & -- &
     \makecell{0.376\\(0.238--0.529)} &
     \makecell{\colorbox{orange!15}{0.443}\\(0.243--0.619)} &
     0.350 &
@@ -1075,7 +1075,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{39.8 (n=33) \\ (28.9--50.6)} &
     \makecell{\colorbox{green!15}{73.2 (n=60)} \\ (63.4--82.9)} \\
     \hline
-    Exp2 & -- &
+    Vision--only+SA & -- &
     \makecell{0.342\\ (0.155--0.494)} &
     \makecell{0.381\\ (0.177--0.651)} &
     0.379 &
@@ -1083,7 +1083,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{37.3 (n=31) \\ (27.7--48.2)} &
     \makecell{\colorbox{orange!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
     \hline
-    Exp3\_mixed & 
+    Vision+LM\_mixed & 
     hemi &  
     \makecell{\colorbox{green!15}{0.430} \\ (0.067--0.515)} &
     \makecell{0.429 \\ (0.181--0.610)} &
@@ -1093,7 +1093,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
     \makecell{68.3 (n=56) \\ (57.3--78.0)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     lobe\_regions &
     \makecell{0.374 \\ (0.177--0.496)} &
     \makecell{\colorbox{cyan!15}{0.486} \\ (0.224--0.670)} &
@@ -1103,7 +1103,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
     \makecell{68.3 (n=56) \\ (57.3--78.0)} \\
     \hline
-    Exp3\_mixed & 
+    Vision+LM\_mixed & 
     \makecell{hemi+ \\lobe\_regions} &
     \makecell{\colorbox{orange!15}{0.400} \\ (0.222--0.501)} &
     \makecell{\colorbox{green!15}{0.515} \\ (0.242--0.668)} &
@@ -1113,7 +1113,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
     \makecell{\colorbox{orange!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     hemi+lobe & 
     \makecell{0.380 \\ (0.119--0.498)} &
     \makecell{\colorbox{green!15}{0.515} \\ (0.073--0.655)} &
@@ -1123,7 +1123,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} & 
     \makecell{65.9 (n=54) \\ (54.9--75.6)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     full\_desc &
     \makecell{\colorbox{cyan!15}{0.402} \\ (0.271--0.486)} &
     \makecell{\colorbox{green!15}{0.515} \\ (0.311--0.682)} &
@@ -1139,7 +1139,7 @@ structural information is present, even when the text itself is incorrect.
     \begin{table}[ht]
     \centering
     \tiny
-    \caption{Different text types for \textbf{Exp3\_mixed freeze 5 epochs} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder warm-up for 5 epochs} — GuideDecoder unfrozen after epoch 5. Independent cohort — correct descriptions.}
+    \caption{Different text types for \textbf{Vision+LM\_mixed freeze 5 epochs} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder warm-up for 5 epochs} — GuideDecoder unfrozen after epoch 5. Independent cohort — correct descriptions.}
     
     \label{tab:main_cohort_mixed}
     \begin{tabular}{lccccccc}
@@ -1162,7 +1162,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
     \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
     \hline
-    Exp1 & -- &
+    Vision--only & -- &
     \makecell{\colorbox{cyan!15}{0.376}\\(0.238--0.529)} &
     \makecell{\colorbox{cyan!15}{0.443}\\(0.243--0.619)} &
     0.350 &
@@ -1170,7 +1170,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{39.8 (n=33) \\ (28.9--50.6)} &
     \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
     \hline
-    Exp2 & -- &
+    Vision--only+SA & -- &
     \makecell{0.342\\ (0.155--0.494)} &
     \makecell{0.381\\ (0.177--0.651)} &
     0.379 &
@@ -1178,7 +1178,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{37.3 (n=31) \\ (27.7--48.2)} &
     \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
     \hline
-    Exp3\_mixed & 
+    Vision+LM\_mixed & 
     hemi &
     \makecell{\colorbox{orange!15}{0.368} \\ (0.248--0.505)} &
     \makecell{\colorbox{orange!15}{0.406} \\ (0.218--0.596)} &
@@ -1188,7 +1188,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{orange!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
     \hline
-    Exp3\_mixed & 
+    Vision+LM\_mixed & 
     lobe\_regions &
     \makecell{0.335 \\ (0.144--0.474)} &
     \makecell{0.338 \\ (0.168--0.543)} &
@@ -1198,7 +1198,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{72.0 (n=59) \\ (62.2--81.7)} \\
     \hline
-    Exp3\_mixed & 
+    Vision+LM\_mixed & 
     \makecell{hemi+ \\lobe\_regions} &
     \makecell{0.332 \\ (0.183--0.477)} &
     \makecell{0.343 \\ (0.174--0.576)} &
@@ -1208,7 +1208,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{cyan!15}{75.6 (n=62)} \\ (65.9--84.1)} \\
     \hline
-    Exp3\_mixed & 
+    Vision+LM\_mixed & 
     hemi+lobe &
     \makecell{\colorbox{green!15}{0.400} \\ (0.162--0.507)} &
     \makecell{\colorbox{green!15}{0.462} \\ (0.239--0.672)} &
@@ -1218,7 +1218,7 @@ structural information is present, even when the text itself is incorrect.
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{orange!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
     \hline
-    Exp3\_mixed & 
+    Vision+LM\_mixed & 
     full\_desc &
     \makecell{0.305 \\ (0.210--0.478)} &
     \makecell{0.326 \\ (0.164--0.651)} &
@@ -1268,7 +1268,7 @@ the primary objective in this setting.
     \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
     \makecell{\colorbox{cyan!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
     \hline
-    Exp1 & -- &
+    Vision--only & -- &
     \makecell{0.376\\(0.238--0.529)} &
     \makecell{0.443\\(0.243--0.619)} &
     0.350 &
@@ -1276,7 +1276,7 @@ the primary objective in this setting.
     \makecell{39.8 (n=33) \\ (28.9--50.6)} &
     \makecell{\colorbox{green!15}{73.2 (n=60)} \\ (63.4--82.9)} \\
     \hline
-    Exp2 & -- &
+    Vision--only+SA & -- &
     \makecell{0.342\\ (0.155--0.494)} &
     \makecell{0.381\\ (0.177--0.651)} &
     0.379 &
@@ -1284,7 +1284,7 @@ the primary objective in this setting.
     \makecell{37.3 (n=31) \\ (27.7--48.2)} &
     \makecell{\colorbox{cyan!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     wrong\_hemi &
     \makecell{\colorbox{cyan!15}{0.421} \\ (0.067--0.520)} &
     \makecell{0.432 \\ (0.179--0.609)} &
@@ -1294,7 +1294,7 @@ the primary objective in this setting.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} &
     \makecell{\colorbox{orange!15}{68.3 (n=56)} \\ (57.3--78.0)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
     \makecell{0.392 \\ (0.214--0.503)} &
     \makecell{\colorbox{green!15}{0.515} \\ (0.240--0.675)} &
@@ -1304,7 +1304,7 @@ the primary objective in this setting.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} &
     \makecell{\colorbox{cyan!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ correct\_lobe} &
     \makecell{0.378 \\ (0.119--0.492)} &
     \makecell{\colorbox{cyan!15}{0.509} \\ (0.073--0.658)} &
@@ -1314,7 +1314,7 @@ the primary objective in this setting.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} &
     \makecell{65.9 (n=54) \\ (54.9--75.6)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
     \makecell{\colorbox{green!15}{0.433} \\ (0.258--0.515)} &
     \makecell{0.475 \\ (0.256--0.676)} &
@@ -1324,7 +1324,7 @@ the primary objective in this setting.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} &
     \makecell{\colorbox{cyan!15}{69.5 (n=57)} \\ (59.8--79.3)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ wrong\_lobe} &
     \makecell{0.388 \\ (0.147--0.501)} &
     \makecell{0.481 \\ (0.154--0.672)} &
@@ -1334,7 +1334,7 @@ the primary objective in this setting.
     \makecell{89.2 (n=74) \\ (81.9--95.2)} &
     \makecell{67.1 (n=55) \\ (56.1--76.8)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     no\_text &
     \makecell{\colorbox{orange!15}{0.397} \\ (0.138--0.502)} &
     \makecell{\colorbox{orange!15}{0.507} \\ (0.151--0.647)} &
@@ -1384,7 +1384,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{55.4 (n=46) \\ (44.6--66.3)} & 
     \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
     \hline
-    Exp1 & -- &
+    Vision--only & -- &
     \makecell{\colorbox{cyan!15}{0.376}\\(0.238--0.529)} &
     \makecell{\colorbox{cyan!15}{0.443}\\(0.243--0.619)} &
     0.350 &
@@ -1392,7 +1392,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{39.8 (n=33) \\ (28.9--50.6)} &
     \makecell{\colorbox{cyan!15}{73.2 (n=60)} \\ (63.4--82.9)} \\
     \hline
-    Exp2 & -- &
+    Vision--only+SA & -- &
     \makecell{0.342\\ (0.155--0.494)} &
     \makecell{0.381\\ (0.177--0.651)} &
     0.379 &
@@ -1400,7 +1400,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{37.3 (n=31) \\ (27.7--48.2)} &
     \makecell{69.5 (n=57) \\ (59.8--79.3)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     wrong\_hemi &
     \makecell{\colorbox{orange!15}{0.368} \\ (0.273--0.499)} &
     \makecell{\colorbox{orange!15}{0.382} \\ (0.220--0.558)} &
@@ -1410,7 +1410,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ correct\_lobe\_regions} &
     \makecell{0.321 \\ (0.163--0.456)} &
     \makecell{0.336 \\ (0.152--0.545)} &
@@ -1420,7 +1420,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ correct\_lobe} &
     \makecell{\colorbox{green!15}{0.401} \\ (0.129--0.507)} &
     \makecell{\colorbox{green!15}{0.448} \\ (0.240--0.676)} &
@@ -1430,7 +1430,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ wrong\_lobe\_regions} &
     \makecell{0.325 \\ (0.196--0.458)} &
     \makecell{0.338 \\ (0.205--0.619)} &
@@ -1440,7 +1440,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{green!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     \makecell{wrong\_hemi + \\ wrong\_lobe} &
     \makecell{0.353 \\ (0.137--0.489)} &
     \makecell{0.374 \\ (0.245--0.622)} &
@@ -1450,7 +1450,7 @@ by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensi
     \makecell{94.0 (n=78) \\ (88.0--98.8)} &
     \makecell{\colorbox{orange!15}{72.0 (n=59)} \\ (62.2--81.7)} \\
     \hline
-    Exp3\_mixed &
+    Vision+LM\_mixed &
     no\_text &
     \makecell{0.345 \\ (0.108--0.453)} &
     \makecell{0.349 \\ (0.156--0.567)} &
@@ -1796,26 +1796,26 @@ This gain is consistent with SAGEConv’s neighborhood aggregation: increasing d
 \textbf{Experiment} & \textbf{Dice} & \makecell{\textbf{PPV}\\\textbf{pixels}} &
 \makecell{\textbf{(mean) PPV}\\\textbf{clusters}} & \textbf{IoU} & \textbf{\makecell{Sensitivity, \% \\ (N = 259)}} \\
 \hline
-Exp1: 0 layers  & 
+Vision--only: 0 layers  & 
 \makecell{\colorbox{cyan!15}{0.240} \\ (0.129--0.324)} & 
 \makecell{0.217 \\ (0.151--0.319)} & 
 0.532 & 
 \makecell{\colorbox{cyan!15}{0.136} \\ (0.069--0.193)} & 
 \makecell{\colorbox{orange!15}{69.5 (n=180)} \\ (63.7--74.9)} \\
 \hline
-Exp1: 1 layer   & \makecell{\colorbox{orange!15}{0.235} \\ (0.096--0.313)} & \makecell{\colorbox{green!15}{0.235} \\ (0.148--0.362)} & \colorbox{green!15}{0.603} & \makecell{\colorbox{orange!15}{0.133} \\ (0.051--0.186)} & \makecell{67.2 (n=174) \\ (61.4--73.0)} \\
+Vision--only: 1 layer   & \makecell{\colorbox{orange!15}{0.235} \\ (0.096--0.313)} & \makecell{\colorbox{green!15}{0.235} \\ (0.148--0.362)} & \colorbox{green!15}{0.603} & \makecell{\colorbox{orange!15}{0.133} \\ (0.051--0.186)} & \makecell{67.2 (n=174) \\ (61.4--73.0)} \\
 \hline
-Exp1: 2 layers  & \makecell{0.234 \\ (0.126--0.334)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.136--0.371)} & \colorbox{cyan!15}{0.573} & \makecell{0.132 \\ (0.067--0.200)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
+Vision--only: 2 layers  & \makecell{0.234 \\ (0.126--0.334)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.136--0.371)} & \colorbox{cyan!15}{0.573} & \makecell{0.132 \\ (0.067--0.200)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
 \hline
-Exp1: 3 layers  & \makecell{\colorbox{green!15}{0.249} \\ (0.114--0.332)} & \makecell{\colorbox{cyan!15}{0.224} \\ (0.142--0.341)} & 0.479 & \makecell{\colorbox{green!15}{0.142} \\ (0.060--0.199)} & \makecell{\colorbox{cyan!15}{69.9 (n=181)} \\ (64.1--75.3)} \\
+Vision--only: 3 layers  & \makecell{\colorbox{green!15}{0.249} \\ (0.114--0.332)} & \makecell{\colorbox{cyan!15}{0.224} \\ (0.142--0.341)} & 0.479 & \makecell{\colorbox{green!15}{0.142} \\ (0.060--0.199)} & \makecell{\colorbox{cyan!15}{69.9 (n=181)} \\ (64.1--75.3)} \\
 \hline
-Exp1: 4 layers  & \makecell{0.231 \\ (0.097--0.304)} & \makecell{0.180 \\ (0.128--0.283)} & \colorbox{orange!15}{0.540} & \makecell{0.130 \\ (0.051--0.179)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
+Vision--only: 4 layers  & \makecell{0.231 \\ (0.097--0.304)} & \makecell{0.180 \\ (0.128--0.283)} & \colorbox{orange!15}{0.540} & \makecell{0.130 \\ (0.051--0.179)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
 \hline
-Exp1: 5 layers  & \makecell{0.223 \\ (0.081--0.312)} & \makecell{0.172 \\ (0.090--0.261)} & 0.533 & \makecell{0.125 \\ (0.042--0.185)} & \makecell{66.0 (n=171) \\ (60.2--71.8)} \\
+Vision--only: 5 layers  & \makecell{0.223 \\ (0.081--0.312)} & \makecell{0.172 \\ (0.090--0.261)} & 0.533 & \makecell{0.125 \\ (0.042--0.185)} & \makecell{66.0 (n=171) \\ (60.2--71.8)} \\
 \hline
-Exp1: 6 layers  & \makecell{0.208 \\ (0.121--0.312)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.147--0.336)} & 0.539 & \makecell{0.116 \\ (0.065--0.185)} & \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
+Vision--only: 6 layers  & \makecell{0.208 \\ (0.121--0.312)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.147--0.336)} & 0.539 & \makecell{0.116 \\ (0.065--0.185)} & \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
 \hline
-Exp1: 7 layers  & \makecell{0.206 \\ (0.119--0.293)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.135--0.341)} & 0.436 & \makecell{0.115 \\ (0.063--0.172)} & \makecell{\colorbox{green!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
+Vision--only: 7 layers  & \makecell{0.206 \\ (0.119--0.293)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.135--0.341)} & 0.436 & \makecell{0.115 \\ (0.063--0.172)} & \makecell{\colorbox{green!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
 \hline
 \end{tabular}
 \end{table}
@@ -1837,56 +1837,56 @@ For subsequent experiments we keep the \textbf{3-layer} and \textbf{5-layer} var
 \textbf{Experiment} & \textbf{Dice} & \makecell{\textbf{PPV}\\\textbf{pixels}} &
 \makecell{\textbf{(mean) PPV}\\\textbf{clusters}} & \textbf{IoU} & \textbf{\makecell{Sensitivity, \% \\ (N = 82)}} \\
 \hline
-Exp1: 0 layers &
+Vision--only: 0 layers &
 \makecell{0.371 \\ (0.289--0.520)} &
 \makecell{0.438 \\ (0.246--0.660)} &
 \makecell{\colorbox{orange!15}{0.680}} &
 \makecell{0.227 \\ (0.169--0.351)} &
 \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
 \hline
-Exp1: 1 layer &
+Vision--only: 1 layer &
 \makecell{0.342 \\ (0.083--0.515)} &
 \makecell{\colorbox{cyan!15}{0.528} \\ (0.242--0.757)} &
 \makecell{\colorbox{green!15}{0.819}} &
 \makecell{0.206 \\ (0.043--0.347)} &
 \makecell{65.9 (n=54) \\ (54.9--75.6)} \\
 \hline
-Exp1: 2 layers &
+Vision--only: 2 layers &
 \makecell{0.383 \\ (0.216--0.506)} &
 \makecell{0.432 \\ (0.243--0.663)} &
 \makecell{\colorbox{cyan!15}{0.729}} &
 \makecell{0.237 \\ (0.123--0.339)} &
 \makecell{70.7 (n=58) \\ (61.0--80.5)} \\
 \hline
-Exp1: 3 layers &
+Vision--only: 3 layers &
 \makecell{0.390 \\ (0.302--0.517)} &
 \makecell{\colorbox{orange!15}{0.503} \\ (0.309--0.732)} &
 \makecell{0.619} &
 \makecell{0.242 \\ (0.178--0.349)} &
 \makecell{\colorbox{cyan!15}{75.6 (n=62)} \\ (65.9--84.1)} \\
 \hline
-Exp1: 4 layers &
+Vision--only: 4 layers &
 \makecell{\colorbox{green!15}{0.458} \\ (0.279--0.600)} &
 \makecell{0.491 \\ (0.186--0.582)} &
 \makecell{0.653} &
 \makecell{\colorbox{green!15}{0.297} \\ (0.162--0.428)} &
 \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
 \hline
-Exp1: 5 layers &
+Vision--only: 5 layers &
 \makecell{\colorbox{cyan!15}{0.432} \\ (0.303--0.549)} &
 \makecell{0.410 \\ (0.249--0.606)} &
 \makecell{0.555} &
 \makecell{\colorbox{cyan!15}{0.275} \\ (0.179--0.378)} &
 \makecell{\colorbox{green!15}{76.8 (n=63)} \\ (67.1--85.4)} \\
 \hline
-Exp1: 6 layers &
+Vision--only: 6 layers &
 \makecell{0.382 \\ (0.292--0.544)} &
 \makecell{\colorbox{green!15}{0.584} \\ (0.342--0.687)} &
 \makecell{0.644} &
 \makecell{0.236 \\ (0.171--0.373)} &
 \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
 \hline
-Exp1: 7 layers &
+Vision--only: 7 layers &
 \makecell{\colorbox{orange!15}{0.402} \\ (0.284--0.493)} &
 \makecell{0.375 \\ (0.232--0.634)} &
 \makecell{0.451} &
@@ -1904,7 +1904,7 @@ Based on the results from the previous sections, we select the final experimenta
 \begin{enumerate}[label=(\roman*), leftmargin=*]
 \item the text encoder is RadBERT (used throughout all experiments in this work),
 \item the visual branch uses GNN encoders with 3 and 5 blocks, and
-\item for each GNN depth, we initialize the model from the corresponding best--performing Exp1+GNN checkpoint and employ a 5-epoch decoder warm--up, after which the full decoder is unfrozen.
+\item for each GNN depth, we initialize the model from the corresponding best--performing \texttt{Vision--only}+GNN checkpoint and employ a 5-epoch decoder warm--up, after which the full decoder is unfrozen.
 \end{enumerate}
 
 
@@ -1913,12 +1913,12 @@ Using ``lobe regions'' and ``full text'' is not meaningful, as discussed earlier
 We have also included a ``no text'' column, where instead of an empty string, this column will contain a general description: ``full brain''.
 Additionally, we will train the model with mixed text, primarily to reduce the overall experimental runtime, since our goal here is to demonstrate relative improvements under optimal settings, rather than to obtain the best possible model.
 
-The architecture used in this experiment for Exp1 is shown below:
+The architecture used in this experiment for \texttt{Vision--only} is shown below:
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{pictures/AdvancedExp1.png}
-    \caption{Architecture of Advanced Exp1: MELD surface-based features are extracted through a multi-stage GNN encoder (3- or 5-block variants) and passed through a hierarchical GuideDecoder with cross-attention to text embeddings. 
+    \caption{Architecture of Advanced \texttt{Vision--only}: MELD surface-based features are extracted through a multi-stage GNN encoder (3- or 5-block variants) and passed through a hierarchical GuideDecoder with cross-attention to text embeddings. 
     At each decoder stage, visual features are fused with text embeddings, reshaped, and upsampled through geometry-aware operations, before producing the final segmentation via the DecoderHead. 
     The right panel illustrates the internal structure of the GuideDecoder layer, including self- and cross-attention over text and vision tokens, skip connections, and spatial upsampling.}
     \label{fig:advanced_exp1}
@@ -1947,7 +1947,7 @@ The PPV\textsubscript{clusters} metric explicitly indicates that GNN-based model
 \midrule
 MELD &
 -- &
-Basice Exp1 &
+Basic Vision--only &
 \makecell{0.230\\(0.107--0.320)} &
 \makecell{0.166\\(0.086--0.220)} &
 0.515 &
@@ -1957,9 +1957,9 @@ Basice Exp1 &
 
 \hline
 
-\multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+\multirow{3}{*}{\makecell[c]{Vision+LM\_mixed}} &
 \multirow{3}{*}{\makecell[c]{hemisphere}} &
-\makecell{Exp1 with 3 GNN} &
+\makecell{Vision--only \\ with 3 GNN} &
 \makecell{\textbf{0.232} \\ (0.141-0.312)} &
 \makecell{0.212 \\ (0.146-0.330)} &
 \makecell{0.314} &
@@ -1969,7 +1969,7 @@ Basice Exp1 &
 % second row
 & 
 &
-\makecell{Exp1 with 5 GNN} &
+\makecell{Vision--only \\ with 5 GNN} &
 \makecell{0.211 \\ (0.110--0.320)} &
 \makecell{\textbf{0.226} \\ (0.154--0.394)} &
 \makecell{0.242} &
@@ -1979,7 +1979,7 @@ Basice Exp1 &
 % third row
 & 
 &
-\makecell{Basic Exp1} &
+\makecell{Basic Vision--only} &
 \makecell{0.225 \\ (0.131--0.294)} &
 \makecell{0.215 \\ (0.137--0.325)} &
 \textbf{0.401} &
@@ -1989,9 +1989,9 @@ Basice Exp1 &
 
 \hline
 
-\multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+\multirow{3}{*}{\makecell[c]{Vision+LM\_mixed}} &
 \multirow{3}{*}{\makecell[c]{hemisphere \\ + \\ lobe}} &
-\makecell{Exp1 with 3 GNN} &
+\makecell{Vision--only \\ with 3 GNN} &
 \makecell{0.224 \\ (0.154-0.319)} &
 \makecell{0.200 \\ (0.142-0.314)} &
 \makecell{0.310} &
@@ -2000,7 +2000,7 @@ Basice Exp1 &
 \makecell{69.5 (n=180) \\ (63.7--74.9)}\\% second row
 & 
 &
-\makecell{Exp1 with 5 GNN} &
+\makecell{Vision--only \\ with 5 GNN} &
 \makecell{0.186 \\ (0.119--0.314)} &
 \makecell{0.241 \\ (0.158--0.384)} &
 \makecell{0.246} &
@@ -2010,7 +2010,7 @@ Basice Exp1 &
 % third row
 & 
 &
-\makecell{Basic Exp1} &
+\makecell{Basic Vision--only} &
 \makecell{\textbf{0.228} \\ (0.129--0.321)} &
 \makecell{\textbf{0.247} \\ (0.180--0.330)} &
 \textbf{0.482} &
@@ -2020,9 +2020,9 @@ Basice Exp1 &
 
 \hline
 
-\multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+\multirow{3}{*}{\makecell[c]{Vision+LM\_mixed}} &
 \multirow{3}{*}{\makecell[c]{no text}} &
-\makecell{Exp1 with 3 GNN} &
+\makecell{Vision--only \\ with 3 GNN} &
 \makecell{0.212 \\ (0.120-0.311)} &
 \makecell{\textbf{0.262} \\ (0.164-0.355)} &
 \makecell{0.206} &
@@ -2032,7 +2032,7 @@ Basice Exp1 &
 % second row
 & 
 &
-\makecell{Exp1 with 5 GNN} &
+\makecell{Vision--only \\ with 5 GNN} &
 \makecell{0.229 \\ (0.118--0.311)} &
 \makecell{0.259 \\ (0.135--0.363)} &
 \makecell{0.235} &
@@ -2042,7 +2042,7 @@ Basice Exp1 &
 % third row
 & 
 &
-\makecell{Basic Exp1} &
+\makecell{Basic Vision--only} &
 \makecell{\textbf{0.249} \\ (0.080--0.296)} &
 \makecell{0.192 \\ (0.127--0.289)} &
 \textbf{0.443} &
@@ -2056,9 +2056,9 @@ Basice Exp1 &
 \vspace{2mm}
 \begin{tablenotes}\footnotesize
 \item[] \textit{Note.}
-\item \textit{Basic Exp1} denotes the pretrained Exp1 model without GNN blocks; \textit{Exp1 with 3/5 GNN} denotes the pretrained Exp1 model with 3/5 GNN blocks.
+\item \textit{Basic Vision--only} denotes the pretrained \texttt{Vision--only} model without GNN blocks; \textit{Vision--only with 3/5 GNN} denotes the pretrained \texttt{Vision--only} model with 3/5 GNN blocks.
 \item Dice, IoU, and PPV metrics are computed on patients only (subjects with lesions).
-\item All experiments in this table use the \textit{Exp3\_mixed} training scheme to obtain results more efficiently.
+\item All experiments in this table use the \textit{Vision+LM\_mixed} training scheme to obtain results more efficiently.
 \end{tablenotes}
 
 
@@ -2108,9 +2108,9 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     
     \hline
     
-    \multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+    \multirow{3}{*}{\makecell[c]{Vision+LM\_mixed}} &
     \multirow{3}{*}{\makecell[c]{hemisphere}} &
-    \makecell{Exp1 with 3 GNN} &
+    \makecell{Vision--only \\ with 3 GNN} &
     \makecell{\textbf{0.446} \\ (0.289--0.553)} &
     \makecell{0.404 \\ (0.228--0.605)} &
     \makecell{0.294} &
@@ -2120,7 +2120,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % second row
     &
     &
-    \makecell{Exp1 with 5 GNN} &
+    \makecell{Vision--only \\ with 5 GNN} &
     \makecell{0.378 \\ (0.274--0.549)} &
     \makecell{\textbf{0.418} \\ (0.237--0.667)} &
     \makecell{0.186} &
@@ -2130,7 +2130,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % third row
     &
     &
-    \makecell{Basic Exp1} &
+    \makecell{Basic Vision--only} &
     \makecell{0.368 \\ (0.248--0.505)} &
     \makecell{0.406 \\ (0.218--0.596)} &
     \textbf{0.489} &
@@ -2139,9 +2139,9 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
     
     \hline
-    \multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+    \multirow{3}{*}{\makecell[c]{Vision+LM\_mixed}} &
     \multirow{3}{*}{\makecell[c]{hemisphere \\ + \\ lobe}} &
-    \makecell{Exp1 with 3 GNN} &
+    \makecell{Vision--only \\ with 3 GNN} &
     \makecell{\textbf{0.412} \\ (0.302--0.565)} &
     \makecell{0.388 \\ (0.217--0.567)} &
     \makecell{0.299} &
@@ -2151,7 +2151,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % second row
     &
     &
-    \makecell{Exp1 with 5 GNN} &
+    \makecell{Vision--only \\ with 5 GNN} &
     \makecell{0.379 \\ (0.259-0.541)} &
     \makecell{0.408 \\ (0.220-0.666)} &
     \makecell{0.188} &
@@ -2161,7 +2161,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % third row
     &
     &
-    \makecell{Basic Exp1} &
+    \makecell{Basic Vision--only} &
     \makecell{0.400 \\ (0.162--0.507)} &
     \makecell{\textbf{0.462} \\ (0.239--0.672)} &
     \textbf{0.586} &
@@ -2170,9 +2170,9 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     \makecell{74.4 (n=61) \\ (64.6--84.1)} \\
     \hline
 
-    \multirow{3}{*}{\makecell[c]{Exp3\_mixed}} &
+    \multirow{3}{*}{\makecell[c]{Vision+LM\_mixed}} &
     \multirow{3}{*}{\makecell[c]{no text}} &
-    \makecell{Exp1 with 3 GNN} &
+    \makecell{Vision--only \\ with 3 GNN} &
     \makecell{0.299 \\ (0.161-0.431)} &
     \makecell{0.385 \\ (0.193-0.711)} &
     \makecell{0.202} &
@@ -2182,7 +2182,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % second row
     &
     &
-    \makecell{Exp1 with 5 GNN} &
+    \makecell{Vision--only \\ with 5 GNN} &
     \makecell{0.342 \\ (0.242-0.464)} &
     \makecell{0.376 \\ (0.215-0.676)} &
     \makecell{0.191} &
@@ -2192,7 +2192,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % third row
     &
     &
-    \makecell{Basic Exp1} &
+    \makecell{Basic Vision--only} &
     \makecell{\textbf{0.397} \\ (0.138--0.502)} &
     \makecell{\textbf{0.507} \\ (0.151--0.647)} &
     \textbf{0.549} &
@@ -2207,9 +2207,9 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     \vspace{2mm}
     \begin{tablenotes}\footnotesize
     \item[] \textit{Note.}
-    \item \textit{Basic Exp1} denotes the pretrained Exp1 model without GNN blocks; \textit{Exp1 with 3/5 GNN} denotes the pretrained Exp1 model with 3/5 GNN blocks.
+    \item \textit{Basic Vision--only} denotes the pretrained \texttt{Vision--only} model without GNN blocks; \textit{Vision--only with 3/5 GNN} denotes the pretrained \texttt{Vision--only} model with 3/5 GNN blocks.
     \item Dice, IoU, and PPV metrics are computed on patients only (subjects with lesions).
-    \item All experiments in this table use the \textit{Exp3\_mixed} training scheme to obtain results more efficiently.
+    \item All experiments in this table use the \textit{Vision+LM\_mixed} training scheme to obtain results more efficiently.
     \end{tablenotes}
     \end{threeparttable}
 
@@ -2230,15 +2230,15 @@ of GNN-based feature integration to avoid sacrificing precision.
     \item From the \textbf{Basic Experiments} chapter, we conclude that:
     \begin{itemize}
 
-        \item \textbf{Exp3\_hemi+lobe\_regions} provides the most balanced performance and achieves the 
+        \item \textbf{Vision+LM\_hemi+lobe\_regions} provides the most balanced performance and achieves the 
         \textbf{highest sensitivity}. Incorporating hemisphere and lobe-region information constrains the 
         search space and improves localization.
 
-        \item \textbf{Exp3\_hemi+lobe+PubMedBERT} achieves the highest \textbf{Sensitivity} and \textbf{Specificity} on both cohorts. 
+        \item \textbf{Vision+LM\_hemi+lobe+PubMedBERT} achieves the highest \textbf{Sensitivity} and \textbf{Specificity} on both cohorts. 
         The concise prompt without irrelevant context, combined with PubMedBERT’s domain-specific pretraining, 
         improves detection performance while only slightly reducing segmentation metrics (Dice/IoU/PPV).
 
-        \item \textbf{Exp3\_full\_desc} underperforms relative to the hemi+lobe variants, suggesting that 
+        \item \textbf{Vision+LM\_full\_desc} underperforms relative to the hemi+lobe variants, suggesting that 
         long atlas-style descriptions introduce noise and redundancy. In contrast, shorter and more targeted 
         prompts generalize better.
 
