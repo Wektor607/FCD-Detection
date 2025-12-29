@@ -3,13 +3,15 @@
 \begin{document}
 \chapter{Discussion}
 \label{chapter:Discussion}
+
 The experiments conducted in this thesis demonstrate that incorporating textual information into surface-based GNN architectures can substantially improve the detection of FCD type II. At the same time, the results highlight important trade-offs that need to be considered when designing multimodal models.
 
 A more detailed analysis of the GNN experiments reveals a nuanced picture. 
-Integrating additional MELD feature stages into the GNN block does increase the model’s ability to detect lesions: 
+Integrating additional MELD feature stages into the GNN blocks increases the model’s ability to detect lesions:
 sensitivity and lesion-level coverage improved as more stages were incorporated, indicating that neighborhood aggregation 
 can amplify subtle abnormal patterns that may be missed by purely local representations. 
-This benefit, however, comes at the cost of reduced precision and a higher rate of false positives.
+This benefit, however, comes at the cost of reduced Specificity, i.e., a higher false-positive rate on healthy controls.
+This is an important limitation for clinical use, since our evaluation does not include other epilepsy-related abnormalities or non-FCD lesion types; therefore, we cannot assess how often the model would spuriously highlight regions in patients with different pathologies.
 
 Importantly, the results also show that adding more GNN layers does not monotonically improve performance. 
 The effectiveness of GNN propagation depends strongly on the structure of the underlying MELD features. 
@@ -19,14 +21,28 @@ In contrast, for low-dimensional stages (such as stages 6–7), where the graph 
 more compressed, additional propagation tends to oversmooth node features. 
 This blurs spatial distinctions and can ultimately degrade performance rather than enhance it.
 
-Experiments with different forms of textual input demonstrated that even coarse labels (hemisphere or lobe only) meaningfully improved segmentation compared to purely vision-based baselines. 
-Full atlas descriptions increased sensitivity further but produced unstable predictions, generating many false positive clusters. 
-Thus, reduced-text settings may provide the best balance for clinical application.
+In the warm--up experiments, we observed that freezing the visual backbone for the first few epochs can be beneficial. 
+A plausible explanation is that the model becomes less sensitive to prompt variability and even mildly incorrect prompts. 
+This behavior can be attributed to several factors:
+\begin{enumerate}
+  \item \textbf{Partial but useful signal.} Even an inexact prompt still conveys coarse structural information (e.g., hemisphere or lobe). 
+  Such cues can narrow the search space and reduce the need to attend over the entire cortex.
+
+  \item \textbf{Decoder robustness.} Owing to pretraining, the decoder can tolerate mild text--image mismatch. 
+  When the prompt is uninformative, the model relies more on visual features and treats the text mainly as a weak attention prior.
+
+  \item \textbf{Regularization effect.} Training with slightly noisy prompts discourages the model from overfitting to specific wording and promotes more general text--image associations. 
+  This acts as mild regularization: predictions become more conservative, reducing false positives, which can improve precision (e.g., PPV), while sensitivity and Dice often remain stable.
+\end{enumerate}
+
+Experiments with different forms of textual input showed that even coarse prompts (hemisphere- or lobe-only) can meaningfully improve lesion detection compared to purely vision-based baselines.
+Across configurations, gains in sensitivity typically come with a trade-off in specificity, i.e., an increased number of false positive clusters.
+Overall, reduced-text prompts (e.g., hemisphere + lobe) often provide a more favorable balance between detecting lesions and limiting false positives, which may be preferable for clinical use.
 
 Several limitations must be acknowledged. 
-The dataset size remains modest compared to other medical imaging benchmarks, and domain shifts across scanners and sites may limit generalizability. 
-Furthermore, the analysis was restricted to type II FCD, and it remains unclear whether the same conclusions extend to other subtypes. 
-Finally, the model relies on atlas-based text generated automatically; the integration of free-form radiology reports may further improve results.
+While the MELD surface features are ComBat-harmonized to reduce inter-site effects, residual variability may remain due to differences in acquisition protocols, preprocessing, and lesion annotation practices across centers.
+Furthermore, the MELD cohort predominantly consists of histologically confirmed type II FCD cases, and it therefore remains unclear whether the same conclusions extend to other FCD subtypes.
+Finally, the model relies on atlas-based text generated automatically; incorporating free-form radiology reports could yield a more realistic estimate of performance under clinical conditions, where textual descriptions are not always precise.
 
 In this study, we did not explore the effect of unfreezing different numbers of LLM layers or varying the number of cross-modal connections to the GuideDecoder. However, previous work (Huemann et al., 2024 \cite{Huemann2024ConTEXTualNet}) shows that selectively unfreezing specific layers of a language model and fine-tuning them for a segmentation task can yield consistent performance gains. 
 Consequently, systematic experiments on partial LLM fine-tuning, on alternative strategies for connecting the text encoder to the GuideDecoder, and on increasing the architectural capacity of the GuideDecoder itself represent promising directions for future research.
@@ -37,11 +53,12 @@ An alternative would be to express the same information as a numerical feature v
 In such a vector, the percentages mentioned in the textual description (e.g., 52.34\% Right Frontal Orbital Cortex; 26.06\% Right Frontal Pole) would directly populate the corresponding entries, while all other regions would be set to zero. 
 For coarse labels such as lobe-only or hemisphere-only descriptions, the corresponding weight could be uniformly distributed across all constituent regions.
 
-While this vector-based formulation is simple, interpretable, and avoids the computational overhead of a pretrained LLM, it is also substantially less expressive. 
-A model trained solely on this numerical representation has no inherent knowledge of anatomical relationships: each vector dimension is treated as an independent feature, and the network does not know which regions belong to the same lobe or hemisphere, which ones are spatially adjacent, or how they relate hierarchically. 
-As a result, this representation reflects explicit numeric values, but does not reflect the underlying anatomical semantics.
-In contrast, language models encode prior knowledge about anatomical terminology, regional similarity, and hierarchical structure within the cortex, enabling them to generalise even when the textual descriptions are coarse or partially specified. 
-Thus, although a numerical vector representation is a possible baseline, it is not clear in advance whether it would perform better or even as well as the LLM-based approach used in this work, making it a useful direction for future research.
+While this vector--based formulation is simple, interpretable, and avoids the computational overhead of a pretrained LLM, it is also less expressive in its basic form. 
+When used without an explicitly defined structure, a model trained solely on such numerical representations treats each vector dimension as an independent feature and does not explicitly encode anatomical relationships, such as lobar or hemispheric grouping, spatial adjacency, or hierarchical organization. 
+Although these relationships could in principle be incorporated through carefully designed numerical encodings or structured representations, this requires additional modeling assumptions and design choices.
+In contrast, language models implicitly encode semantic relationships between anatomical terms, including regional similarity and hierarchical structure, and naturally handle coarse, uncertain, or partially specified descriptions. 
+This makes LLM--based representations particularly suitable for prototyping multimodal fusion and exploring how textual guidance can complement visual features. 
+Accordingly, while numerical vector representations remain a sustainable baseline, their relative performance compared to LLM-based approaches depends on how explicitly anatomical structure and uncertainty are modeled, and remains an open question for future work.
 
 Overall, the discussion of results highlights that textual guidance is a promising direction for FCD detection. 
 However, the balance between sensitivity and precision remains a key design choice that must be adapted depending on whether the clinical task prioritizes coverage or specificity.
