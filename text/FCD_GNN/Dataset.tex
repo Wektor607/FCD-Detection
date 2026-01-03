@@ -216,18 +216,43 @@ In this work, we used the Harvard--Oxford (cortical and subcortical) probabilist
 
 However, strong validation scores obtained using full anatomical descriptions do not guarantee 
 robustness at deployment: in real-world scenarios, neither precise overlap percentages nor complete 
-region names are typically available. Therefore, in Chapter~\ref{chapter:Experiments} we also evaluate 
-several reduced-text settings:
+region names are typically available. Therefore, in Chapter~\ref{chapter:Experiments}, we also evaluate 
+several reduced-text settings, summarized in Table~\ref{tab:text_variants}.
 
-\begin{enumerate}[label=\Roman*.]
-    \item \emph{hemisphere only} (Left / Right);
-    \item \emph{fine-grained lobe regions} (e.g., Precentral Gyrus, Frontal Pole, Subcallosal Cortex);
-    \item \emph{coarse lobe labels} (e.g., Frontal, Temporal, Parietal, Occipital, Insular);
-    \item \emph{hemisphere + lobe / lobe regions};
-    \item \emph{mixed} (randomly sampling one of 
-    \{hemisphere only, lobe region only, hemisphere + lobe, full text, no text\}; 
-    this scheme is described in more detail in the next chapter).
-\end{enumerate}
+\begin{table}[t]
+    \centering
+    \caption{Text conditioning variants.}
+    \label{tab:text_variants}
+    \small
+    \setlength{\tabcolsep}{6pt}
+    \renewcommand{\arraystretch}{1.15}
+        \begin{tabularx}{\textwidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+            \toprule
+            \textbf{Name} & \textbf{Description} & \textbf{Example} \\
+            \midrule
+            full & Complete atlas--based lesion description with region names and their percentages &
+            48.86\% Left Middle Frontal Gyrus; 30.63\% Left Precentral Gyrus; \dots \\
+            \midrule
+            hemi & Hemisphere only & Left hemisphere \\
+            \midrule
+            lobe\_regions & Lobe regions only (subset of atlas regions) &
+            Middle Frontal Gyrus; Temporal Pole; \dots \\
+            \midrule
+            hemi+lobe\_regions & Hemisphere + lobe regions &
+            Left hemisphere; Middle Frontal Gyrus; Temporal Pole \dots \\
+            \midrule
+            hemi+lobe & Hemisphere + lobe name & Left hemisphere; Frontal lobe; Temporal lobe; Limbic lobe \\
+            \midrule
+            no\_text & No textual conditioning is provided (equivalent to assuming the full brain without additional localisation cues) &
+            full brain \\
+            \midrule
+            mixed & randomly sampling one of \{hemisphere only, lobe region only, hemisphere + lobe, full text, no text\}; this scheme is described in more detail in the next chapter & -- \\
+            \bottomrule
+        \end{tabularx}
+
+        \vspace{2mm}
+        {\footnotesize\textit{Note:} For healthy subjects (no lesion present), the textual input is set to \textit{``No lesion detected.''}}
+    \end{table}
 
 The anatomical names of lobes and their respective regions are taken from
 \href{https://www.sciencedirect.com/science/article/pii/S1053811901909784}{\textit{Automated Anatomical Labeling of Activations in SPM Using a Macroscopic Anatomical Parcellation of the MNI MRI Single-Subject Brain}}.

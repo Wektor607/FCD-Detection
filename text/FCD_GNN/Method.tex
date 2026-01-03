@@ -19,7 +19,7 @@ and each component is described in detail below.
     The input to the MELD encoder is an MRI scan in NIfTI format, which is first transformed into FreeSurfer space, a standardized surface-based cortical representation obtained by reconstructing the cerebral cortex from volumetric MRI.
     In this space, surface-based visual features include cortical thickness, curvature, sulcal depth, as well as intensity-based measures derived from T1-weighted and FLAIR images.
     The resulting surface-based visual features from each stage of the MELD encoder are then processed by their corresponding GNN block.
-    In parallel, atlas-derived textual anatomical annotations are encoded by a pretrained language model, and the visual and textual representations are fused through the GuideDecoder blocks.
+    Concurrently, atlas-derived textual anatomical annotations are encoded by a pretrained language model, and the visual and textual representations are fused through the GuideDecoder blocks.
     Each stage has its own GuideDecoder, which integrates the multimodal information and passes it to the next level via upsampling. 
     Finally, the fused features are decoded into the predicted FCD mask, which is output in NIfTI format.
     \textit{Note.} The number of GNN blocks shown is illustrative and does not reflect a fixed architectural requirement; it is included solely for visualization purposes.}
@@ -214,9 +214,10 @@ At each level $i$, auxiliary predictions are generated and the same combination 
 
 \section{Metrics}
 To evaluate the performance of our model, we follow the metrics used by the MELD 
-authors for convenient comparison: Dice score, \ac{ppv}, \ac{iou}, specificity, 
-and sensitivity. Below we briefly describe each of them.
-
+authors for direct comparison: Dice score, \ac{ppv}, \ac{iou}, specificity, 
+and sensitivity. 
+For consistency, we also use the same strategy as the MELD authors to compute confidence intervals.
+Below, we briefly describe each of them.
 
 \subsection*{Dice score} 
 The Dice similarity coefficient (DSC) is defined as the harmonic mean between precision and recall. 

@@ -33,11 +33,11 @@ However, the detection of epileptogenic lesions, in particular \ac{fcd}, remains
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/FCD_example.png}
-    \caption{Typical features of focal cortical dysplasias (FCDs) visible in \ac{mri}~\cite{walger2023ai_fcd}}
+    \caption{Typical features of \ac{fcd}s visible in \ac{mri}~\cite{walger2023ai_fcd}}
     \label{unseen_fcds}
 \end{figure}
 
-Unlike tumors, which often show progressive growth and well--defined boundaries, epileptogenic lesions typically remain stable in size and present with subtle imaging features, as illustrated in Fig.~\ref{unseen_fcds}, complicating their identification even for trained neuroradiologists~\cite{walger2023ai_fcd}.
+Unlike tumors, which often show progressive growth and well--defined boundaries, epileptogenic lesions typically remain stable in size and present with subtle imaging features, as illustrated in Fig.~\ref{unseen_fcds}, complicating their identification even for expert neuroradiologists~\cite{walger2023ai_fcd}.
 Earlier approaches~\cite{wagner2011morphometric_fcd, dev2019automatic_fcd, house2021automated_fcd} to automated FCD detection mainly used volumetric convolutional neural networks trained on 3D \ac{mri} data, such as T1-weighted and FLAIR images. 
 However, these methods were usually developed using relatively small datasets, often including only a few dozen to a few hundred patients, which limited their reliability and ability to generalize to unseen data. 
 In addition, volumetric CNN-based approaches do not directly model the cortical surface or its shape, even though FCD-related abnormalities mainly affect the cortex. 
@@ -45,7 +45,7 @@ In contrast, the \ac{meld} project~\cite{Ripart2025MELD} uses a surface-based re
 Although this represents one of the most advanced solutions to date, performance remains limited, underscoring the continued complexity of the detection task.
 
 At the same time, recent progress in text-guided and multimodal learning suggests that combining visual information with textual descriptions may help models focus on clinically relevant anatomical regions.  
-In the context of epileptogenic lesion detection, such textual information can reflect prior clinical knowledge derived from examinations other than \ac{mri}, such as EEG findings or seizure semiology.  
+In the context of epileptogenic lesion detection, such textual information can reflect prior clinical knowledge derived from examinations other than \ac{mri}, such as \ac{eeg} findings or seizure semiology.  
 For tasks with limited training data, textual annotations can therefore serve as an additional source of structure by guiding the model toward regions that are clinically suspected, even when \ac{mri} findings are subtle.  
 This motivates investigating whether integrating such information, even in a coarse form (e.g., hemisphere or lobe labels), can help compensate for the scarcity of annotated datasets and improve detection performance.
 
@@ -67,8 +67,7 @@ Several research questions were formulated:
 We systematically evaluate the impact of different types of textual information, as well as alternative strategies 
 for combining visual features, including the integration of additional \ac{gnn} layers. 
 We further analyze how these design choices influence segmentation performance, 
-demonstrating that the joint integration of textual and visual features can enhance both the accuracy 
-and the sensitivity of epileptogenic lesion detection.
+demonstrating that the joint integration of textual and visual features can enhance both the accuracy and the sensitivity of epileptogenic lesion detection.
 
 \section{Contributions}
 
@@ -77,7 +76,7 @@ The main contributions of this thesis can be summarized as follows:
 \begin{enumerate}    
     \item Introduced a state-of-the-art multimodal model for epileptogenic lesion detection that integrates surface-based visual features with textual information.
     \item Conducted a systematic evaluation of design choices related to graph-based feature aggregation, including different configurations of GNN blocks.
-    \item Assessed the effect of multiple types of textual descriptions (full atlas annotations, hemisphere and lobe labels, etc.) on model accuracy and sensitivity.
+    \item Assessed the effect of multiple types of textual descriptions (full atlas annotations, hemisphere and lobe labels, etc.) on model accuracy, sensitivity and specificity.
     \item Delivered comprehensive documentation and usage guidelines for the implemented methods.
     \item Implemented a user-friendly interface that supports different pretrained models and enables interactive visualization of predictions.
 \end{enumerate}
@@ -85,16 +84,17 @@ The main contributions of this thesis can be summarized as follows:
 \section{Thesis structure}
 The structure of this thesis is organized as follows:
 \begin{enumerate}
-    \item Chapter~\ref{chapter:Related_works} reviews prior work on \acs{fcd} detection and text-guided medical image segmentation, focusing on architectural choices, fusion strategies, and open limitations that motivate our approach.
+    \item Chapter~\ref{chapter:Related_works} introduces the core architectural paradigms used in this thesis: transformer architecture, graph neural networks, and large language models, and subsequently reviews state-of-the-art methods for \ac{fcd} detection, including volumetric CNN-based models, surface-based neural network approaches, and a multimodal segmentation model.
 
-    \item Chapter~\ref{chapter:Method} presents the proposed multimodal segmentation framework for epileptogenic lesion detection, detailing the surface-based visual features (from MELD preprocessing), the \acs{gnn} block, \acs{llm} textual embeddings, and their integration within the GuideDecoder (with HexUnpool and SpiralConv adaptations).
+    \item Chapter~\ref{chapter:Method} presents the proposed multimodal segmentation framework for epileptogenic lesion detection, detailing the surface-based visual features (from MELD preprocessing), the \acs{gnn} block, \acs{llm} textual embeddings, and their integration within the GuideDecoder, and describes the loss function and evaluation metrics.
 
     \item Chapter~\ref{chapter:Dataset} describes the Bonn and MELD datasets, FreeSurfer-based feature extraction and harmonization, the data-augmentation pipeline, and the variants of atlas-derived textual descriptions used in our study.
 
-    \item Chapter~\ref{chapter:Experiments} details the experimental setup (losses, metrics, and implementation specifics) and reports the main results: baseline comparisons against MELD, the effect of linking different numbers of MELD feature stages to the \acs{gnn} block, as well as experiments with mixed-text settings.
+    \item Chapter~\ref{chapter:Experiments} details the experimental setup, including implementation specifics, and reports the main results: baseline comparisons against MELD, the effect of linking different numbers of MELD feature stages to the \acs{gnn} block, as well as experiments with mixed-text settings.
 
-    \item Chapter~\ref{chapter:Discussion} discusses the findings, emphasizing trade-offs between sensitivity and precision, limitations of the current study, and implications for clinical applicability.
+    \item Chapter~\ref{chapter:Discussion} discusses the experimental findings, emphasizing trade-offs between sensitivity and precision, limitations of the current study, implications for clinical applicability, and directions for future research.
 
-    \item Finally, Chapter~\ref{chapter:Conclusion} summarizes key insights, outlines the limitations, and proposes directions for future research.
+    \item Chapter~\ref{chapter:Conclusion} summarizes the main contributions and key findings of this thesis.
+
 \end{enumerate}
 \end{document}

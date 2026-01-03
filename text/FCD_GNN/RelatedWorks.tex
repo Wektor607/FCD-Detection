@@ -4,7 +4,7 @@
 \chapter{Related Works}
 \label{chapter:Related_works}
 
-This section firstly reviews the Transformer architecture, which is a fundamental component of modern vision models and large language models (LLMs).
+This section firstly reviews the transformer architecture, which is a fundamental component of modern vision models and large language models (LLMs).
 Then it introduces graph neural networks (GNNs) and LLMs, followed by an overview of existing approaches to \ac{fcd} detection and text-guided medical image segmentation for tumor detection tasks, with a focus on their fusion strategies, and limitations.
 
 \section{Transformer Architecture}
@@ -133,11 +133,11 @@ Dev et al.~\cite{dev2019automatic_fcd} proposed a fully convolutional neural net
 Their approach performs voxel--wise segmentation on multimodal MRI data, enabling direct lesion identification without manual feature engineering.
 However, the method was trained on a relatively small, single--center dataset, which may limit its robustness and generalizability across different populations and imaging protocols.
 
-Along similar lines, House et al.~\cite{house2021automated_fcd} introduced a clinically integrated 3D convolutional neural network for the automated detection and segmentation of \ac{fcd} lesions from routine T1--weighted and FLAIR MRI sequences.
+Similarly, House et al.~\cite{house2021automated_fcd} introduced a clinically integrated 3D convolutional neural network for the automated detection and segmentation of \ac{fcd} lesions from routine T1--weighted and FLAIR MRI sequences.
 The proposed architecture employs a shared encoder that extracts latent representations from the MRI data, followed by two decoders: one dedicated to FCD segmentation and a variational decoder tasked with reconstructing the input to model normal brain anatomy.
 This joint training strategy regularizes the encoder and improves segmentation performance, particularly in settings with limited labeled data.
 A key contribution of this work is its prospective validation within a real--world clinical workflow.
-Nevertheless, the model exhibits substantially lower detection performance for subtle or non--sclerotic \ac{fcd} subtypes compared to more pronounced Taylor-type \ac{fcd}, suggesting a bias toward more conspicuous lesion patterns and limited generalization across the full pathological spectrum.
+Nevertheless, the model exhibits substantially lower detection performance for subtle or non-sclerotic \ac{fcd} lesions compared to more conspicuous cases, suggesting a bias toward visually pronounced lesion patterns and limited generalization across the full pathological spectrum.
 
 Despite their architectural differences, both approaches operate purely in volumetric image space and rely primarily on intensity-based MRI features.
 As a result, they remain sensitive to noise, imaging artifacts, and inter-scanner variability, and do not explicitly model cortical morphometric characteristics such as cortical thickness, curvature, or gray--white matter blurring, which are key markers of FCD.

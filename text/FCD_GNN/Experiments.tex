@@ -145,7 +145,14 @@ The pretrained \texttt{\texttt{Vision--only}} model (described below) is used to
 We consider the following configurations:
 
 \begin{itemize}
-    \item \textbf{MELD.} The pretrained \ac{meld} model was evaluated on the test set without any additional training or fine-tuning and is used as the baseline.
+    \item \textbf{MELD.} The pretrained \ac{meld} model was evaluated on the test set without any additional training or fine-tuning and is used as the baseline (see Fig.~\ref{fig:meld_arch}).
+    
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{pictures/MELDarchitecture.png}
+        \caption{Architecture of MELD: Proposed GC-nnU-Net model for lesion segmentation, with auxiliary distance regression and hemisphere classification tasks~\cite{Ripart2025MELD}.}
+        \label{fig:meld_arch}
+    \end{figure}
 
     \item \textbf{Vision--only (Unpool + Spiral, no text).}
     In this configuration, the pretrained \ac{meld} model is used to provide multi--scale visual features extracted from its decoder at each stage.
@@ -187,39 +194,6 @@ We consider the following configurations:
     % \item \emph{hemi+lobe\_regions} (hemisphere + lobe regions): \textit{Left Hemisphere; Middle Frontal Gyrus; Precentral Gyrus; Superior Frontal Gyrus} ;
     % \item \emph{hemi+lobe} (hemisphere + lobe): \textit{Left Hemisphere; Frontal lobe}.
     % \end{itemize}
-    
-    \begin{table}[t]
-    \centering
-    \caption{Text conditioning variants used in \texttt{Vision+LM}.}
-    \label{tab:text_variants}
-    \small
-    \setlength{\tabcolsep}{6pt}
-    \renewcommand{\arraystretch}{1.15}
-        \begin{tabularx}{\textwidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
-            \toprule
-            \textbf{Name} & \textbf{Description} & \textbf{Example} \\
-            \midrule
-            full & Complete atlas--based lesion description with region names and their percentages &
-            48.86\% Left Middle Frontal Gyrus; 30.63\% Left Precentral Gyrus; \dots \\
-            \midrule
-            hemi & Hemisphere only & Left hemisphere \\
-            \midrule
-            lobe\_regions & Lobe regions only (subset of atlas regions) &
-            Left Middle Frontal Gyrus; Precentral Gyrus; \dots \\
-            \midrule
-            hemi+lobe\_regions & Hemisphere + lobe regions &
-            Left hemisphere; Middle Frontal Gyrus; \dots \\
-            \midrule
-            hemi+lobe & Hemisphere + lobe name & Left hemisphere; Frontal lobe \\
-            \midrule
-            no\_text & No textual conditioning is provided (equivalent to assuming the full brain without additional localisation cues) &
-            full brain \\
-            \bottomrule
-        \end{tabularx}
-
-        \vspace{2mm}
-        {\footnotesize\textit{Note:} For healthy subjects (no lesion present), the textual input is set to \textit{``No lesion detected.''}}
-    \end{table}
 
 
     \begin{figure}[H]
@@ -249,7 +223,7 @@ to better domain-context understanding (see Table~\ref{tab:cosine_similarity_mod
 This clearly demonstrates that selecting an appropriate language model can materially improve 
 performance, underscoring the substantial impact of the language encoder.
 
-\begin{table}[H]
+\begin{table}[ht]
     \tiny
     \centering
     \begin{threeparttable}
@@ -388,26 +362,14 @@ Since RadBERT was trained on radiology reports, it may not benefit from such hig
 For comparison, we also tested PubMedBERT, which was trained on a larger biomedical corpus.
 Although its Dice, PPV and IoU scores were slightly lower than those of the \texttt{hemi+lobe} configuration with RadBERT, it nevertheless detected \textbf{13 additional lesion clusters}.
 
-    
-We also report specificity, defined as the proportion of healthy patients with no predicted clusters. 
-Across all \textit{Vision+LM models}, specificity was $\sim$36--42 percentage points higher than that of MELD. 
-This indicates that the text-conditioned models distinguish healthy from non-healthy cases substantially better.
-
 We also report specificity, defined as the proportion of healthy controls with no predicted lesion clusters.
-Across all \textit{Vision+LM models}, specificity was higher than that of MELD by approximately 36--42 percentage points.
+Across all \textit{Vision+LM models}, specificity was higher than that of MELD by $\sim$36--42 percentage points.
 This indicates that the text--conditioned models distinguish healthy from non--healthy cases substantially better.
-
-
-% Throughout this section, we did not focus on PPV$_{\text{clusters}}$, the primary metric in the original MELD study. 
-% As Table~\ref{tab:main_cohort} shows, MELD attains the highest mean PPV$_{\text{clusters}}$, with only a small margin of approximately 2--3\,\% over the next two models and a much larger gap to the remaining ones. 
-% However, this mean value is strongly influenced by a small number of very large false-positive clusters, which limits its usefulness for comparing architectures. 
-% Switching to the median PPV$_{\text{clusters}}$ does not resolve this issue, as the median is equal to 1.0 for nearly all models and therefore provides no discrimination. 
-% For these reasons, PPV$_{\text{clusters}}$ was not used as a primary evaluation metric in this study.
 
 Throughout this section, we do not focus on the median PPV$_{\text{clusters}}$, which is the primary metric reported in the original MELD study.
 As shown in Table~\ref{tab:main_cohort}, the median PPV$_{\text{clusters}}$ attains high values for many configurations (often reaching 0.667, with overlapping confidence intervals), which leads to a ceiling effect and provides limited discrimination between models.
 In contrast, the mean PPV$_{\text{clusters}}$ exhibits more variation across configurations and is therefore more informative for comparing the methods in our setting.
-MELD achieves the highest mean PPV$_{\text{clusters}}$ on the main cohort, with a small margin of approximately 2--3 percentage points over the next two models and a much larger gap to the remaining ones.
+MELD achieves the highest mean PPV$_{\text{clusters}}$ on the main cohort, with a small margin of $\sim$2--3 percentage points over the next two models and a much larger gap to the remaining ones.
 On the independent cohort (Table~\ref{tab:independent_cohort}), however, the situation is reversed: the proposed architecture shows improvements of 2--8 percentage points compared with the two best-performing baselines.
 Overall, the mean PPV$_{\text{clusters}}$ reflects model differences more reliably in our experiments.
 For these reasons, in the following experiments we report only the mean PPV$_{\text{clusters}}$, as it allows us to distinguish between models in this study, whereas the median version does not.
@@ -556,7 +518,7 @@ key objective in this study, while maintaining acceptable segmentation quality.
 
 \subsection*{Examples}
 Below, we present two representative cases in which the proposed model produces improved predictions.
-Each figure shows (from left to right) the ground-truth lesion mask, the prediction of the baseline MELD model, and the prediction of the proposed \texttt{Vision+LM} model with PubMedBERT using the \texttt{hemi+lobe} prompt.
+Each figure shows (from left to right) the ground-truth lesion mask, the prediction of the baseline MELD model, and the prediction of the proposed \texttt{Vision+LM} model\footnote{ Throughout this section, \texttt{Vision+LM} corresponds to Exp3.} with PubMedBERT using the \texttt{hemi+lobe} prompt.
 
 \begin{figure}[H]
     \centering
@@ -580,7 +542,7 @@ Finally, we present an example comparing the same \texttt{Vision+LM} model condi
     % \label{fig:qual_example2}
 \end{figure}
 
-\clearpage
+% \clearpage
 \section{Mixed Text}
 This section investigates training with \textit{mixed text prompts} and the effect of a short decoder warm--up phase.
 We start from the \texttt{Vision+LM} architecture and compare two training schedules:
@@ -597,7 +559,7 @@ Finally, we evaluate the trained models using intentionally mismatched (incorrec
 
 \subsection*{Warm--up vs.\ training from the start}
 
-Based on Tables~\ref{tab:main_cohort_mixed_correct} and \ref{tab:main_cohort_mixed_5_epochs_correct}, introducing a 5-epoch warm--up increases specificity by approximately 13.6 percentage points and sensitivity by about 4 percentage points on average, while Dice, PPV, and IoU decrease slightly (by about 1--2 percentage points).
+Based on Tables~\ref{tab:main_cohort_mixed_correct} and \ref{tab:main_cohort_mixed_5_epochs_correct}, introducing a 5-epoch warm--up increases specificity by $\sim$13.6 percentage points and sensitivity by about 4 percentage points on average, while Dice, PPV, and IoU decrease slightly (by about 1--2 percentage points).
 We interpret this as evidence that the warm--up phase allows the \texttt{GuideDecoder} to first learn how to incorporate the textual prompts and establish stable cross--attention links to the visual embeddings, before updating the full model.
 
 \begin{table}[H]
@@ -807,7 +769,7 @@ A possible explanation for this behavior is discussed in Section~\ref{chapter:Di
 Removing the text encoder does not substantially degrade performance, 
 but the metrics do become consistently worse. Compared with models trained on 
 correct descriptions, \textbf{Specificity} drops by roughly 27\%. A similar pattern is observed for \textbf{Sensitivity}: the model without text detects 
-approximately 1--2\% fewer lesions relative to models using wrong prompts, 
+$\sim$1--2\% fewer lesions relative to models using wrong prompts, 
 and about 6--7\% fewer relative to models using correct prompts.
 
 Using the \texttt{no\_text} setting (i.e., providing a fixed placeholder prompt, \textit{full brain}, for both patients and healthy controls) does not substantially degrade overall performance, but the metrics become consistently worse.
@@ -1234,7 +1196,7 @@ structural information is present, even when the text itself is incorrect.
     
 On the independent cohort (Tables~\ref{tab:independent_cohort_mixed}--\ref{tab:wrong_independent_cohort_mix_freeze}), 
 for both correct and incorrect prompts, the model with a 5-epoch decoder freeze generally detects 
-approximately 5\% more lesions (higher \textbf{Sensitivity}).  
+$\sim$5\% more lesions (higher \textbf{Sensitivity}).  
 For most text--description settings, this increase in detected lesions does not substantially 
 degrade segmentation quality: several segmentation metrics (\textbf{Dice}, \textbf{IoU}, and \textbf{PPV}) remain stable or even improve 
 slightly compared to the non-frozen model. 
@@ -1351,13 +1313,13 @@ We also compare two key text--description types, \texttt{hemi+lobe} and \texttt{
 under both training strategies (with and without decoder warm-up).
 
 For models trained \emph{without} decoder warm-up, the \texttt{hemi+lobe\_regions} setting consistently produces higher segmentation quality:
-Dice and IoU improve by approximately 2-3\%, and Sensitivity increases by approximately 2-4\% compared to
+Dice and IoU improve by $\sim$2-3\%, and Sensitivity increases by $\sim$2-4\% compared to
 \texttt{hemi+lobe}. The same trend is seen in the evaluation of the incorrect text condition, where we compare
 \texttt{wrong\_hemi + wrong\_lobe} with \texttt{wrong\_hemi + wrong\_lobe\_regions}.
 
 However, for models trained \emph{with} 5-epoch warm-up, the situation is the opposite. 
 In this case, the \texttt{hemi+lobe} model provides higher segmentation accuracy, outperforming \texttt{hemi+lobe\_regions} 
-by approximately 3-7\% in Dice and IoU, although with a slight decrease in Sensitivity (typically 1-2\%).
+by $\sim$3-7\% in Dice and IoU, although with a slight decrease in Sensitivity (typically 1-2\%).
 
 \begin{table}[H]
     \centering
@@ -1782,131 +1744,199 @@ the number of detected lesions.
 \section{Linking MELD to GNN}
 In these experiments, we investigated the effect of connecting different numbers of MELD feature stages to the \textit{GNN blocks}.
 
-On the main cohort (Tables~\ref{tab:gnn_main}), the configuration with \textbf{three GNN layers} provides the most balanced performance across Dice, PPV\textsubscript{pixels}, and IoU, while also detecting \textbf{one} additional lesion compared with the no-GNN baseline. 
-This is the only configuration that consistently appears among the top performers for all primary metrics, which supports selecting it as the best overall trade-off.
+On the main cohort (Table~\ref{tab:gnn_main}), the configuration with \textbf{three GNN layers} provides the most balanced performance across Dice, PPV\textsubscript{pixels}, and IoU, while also detecting \textbf{two additional lesions} compared to the no-GNN baseline.
+This is the only configuration that consistently ranks among the top performers across all primary metrics, supporting its selection as the best overall trade-off between lesion detection and false positive control.
 
-Connecting \textbf{all seven} MELD stages to the GNN yields the highest lesion count (sensitivity increased approximately by 3\%: \(188/259\) vs. \(180/259\)), with only a modest drop in Dice and PPV\textsubscript{pixels} (about 1–4\%). 
-This gain is consistent with SAGEConv’s neighborhood aggregation: increasing depth expands each node’s receptive field and multi-stage inputs inject complementary local/global context, enabling detection of additional lesion clusters that are missed with purely local features.
+Connecting \textbf{all seven} MELD stages to the GNN yields the highest lesion count, with sensitivity increasing by $\sim$3.5 percentage points (\(188/259\) vs.\ \(179/259\)).
+This improvement comes with only a modest reduction in Dice and PPV\textsubscript{pixels} (on the order of 1--4\%).
+Such behavior is consistent with the properties of SAGEConv-based neighborhood aggregation: increasing GNN depth expands each node’s receptive field, while incorporating multi-stage MELD features injects complementary local and global contextual information.
+Together, these effects enable the detection of additional lesion clusters that may be missed when relying solely on local features.
+
+Specificity shows a non-uniform behavior across configurations.
+Connecting GNN blocks to the first one or two MELD feature stages results in a substantial increase in specificity (approximately +18 and +9 percentage points, respectively).
+In contrast, further increasing the number of GNN layers leads to a gradual decrease in specificity.
+One possible explanation is that deeper message passing propagates lesion-related activations beyond the actual lesion regions, increasing the likelihood of assigning lesion--like predictions to anatomically normal cortical regions in healthy controls.
+This effect is particularly evident for later MELD stages, where features are lower-dimensional and the graph becomes denser, making it harder to preserve spatial distinctions.
+Consequently, the model favors higher sensitivity at the expense of specificity, resulting in an increased false-positive rate.
+
 \begin{table}[ht]
 \centering
 \tiny
 \caption{Different number of MELD stages connected to the GNN block (values in parentheses indicate 95\% confidence intervals). Main cohort}
 \label{tab:gnn_main}
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccccc}
 \textbf{Experiment} & \textbf{Dice} & \makecell{\textbf{PPV}\\\textbf{pixels}} &
-\makecell{\textbf{(mean) PPV}\\\textbf{clusters}} & \textbf{IoU} & \textbf{\makecell{Sensitivity, \% \\ (N = 259)}} \\
+\makecell{\textbf{(mean)}\\\textbf{PPV}\\\textbf{clusters}} & \textbf{IoU} & 
+\textbf{\makecell{Specificity, \% \\ (N = 193)}} &
+\textbf{\makecell{Sensitivity, \% \\ (N = 259)}} \\
 \hline
 Vision--only: 0 layers  & 
-\makecell{\colorbox{cyan!15}{0.240} \\ (0.129--0.324)} & 
-\makecell{0.217 \\ (0.151--0.319)} & 
-0.532 & 
-\makecell{\colorbox{cyan!15}{0.136} \\ (0.069--0.193)} & 
-\makecell{\colorbox{orange!15}{69.5 (n=180)} \\ (63.7--74.9)} \\
+\makecell{\colorbox{cyan!15}{0.238}\\(0.125--0.313)} &
+\makecell{0.198\\(0.130--0.318)} &
+\makecell{\colorbox{orange!15}{0.361}} &
+\makecell{\colorbox{cyan!15}{0.135}\\(0.066--0.186)} &
+\makecell{\colorbox{orange!15}{31.1 (n=60)} \\ (24.9--37.8)} &
+\makecell{69.1 (n=179) \\ (63.3--74.9)} \\
 \hline
-Vision--only: 1 layer   & \makecell{\colorbox{orange!15}{0.235} \\ (0.096--0.313)} & \makecell{\colorbox{green!15}{0.235} \\ (0.148--0.362)} & \colorbox{green!15}{0.603} & \makecell{\colorbox{orange!15}{0.133} \\ (0.051--0.186)} & \makecell{67.2 (n=174) \\ (61.4--73.0)} \\
+Vision--only: 1 layer   & 
+\makecell{\colorbox{orange!15}{0.234} \\ (0.093--0.313)} & 
+\makecell{\colorbox{green!15}{0.236} \\ (0.149--0.340)} & 
+\colorbox{green!15}{0.422} & 
+\makecell{\colorbox{orange!15}{0.133} \\ (0.049--0.186)} & 
+\makecell{\colorbox{green!15}{49.2 (n=95)} \\ (42.5--56.5)} &
+\makecell{67.2 (n=174) \\ (61.4--73.0)} \\
 \hline
-Vision--only: 2 layers  & \makecell{0.234 \\ (0.126--0.334)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.136--0.371)} & \colorbox{cyan!15}{0.573} & \makecell{0.132 \\ (0.067--0.200)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
+Vision--only: 2 layers  & 
+\makecell{\colorbox{orange!15}{0.234} \\ (0.126--0.334)} & 
+\makecell{0.219 \\ (0.136--0.371)} & 
+\colorbox{cyan!15}{0.395} & 
+\makecell{0.132 \\ (0.067--0.200)} & 
+\makecell{\colorbox{cyan!15}{40.9 (n=79)} \\ (34.2--48.2)} & 
+\makecell{68.3 (n=177) \\ (62.5--74.1)} \\
 \hline
-Vision--only: 3 layers  & \makecell{\colorbox{green!15}{0.249} \\ (0.114--0.332)} & \makecell{\colorbox{cyan!15}{0.224} \\ (0.142--0.341)} & 0.479 & \makecell{\colorbox{green!15}{0.142} \\ (0.060--0.199)} & \makecell{\colorbox{cyan!15}{69.9 (n=181)} \\ (64.1--75.3)} \\
+Vision--only: 3 layers  & 
+\makecell{\colorbox{green!15}{0.249} \\ (0.114--0.332)} & 
+\makecell{\colorbox{cyan!15}{0.224} \\ (0.142--0.341)} & 
+0.285 & 
+\makecell{\colorbox{green!15}{0.142} \\ (0.060--0.199)} & 
+\makecell{16.1 (n=31) \\ (10.9--21.2)} &
+\makecell{\colorbox{orange!15}{69.9 (n=181)} \\ (64.1--75.3)} \\
 \hline
-Vision--only: 4 layers  & \makecell{0.231 \\ (0.097--0.304)} & \makecell{0.180 \\ (0.128--0.283)} & \colorbox{orange!15}{0.540} & \makecell{0.130 \\ (0.051--0.179)} & \makecell{68.3 (n=177) \\ (62.5--74.1)} \\
+Vision--only: 4 layers  & 
+\makecell{0.231 \\ (0.097--0.304)} & 
+\makecell{0.180 \\ (0.128--0.283)} & 
+0.287 & 
+\makecell{0.130 \\ (0.051--0.179)} & 
+\makecell{2.1 (n=4) \\ (0.5--4.1)} &
+\makecell{68.3 (n=177) \\ (62.5--74.1)} \\
 \hline
-Vision--only: 5 layers  & \makecell{0.223 \\ (0.081--0.312)} & \makecell{0.172 \\ (0.090--0.261)} & 0.533 & \makecell{0.125 \\ (0.042--0.185)} & \makecell{66.0 (n=171) \\ (60.2--71.8)} \\
+Vision--only: 5 layers  & 
+\makecell{0.221 \\ (0.111--0.314)} & 
+\makecell{\colorbox{orange!15}{0.220} \\ (0.153--0.326)} & 
+0.268 & 
+\makecell{0.123 \\ (0.059--0.187)} & 
+\makecell{2.6 (n=5) \\ (0.5--5.2)} & 
+\makecell{\colorbox{cyan!15}{71.4 (n=185)} \\ (66.0--76.8)} \\
 \hline
-Vision--only: 6 layers  & \makecell{0.208 \\ (0.121--0.312)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.147--0.336)} & 0.539 & \makecell{0.116 \\ (0.065--0.185)} & \makecell{69.1 (n=179) \\ (63.3--74.9)} \\
+Vision--only: 6 layers  & 
+\makecell{0.208 \\ (0.121--0.312)} & 
+\makecell{0.219 \\ (0.147--0.336)} & 
+0.312 & 
+\makecell{0.116 \\ (0.065--0.185)} & 
+\makecell{11.9 (n=23) \\ (7.8--16.6)} &
+\makecell{69.1 (n=179) \\ (63.3--74.9)} \\
 \hline
-Vision--only: 7 layers  & \makecell{0.206 \\ (0.119--0.293)} & \makecell{\colorbox{orange!15}{0.219} \\ (0.135--0.341)} & 0.436 & \makecell{0.115 \\ (0.063--0.172)} & \makecell{\colorbox{green!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
+Vision--only: 7 layers  & 
+\makecell{0.206 \\ (0.119--0.293)} & 
+\makecell{0.219 \\ (0.135--0.341)} & 
+0.210 & 
+\makecell{0.115 \\ (0.063--0.172)} & 
+\makecell{1.0 (n=2) \\ (0.0--2.6)} & 
+\makecell{\colorbox{green!15}{72.6 (n=188)} \\ (67.2--78.0)} \\
 \hline
 \end{tabular}
 \end{table}
 
-
-On the independent (Bonn) cohort Table~\ref{tab:gnn_independent}, the \textbf{5-layer} configuration gives the best overall trade-off: it attains the \emph{second-highest} Dice and IoU while detecting the most lesions (\(63/82\)). 
-Compared with the no-GNN baseline (0 layers), the gap is \(\approx\)3\% in Dice and \(\approx\)5\% in IoU, highlighting the benefit of the proposed GNN block.
+On the independent (Bonn) cohort (Table~\ref{tab:gnn_independent}), the \textbf{5-layer} configuration provides the best overall trade-off.
+It achieves the highest Dice and IoU scores while also detecting the largest number of lesions (\(64/82\)).
+Compared to the no-GNN baseline (0 layers), this corresponds to an absolute improvement of $\sim$10.4 percentage points in Dice and $\sim$8.3 percentage points in IoU, highlighting the benefit of incorporating the proposed GNN block.
+At the same time, this configuration exhibits very low specificity, consistent with the trends observed on the main cohort and discussed earlier.
 
 For subsequent experiments we keep the \textbf{3-layer} and \textbf{5-layer} variants, and will compare them in the final study to determine the optimal number of connected MELD stages.
-
-
-\begin{table}[ht]
+\begin{table}[H]
 \centering
 \tiny
 \caption{Different number of MELD stages connected to the GNN block (values in parentheses indicate 95\% confidence intervals). Independent cohort (Bonn Dataset)}
 \label{tab:gnn_independent}
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccccc}
 
-\textbf{Experiment} & \textbf{Dice} & \makecell{\textbf{PPV}\\\textbf{pixels}} &
-\makecell{\textbf{(mean) PPV}\\\textbf{clusters}} & \textbf{IoU} & \textbf{\makecell{Sensitivity, \% \\ (N = 82)}} \\
+\textbf{Experiment} & 
+\textbf{Dice} & 
+\makecell{\textbf{PPV}\\\textbf{pixels}} &
+\makecell{\textbf{(mean)}\\\textbf{PPV}\\\textbf{clusters}} & 
+\textbf{IoU} & 
+\textbf{\makecell{Specificity, \% \\ (N = 83)}} &
+\textbf{\makecell{Sensitivity, \% \\ (N = 82)}} \\
 \hline
 Vision--only: 0 layers &
-\makecell{0.371 \\ (0.289--0.520)} &
-\makecell{0.438 \\ (0.246--0.660)} &
-\makecell{\colorbox{orange!15}{0.680}} &
-\makecell{0.227 \\ (0.169--0.351)} &
+\makecell{0.376\\(0.238--0.529)} &
+\makecell{0.443\\(0.243--0.619)} &
+\makecell{\colorbox{orange!15}{0.350}} &
+\makecell{0.232\\(0.138--0.359)} &
+\makecell{\colorbox{orange!15}{39.8 (n=33)} \\ (28.9--50.6)} &
 \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
 \hline
 Vision--only: 1 layer &
-\makecell{0.342 \\ (0.083--0.515)} &
-\makecell{\colorbox{cyan!15}{0.528} \\ (0.242--0.757)} &
-\makecell{\colorbox{green!15}{0.819}} &
-\makecell{0.206 \\ (0.043--0.347)} &
-\makecell{65.9 (n=54) \\ (54.9--75.6)} \\
+\makecell{0.339 \\ (0.189--0.507)} &
+\makecell{\colorbox{green!15}{0.590} \\ (0.278--0.750)} &
+\makecell{\colorbox{green!15}{0.496}} &
+\makecell{0.204 \\ (0.104--0.340)} &
+\makecell{\colorbox{green!15}{59.0 (n=49)} \\ (48.2--69.9)} &
+\makecell{69.5 (n=57) \\ (59.8--79.3)} \\
 \hline
 Vision--only: 2 layers &
 \makecell{0.383 \\ (0.216--0.506)} &
 \makecell{0.432 \\ (0.243--0.663)} &
-\makecell{\colorbox{cyan!15}{0.729}} &
+\makecell{\colorbox{cyan!15}{0.477}} &
 \makecell{0.237 \\ (0.123--0.339)} &
+\makecell{\colorbox{cyan!15}{55.4 (n=46)} \\ (44.6--66.3)} &
 \makecell{70.7 (n=58) \\ (61.0--80.5)} \\
 \hline
 Vision--only: 3 layers &
 \makecell{0.390 \\ (0.302--0.517)} &
 \makecell{\colorbox{orange!15}{0.503} \\ (0.309--0.732)} &
-\makecell{0.619} &
+\makecell{0.311} &
 \makecell{0.242 \\ (0.178--0.349)} &
+\makecell{16.9 (n=14) \\ (9.6--25.3)} &
 \makecell{\colorbox{cyan!15}{75.6 (n=62)} \\ (65.9--84.1)} \\
 \hline
 Vision--only: 4 layers &
-\makecell{\colorbox{green!15}{0.458} \\ (0.279--0.600)} &
+\makecell{\colorbox{cyan!15}{0.458} \\ (0.279--0.600)} &
 \makecell{0.491 \\ (0.186--0.582)} &
-\makecell{0.653} &
-\makecell{\colorbox{green!15}{0.297} \\ (0.162--0.428)} &
+\makecell{0.298} &
+\makecell{\colorbox{cyan!15}{0.297} \\ (0.162--0.428)} &
+\makecell{9.6 (n=8) \\ (3.6--15.7)} &
 \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
 \hline
 Vision--only: 5 layers &
-\makecell{\colorbox{cyan!15}{0.432} \\ (0.303--0.549)} &
-\makecell{0.410 \\ (0.249--0.606)} &
-\makecell{0.555} &
-\makecell{\colorbox{cyan!15}{0.275} \\ (0.179--0.378)} &
-\makecell{\colorbox{green!15}{76.8 (n=63)} \\ (67.1--85.4)} \\
+\makecell{\colorbox{green!15}{0.480} \\ (0.339--0.589)} &
+\makecell{0.483 \\ (0.289--0.581)} &
+\makecell{0.240} &
+\makecell{\colorbox{green!15}{0.315} \\ (0.204--0.417)} &
+\makecell{4.8 (n=4) \\ (1.2--9.6)} &
+\makecell{\colorbox{green!15}{78.0 (n=64)} \\ (68.3--86.6)} \\
 \hline
 Vision--only: 6 layers &
 \makecell{0.382 \\ (0.292--0.544)} &
-\makecell{\colorbox{green!15}{0.584} \\ (0.342--0.687)} &
-\makecell{0.644} &
+\makecell{\colorbox{cyan!15}{0.584} \\ (0.342--0.687)} &
+\makecell{0.344} &
 \makecell{0.236 \\ (0.171--0.373)} &
+\makecell{30.1 (n=25) \\ (20.5--39.8)} &
 \makecell{73.2 (n=60) \\ (63.4--82.9)} \\
 \hline
 Vision--only: 7 layers &
 \makecell{\colorbox{orange!15}{0.402} \\ (0.284--0.493)} &
 \makecell{0.375 \\ (0.232--0.634)} &
-\makecell{0.451} &
+\makecell{0.206} &
 \makecell{\colorbox{orange!15}{0.252} \\ (0.165--0.327)} &
+\makecell{1.2 (n=1) \\ (0.0--3.6)} &
 \makecell{\colorbox{orange!15}{74.4 (n=61)} \\ (64.6--84.1)} \\
 \hline
 \end{tabular}
 \end{table}
 
-\clearpage
+% \clearpage
 
 \section{Final Experiments}
 
-Based on the results from the previous sections, we select the final experimental setup as follows:
+Based on the observations from the previous sections, we proceed with a set of follow--up
+experiments using the full multimodal architecture with GNN blocks. Specifically, we consider
+the following experimental setup:
 \begin{enumerate}[label=(\roman*), leftmargin=*]
-\item the text encoder is RadBERT (used throughout all experiments in this work),
-\item the visual branch uses GNN encoders with 3 and 5 blocks, and
-\item for each GNN depth, we initialize the model from the corresponding best--performing \texttt{Vision--only}+GNN checkpoint and employ a 5-epoch decoder warm--up, after which the full decoder is unfrozen.
+\item the text encoder is RadBERT, which is used consistently throughout all experiments in this work;
+\item the visual branch employs GNN encoders with 3 and 5 blocks, corresponding to the settings analyzed in the vision--only experiments; and
+\item for each GNN depth, the model is initialized from the corresponding \texttt{Vision--only}+GNN checkpoint and trained using a 5--epoch decoder warm--up, after which the full decoder is unfrozen.
 \end{enumerate}
-
 
 For these experiments, we will use the following types of text prompts: ``hemisphere'' and ``hemisphere + lobe''.
 Using ``lobe regions'' and ``full text'' is not meaningful, as discussed earlier.
@@ -2078,7 +2108,7 @@ feature oversmoothing, which may negatively affect cluster-level precision, as c
 In the \textit{no-text} setting, GNN-based models primarily increase the number of detected lesions, but do so at 
 the cost of all remaining metrics, indicating reduced prediction quality.
 
-\begin{table}[h]
+\begin{table}[H]
     \tiny
     \renewcommand{\arraystretch}{1.4}
     \begin{threeparttable}
@@ -2222,7 +2252,7 @@ of GNN-based feature integration to avoid sacrificing precision.
 
 
 % Rewrite
-\clearpage
+% \clearpage
 \section{General conclusions}
 
 \begin{itemize}
