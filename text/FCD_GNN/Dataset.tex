@@ -54,8 +54,7 @@ while \texttt{participants.json} provides descriptions of these variables.
 The file \texttt{participants\_with\_scanner.tsv} includes additional scanner-related 
 metadata such as field strength and vendor. 
 The standard BIDS file \\ \texttt{dataset\_description.json} documents the dataset-level 
-metadata, and \texttt{meld\_bids\_config.json} contains configuration parameters 
-required for MELD preprocessing and quality control.
+metadata.
 
 Manually delineated lesion masks (\texttt{*\_roi.nii.gz}) are available only for 
 patients and are spatially aligned with the anatomical T1-weighted MRI.
@@ -103,9 +102,9 @@ we follow to ensure comparability with prior MELD studies.
 In this thesis, the \ac{meld} dataset is used as the \textbf{main cohort}.
 We follow the predefined \ac{meld} train/validation/test split for model development and report results on the corresponding \textbf{MELD test set}.
 
-In addition, the Bonn dataset is treated as an \textbf{independent external cohort} and is used \textbf{exclusively for testing}.
+The Bonn dataset is treated as an \textbf{independent cohort} and is used \textbf{only for testing}.
 
-Although the overall \ac{meld} consortium includes data from Bonn, the Bonn cohort used in this work is kept separate from the \ac{meld} development split and serves only as an external test set.
+% Although the overall \ac{meld} consortium includes data from Bonn, the Bonn cohort used in this work is kept separate from the \ac{meld} development split and serves only as an external test set.
 
 \section{FreeSurfer Processing}
 Each image was processed with the FreeSurfer framework~\cite{Fischl2012FreeSurfer}, from which \textbf{11 core surface-based features} were extracted:

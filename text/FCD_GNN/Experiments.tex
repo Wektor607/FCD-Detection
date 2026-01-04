@@ -102,7 +102,7 @@ The workflow begins on the upload page, where the user selects one of the traine
 
 To support different use cases and experimental settings, the interface includes a model selection menu listing all available trained variants. 
 These include the baseline MELD model, two vision-only architectures (\texttt{Vision--only} and \texttt{Vision--only+SA}) with minor architectural differences, and the multimodal \texttt{Vision+LM} model trained on various textual inputs. 
-Each option is accompanied by a short explanation—similar in style to modern LLM model pickers -- helping users choose between faster or more accurate configurations.
+Each option is accompanied by a short explanation, similar in style to modern LLM model pickers, helping users choose between faster or more accurate configurations.
 
 \begin{figure}[H]
     \centering
@@ -127,6 +127,7 @@ After the prediction is complete, the results page provides two complementary vi
 All generated visualizations can be downloaded as PNG files (2D slices and 3D renderings), and the full volumetric prediction is additionally provided in NIfTI format for further analysis in standard 3D medical imaging software.
 This design supports both general users (rapid visual validation) and developers/researchers (downstream processing and quantitative evaluation).
 
+\clearpage
 \section{Basic Experiments}
 To systematically assess the contribution of each component of the proposed multimodal architecture, we gradually enabled individual modules of the decoder — geometry-based upsampling, self-attention, and finally text-conditioned cross-attention.
 This stepwise experimental design allows isolating the effect of textual guidance and ensuring that any improvement in lesion detection quality can be attributed to a specific architectural modification rather than confounding changes.
@@ -138,7 +139,7 @@ After observing that textual signals substantially influence lesion detection qu
 This analysis (see Appendix~\nameref{sec:semantic_analysis}) motivated the inclusion of multiple text-encoder variants in the experimental section.
 
 Across all variants, the geometry-based upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and the final segmentation head are always trained, while the encoders remain frozen (Fig.~\ref{fig:basic_model}). 
-The experimental variants differ only in (i) whether the \texttt{GuideDecoder} is inserted before the upsampling path and (ii) which textual features are incorporated. 
+The experimental variants differ only in (i) whether the \texttt{GuideDecoder} is inserted before the upsampling path and (ii) the type of atlas-derived textual input used. 
 The pretrained \texttt{\texttt{Vision--only}} model (described below) is used to initialize the decoder for all variants except the MELD-only baseline, which is trained from scratch.
 
 
@@ -203,7 +204,7 @@ We consider the following configurations:
         \label{fig:basic_model}
     \end{figure}
 
-    \item \textbf{Vision+LM\_mixed (GuideDecoder + Text).} 
+    \item \textbf{Vision+LM\_mixed (GuideDecoder + Mixed Text).} 
     Same as \textbf{Vision+LM}, but Atlas descriptions were randomly sampled from the text conditioning variants listed in Table~\ref{tab:text_variants}.
 
     For each subject, a full Atlas--based description was generated once and all partial textual variants were derived from it.
@@ -244,7 +245,7 @@ performance, underscoring the substantial impact of the language encoder.
     \colorbox{green!15}{0.515} &
     \makecell{1.000 \\ (1.000-1.000)} &
     \makecell{0.130\\(0.057--0.190)} &
-    \makecell{58 (n=112) \\ (51.3--64.8)}&
+    \makecell{58.0 (n=112) \\ (51.3--64.8)}&
     \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
     \hline
     Vision--only &
@@ -353,7 +354,7 @@ performance, underscoring the substantial impact of the language encoder.
 
 In real-world settings, detailed subregion information may be unavailable. 
 We therefore evaluated prompts with only general \textit{lobe} names (e.g., \textit{Frontal lobe}, \textit{Temporal lobe}, \textit{Insular lobe}). 
-For the RadBERT-based models, performance was very close to the \textit{hemi + lobe\_regions} setup: Dice decreased by $\sim$2.5\%, PPV\_{pixels} by $\sim$0.4\%, IoU by $\sim$1.6\%, and only \textbf{8} fewer lesions were detected. 
+For the RadBERT-based models, performance was very close to the \textit{hemi + lobe\_regions} setup: Dice decreased by $\sim$2.5 \ac{p.p.}, PPV\_{pixels} by $\sim$0.4 \ac{p.p.}, IoU by $\sim$1.6 \ac{p.p.}, and only \textbf{8} fewer lesions were detected. 
 Likewise, using only \textit{hemi} descriptions yielded results close to \textit{hemi + lobe}, indicating that even a minimal textual prompt can help identify additional lesion regions.
 
 Also, when using the full textual description (e.g., ``52.34\% Right Frontal Orbital Cortex; 26.06\% Right Frontal Pole; 15.50\% Right Subcallosal Cortex''), the model performed worse than \texttt{hemi+lobe\_regions}.
@@ -363,14 +364,14 @@ For comparison, we also tested PubMedBERT, which was trained on a larger biomedi
 Although its Dice, PPV and IoU scores were slightly lower than those of the \texttt{hemi+lobe} configuration with RadBERT, it nevertheless detected \textbf{13 additional lesion clusters}.
 
 We also report specificity, defined as the proportion of healthy controls with no predicted lesion clusters.
-Across all \textit{Vision+LM models}, specificity was higher than that of MELD by $\sim$36--42 percentage points.
+Across all \textit{Vision+LM models}, specificity was higher than that of MELD by $\sim$36--42 \ac{p.p.}.
 This indicates that the text--conditioned models distinguish healthy from non--healthy cases substantially better.
 
 Throughout this section, we do not focus on the median PPV$_{\text{clusters}}$, which is the primary metric reported in the original MELD study.
-As shown in Table~\ref{tab:main_cohort}, the median PPV$_{\text{clusters}}$ attains high values for many configurations (often reaching 0.667, with overlapping confidence intervals), which leads to a ceiling effect and provides limited discrimination between models.
+As shown in Table~\ref{tab:main_cohort}, the median PPV$_{\text{clusters}}$ attains high values across many configurations (often reaching 0.667, with overlapping confidence intervals), providing limited discrimination between models.
 In contrast, the mean PPV$_{\text{clusters}}$ exhibits more variation across configurations and is therefore more informative for comparing the methods in our setting.
-MELD achieves the highest mean PPV$_{\text{clusters}}$ on the main cohort, with a small margin of $\sim$2--3 percentage points over the next two models and a much larger gap to the remaining ones.
-On the independent cohort (Table~\ref{tab:independent_cohort}), however, the situation is reversed: the proposed architecture shows improvements of 2--8 percentage points compared with the two best-performing baselines.
+MELD achieves the highest mean PPV$_{\text{clusters}}$ on the main cohort, with a small margin of $\sim$2--3 \ac{p.p.} over the next two models and a much larger gap to the remaining ones.
+On the independent cohort (Table~\ref{tab:independent_cohort}), however, the situation is reversed: the proposed architecture shows improvements of 2--8 \ac{p.p.} compared with the two best-performing baselines.
 Overall, the mean PPV$_{\text{clusters}}$ reflects model differences more reliably in our experiments.
 For these reasons, in the following experiments we report only the mean PPV$_{\text{clusters}}$, as it allows us to distinguish between models in this study, whereas the median version does not.
 
@@ -487,8 +488,8 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
     \footnotesize
     \item \textit{Note.} Colors denote rank within each column:
     \colorbox{green!15}{best}, \colorbox{cyan!15}{second}, \colorbox{orange!15}{third}.
-    \item \textit{Metrics: } Dice, IoU, PPV$_{\text{pixels}}$, and PPV$_{\text{clusters}}$ are computed on patients only (N = 259). 
-    Sensitivity is reported for patients (N = 259), whereas specificity is reported for healthy controls (N = 193).
+    \item \textit{Metrics: } Dice, IoU, PPV$_{\text{pixels}}$, and PPV$_{\text{clusters}}$ are computed on patients only (N = 82). 
+    Sensitivity is reported for patients (N = 82), whereas specificity is reported for healthy controls (N = 83).
     \item \textit{Vision+LM prompt variants:}
     \texttt{hemi} -- hemisphere prompt;
     \texttt{lobe\_regions} -- lobe--region prompt;
@@ -503,18 +504,19 @@ For these reasons, in the following experiments we report only the mean PPV$_{\t
 \end{table}
 Following the MELD paper, the Bonn cohort is used as an independent test set to assess out-of-distribution generalization.
 
-The models that detected the largest number of lesion clusters were those trained with 
-\textit{lobe\_regions} prompts in the RadBERT group, and the \textit{hemi + lobe + PubMedBERT} 
-variant across all architectures. When PubMedBERT was used instead of RadBERT in the 
-\textit{hemi + lobe} configuration, the model detected more lesions (sensitivity: 
-80.5\% vs.\ 76.8\%). However, this came at 
-the cost of slightly lower segmentation quality, as reflected by slightly decreases in Dice 
-(–1.5\%), PPV$_{\text{pixels}}$ (–1.2\%), and IoU (–1.1\%). This trade-off is consistent 
-with PubMedBERT’s pretraining on a substantially larger corpus of biomedical and 
-brain-related clinical text, which enhances its ability to recognize lesion-related 
-terminology but does not necessarily improve spatial localization. Overall, the 
-\textit{hemi + lobe + PubMedBERT} model achived the highest sensitivity ($66/82$), a 
-key objective in this study, while maintaining acceptable segmentation quality.
+The models that detected the largest number of lesion clusters were those trained with
+\textit{lobe\_regions} prompts in the RadBERT group, as well as the
+\textit{hemi + lobe + PubMedBERT} variant across all architectures.
+Within the \textit{hemi + lobe} configuration, replacing BlueBERT with PubMedBERT led
+to increased lesion detection sensitivity (80.5\% vs.\ 76.8\%).
+This gain, however, was accompanied by slightly lower segmentation quality compared to
+the BlueBERT-based variant, as reflected by small decreases in Dice (–1.5~p.p.),
+PPV$_{\text{pixels}}$ (–1.2~p.p.), and IoU (–1.1~p.p.).
+This trade-off is consistent with PubMedBERT’s pretraining on a substantially larger
+corpus of biomedical and brain-related clinical text, which enhances its ability to
+recognize lesion-related terminology but does not necessarily improve spatial localization.
+Overall, the \textit{hemi + lobe + PubMedBERT} model achieved the highest sensitivity
+($66/82$), a key objective in this study, while maintaining acceptable segmentation quality.
 
 \subsection*{Examples}
 Below, we present two representative cases in which the proposed model produces improved predictions.
@@ -559,7 +561,7 @@ Finally, we evaluate the trained models using intentionally mismatched (incorrec
 
 \subsection*{Warm--up vs.\ training from the start}
 
-Based on Tables~\ref{tab:main_cohort_mixed_correct} and \ref{tab:main_cohort_mixed_5_epochs_correct}, introducing a 5-epoch warm--up increases specificity by $\sim$13.6 percentage points and sensitivity by about 4 percentage points on average, while Dice, PPV, and IoU decrease slightly (by about 1--2 percentage points).
+Based on Tables~\ref{tab:main_cohort_mixed_correct} and \ref{tab:main_cohort_mixed_5_epochs_correct}, introducing a 5-epoch warm--up increases specificity by $\sim$8.8 \ac{p.p.} and sensitivity by about 4.5 \ac{p.p.} on average, while Dice, PPV, and IoU decrease slightly (by about 1--2 \ac{p.p.}).
 We interpret this as evidence that the warm--up phase allows the \texttt{GuideDecoder} to first learn how to incorporate the textual prompts and establish stable cross--attention links to the visual embeddings, before updating the full model.
 
 \begin{table}[H]
@@ -585,7 +587,7 @@ MELD & -- &
 \colorbox{green!15}{0.515} &
 % \makecell{1.000 \\ (1.000-1.000)} &
 \makecell{0.130\\(0.057--0.190)} &
-\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{58.0 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
 Vision--only & -- &
@@ -683,7 +685,7 @@ MELD & -- &
 \colorbox{green!15}{0.515} &
 % \makecell{1.000 \\ (1.000-1.000)} &
 \makecell{\colorbox{orange!15}{0.130}\\(0.057--0.190)} &
-\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{58.0 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
 Vision--only & -- &
@@ -766,20 +768,19 @@ textual descriptions but tested with intentionally incorrect ones still follow a
 Overall, when evaluated with intentionally incorrect prompts, performance decreases as expected, but the degradation is often modest and in some settings remains comparable to that obtained with correct descriptions.
 A possible explanation for this behavior is discussed in Section~\ref{chapter:Discussion}.
 
-Removing the text encoder does not substantially degrade performance, 
-but the metrics do become consistently worse. Compared with models trained on 
-correct descriptions, \textbf{Specificity} drops by roughly 27\%. A similar pattern is observed for \textbf{Sensitivity}: the model without text detects 
-$\sim$1--2\% fewer lesions relative to models using wrong prompts, 
-and about 6--7\% fewer relative to models using correct prompts.
-
-Using the \texttt{no\_text} setting (i.e., providing a fixed placeholder prompt, \textit{full brain}, for both patients and healthy controls) does not substantially degrade overall performance, but the metrics become consistently worse.
-Compared to evaluation with correct descriptions, \textbf{Specificity} decreases by roughly 27 percentage points.
-A similar pattern is observed for \textbf{sensitivity}: the \texttt{no\_text} variant detects fewer lesions, with sensitivity lower by about 1--2 percentage points compared to using wrong prompts, and by about 6--7 percentage points compared to using correct prompts.
+Using the \texttt{no\_text} setting (i.e., providing a fixed placeholder prompt, \textit{full brain}, 
+for both patients and healthy controls) does not substantially degrade overall performance; 
+however, the metrics become consistently worse.
+Based on Table~\ref{tab:wrong_main_cohort_mix_no_freeze} and in comparison to evaluation with correct descriptions 
+(Table~\ref{tab:main_cohort_mixed_correct}), \textbf{Specificity} decreases by roughly 27 \ac{p.p.}.
+A similar pattern is observed for \textbf{Sensitivity}: the \texttt{no\_text} variant detects fewer lesions, 
+with sensitivity lower by about 2 \ac{p.p.} compared to using wrong prompts 
+(Table~\ref{tab:wrong_main_cohort_mix_freeze}), and by about 4 \ac{p.p.} compared to using correct prompts 
+(Table~\ref{tab:main_cohort_mixed_correct}).
 
 
 Without any linguistic prior, the attention becomes broad and less informative. 
 Under strong class imbalance, the model behaves more conservatively and fires only at very high confidence.
-
 
 \begin{table}[H]
 \centering
@@ -803,7 +804,7 @@ MELD & -- &
 \colorbox{green!15}{0.515} &
 % \makecell{1.000 \\ (1.000-1.000)} &
 \makecell{0.130\\(0.057--0.190)} &
-\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{58.0 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
 Vision--only & -- &
@@ -883,11 +884,13 @@ Vision+LM\_mixed & no\_text &
 \end{table}
 
 A similar effect is observed in Table~\ref{tab:wrong_main_cohort_mix_freeze}.  
-Even when the model is trained on deliberately incorrect textual descriptions, 
+Even when models are \emph{trained on correct textual descriptions} but evaluated using deliberately incorrect prompts, 
 freezing the decoder for the first 5 epochs again leads to a performance gain. 
-This can be clearly seen in all cases except for the \texttt{no\_text} baseline, 
-where \textbf{Sensitivity} decreases by about 14\%, while for the wrong-text models 
-\textbf{Sensitivity} still improves by roughly 2\%.  
+This effect is consistently observed across all settings with incorrect textual descriptions, 
+except for the \texttt{no\_text} baseline, where \textbf{Specificity} decreases by about 14 \ac{p.p.} 
+when compared to the corresponding no-freeze results in Table~\ref{tab:wrong_main_cohort_mix_no_freeze}. 
+In contrast, \textbf{Sensitivity} still improves by roughly 2 \ac{p.p.} when decoder freezing is applied.
+
 % This again demonstrates that, when the decoder warm-up is applied, the model becomes less 
 % sensitive to misleading or contradictory prompts during evaluation.
 
@@ -913,7 +916,7 @@ MELD & -- &
 \colorbox{green!15}{0.515} &
 % \makecell{1.000 \\ (1.000-1.000)} &
 \makecell{0.130\\(0.057--0.190)} &
-\makecell{58 (n=112) \\ (51.3--64.8)}&
+\makecell{58.0 (n=112) \\ (51.3--64.8)}&
 \makecell{65.6 (n=170) \\ (59.8--71.4)} \\
 \hline
 Vision--only & -- &
@@ -1003,7 +1006,18 @@ structural information is present, even when the text itself is incorrect.
 
 
 \subsection*{Wrong textual descriptions (Independent cohort)}
-\begin{table}[ht]
+On the independent cohort (Tables~\ref{tab:independent_cohort_mixed}--\ref{tab:wrong_independent_cohort_mix_freeze}), 
+for both correct and incorrect prompts, the model with a 5-epoch decoder freeze generally detects 
+$\sim$5 \ac{p.p.} more lesions (higher \textbf{Sensitivity}).  
+For most text--description settings, this increase in detected lesions does not substantially 
+degrade segmentation quality: several segmentation metrics (\textbf{Dice}, \textbf{IoU}, and \textbf{PPV}) remain stable or even improve 
+slightly compared to the non-frozen model. 
+For the \texttt{hemi + lobe\_regions} and \texttt{full\_desc} prompts, we observe a noticeable decrease 
+in segmentation quality (5--11 \ac{p.p.} in Dice and 5--7 \ac{p.p.} in IoU).  
+However, these decreases are offset by a consistent improvement in lesion detection, which remains 
+the primary objective in this setting.
+
+\begin{table}[H]
     \centering
     \tiny
     \caption{Different text types for \textbf{Vision+LM\_mixed} models (values in parentheses indicate 95\% confidence intervals). \emph{Decoder open from the start} — GuideDecoder trained from the first epoch. Independent cohort — correct descriptions.}
@@ -1193,19 +1207,8 @@ structural information is present, even when the text itself is incorrect.
     \hline
     \end{tabular}
     \end{table}
-    
-On the independent cohort (Tables~\ref{tab:independent_cohort_mixed}--\ref{tab:wrong_independent_cohort_mix_freeze}), 
-for both correct and incorrect prompts, the model with a 5-epoch decoder freeze generally detects 
-$\sim$5\% more lesions (higher \textbf{Sensitivity}).  
-For most text--description settings, this increase in detected lesions does not substantially 
-degrade segmentation quality: several segmentation metrics (\textbf{Dice}, \textbf{IoU}, and \textbf{PPV}) remain stable or even improve 
-slightly compared to the non-frozen model. 
-For the \texttt{hemi + lobe\_regions} and \texttt{full\_desc} prompts, we observe a noticeable decrease 
-in segmentation quality (5--11\% in Dice and 5--7\% in IoU).  
-However, these decreases are offset by a consistent improvement in lesion detection, which remains 
-the primary objective in this setting.
 
-\begin{table}[ht]
+\begin{table}[H]
     \centering
     \tiny
     \caption{Different text types with \emph{wrong} descriptions (without freezing). Independent cohort — wrong descriptions}
@@ -1310,16 +1313,12 @@ the primary objective in this setting.
 \end{table}
     
 We also compare two key text--description types, \texttt{hemi+lobe} and \texttt{hemi+lobe\_regions},
-under both training strategies (with and without decoder warm-up).
-
-For models trained \emph{without} decoder warm-up, the \texttt{hemi+lobe\_regions} setting consistently produces higher segmentation quality:
-Dice and IoU improve by $\sim$2-3\%, and Sensitivity increases by $\sim$2-4\% compared to
+under both training strategies (with and without decoder warm-up). For models trained \emph{without} decoder warm-up, the \texttt{hemi+lobe\_regions} setting consistently produces higher segmentation quality:
+Dice and IoU improve by $\sim$2-3 \ac{p.p.}, and Sensitivity increases by $\sim$2-4 \ac{p.p.} compared to
 \texttt{hemi+lobe}. The same trend is seen in the evaluation of the incorrect text condition, where we compare
-\texttt{wrong\_hemi + wrong\_lobe} with \texttt{wrong\_hemi + wrong\_lobe\_regions}.
-
-However, for models trained \emph{with} 5-epoch warm-up, the situation is the opposite. 
+\texttt{wrong\_hemi + wrong\_lobe} with \texttt{wrong\_hemi + wrong\_lobe\_regions}. However, for models trained \emph{with} 5-epoch warm-up, the situation is the opposite. 
 In this case, the \texttt{hemi+lobe} model provides higher segmentation accuracy, outperforming \texttt{hemi+lobe\_regions} 
-by $\sim$3-7\% in Dice and IoU, although with a slight decrease in Sensitivity (typically 1-2\%).
+by $\sim$3-7 \ac{p.p.} in Dice and IoU, although with a slight decrease in Sensitivity (typically 1-2 \ac{p.p.}).
 
 \begin{table}[H]
     \centering
@@ -1747,13 +1746,13 @@ In these experiments, we investigated the effect of connecting different numbers
 On the main cohort (Table~\ref{tab:gnn_main}), the configuration with \textbf{three GNN layers} provides the most balanced performance across Dice, PPV\textsubscript{pixels}, and IoU, while also detecting \textbf{two additional lesions} compared to the no-GNN baseline.
 This is the only configuration that consistently ranks among the top performers across all primary metrics, supporting its selection as the best overall trade-off between lesion detection and false positive control.
 
-Connecting \textbf{all seven} MELD stages to the GNN yields the highest lesion count, with sensitivity increasing by $\sim$3.5 percentage points (\(188/259\) vs.\ \(179/259\)).
-This improvement comes with only a modest reduction in Dice and PPV\textsubscript{pixels} (on the order of 1--4\%).
+Connecting \textbf{all seven} MELD stages to the GNN yields the highest lesion count, with sensitivity increasing by $\sim$3.5 \ac{p.p.} (\(188/259\) vs.\ \(179/259\)).
+This improvement comes with only a modest reduction in Dice and IoU (on the order of 2--3 \ac{p.p.}).
 Such behavior is consistent with the properties of SAGEConv-based neighborhood aggregation: increasing GNN depth expands each node’s receptive field, while incorporating multi-stage MELD features injects complementary local and global contextual information.
 Together, these effects enable the detection of additional lesion clusters that may be missed when relying solely on local features.
 
-Specificity shows a non-uniform behavior across configurations.
-Connecting GNN blocks to the first one or two MELD feature stages results in a substantial increase in specificity (approximately +18 and +9 percentage points, respectively).
+\textbf{Specificity} shows a non-uniform behavior across configurations.
+Connecting GNN blocks to the first one or two MELD feature stages results in a substantial increase in specificity (approximately +18 and +9 \ac{p.p.}, respectively) compared to the no-GNN baseline.
 In contrast, further increasing the number of GNN layers leads to a gradual decrease in specificity.
 One possible explanation is that deeper message passing propagates lesion-related activations beyond the actual lesion regions, increasing the likelihood of assigning lesion--like predictions to anatomically normal cortical regions in healthy controls.
 This effect is particularly evident for later MELD stages, where features are lower-dimensional and the graph becomes denser, making it harder to preserve spatial distinctions.
@@ -1839,7 +1838,7 @@ Vision--only: 7 layers  &
 
 On the independent (Bonn) cohort (Table~\ref{tab:gnn_independent}), the \textbf{5-layer} configuration provides the best overall trade-off.
 It achieves the highest Dice and IoU scores while also detecting the largest number of lesions (\(64/82\)).
-Compared to the no-GNN baseline (0 layers), this corresponds to an absolute improvement of $\sim$10.4 percentage points in Dice and $\sim$8.3 percentage points in IoU, highlighting the benefit of incorporating the proposed GNN block.
+Compared to the no-GNN baseline (0 layers), this corresponds to an absolute improvement of $\sim$10.4 \ac{p.p.} in Dice and $\sim$8.3 \ac{p.p.} in IoU, highlighting the benefit of incorporating the proposed GNN block.
 At the same time, this configuration exhibits very low specificity, consistent with the trends observed on the main cohort and discussed earlier.
 
 For subsequent experiments we keep the \textbf{3-layer} and \textbf{5-layer} variants, and will compare them in the final study to determine the optimal number of connected MELD stages.
@@ -1925,8 +1924,7 @@ Vision--only: 7 layers &
 \end{tabular}
 \end{table}
 
-% \clearpage
-
+\clearpage
 \section{Final Experiments}
 
 Based on the observations from the previous sections, we proceed with a set of follow--up
@@ -1945,7 +1943,7 @@ Additionally, we will train the model with mixed text, primarily to reduce the o
 
 The architecture used in this experiment for \texttt{Vision--only} is shown below:
 
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{pictures/AdvancedExp1.png}
     \caption{Architecture of Advanced \texttt{Vision--only}: MELD surface-based features are extracted through a multi-stage GNN encoder (3- or 5-block variants) and passed through a hierarchical GuideDecoder with cross-attention to text embeddings. 
@@ -1977,7 +1975,7 @@ The PPV\textsubscript{clusters} metric explicitly indicates that GNN-based model
 \midrule
 MELD &
 -- &
-Basic Vision--only &
+-- &
 \makecell{0.230\\(0.107--0.320)} &
 \makecell{0.166\\(0.086--0.220)} &
 0.515 &
@@ -2009,7 +2007,7 @@ Basic Vision--only &
 % third row
 & 
 &
-\makecell{Basic Vision--only} &
+\makecell{Basic \\ Vision--only} &
 \makecell{0.225 \\ (0.131--0.294)} &
 \makecell{0.215 \\ (0.137--0.325)} &
 \textbf{0.401} &
@@ -2040,7 +2038,7 @@ Basic Vision--only &
 % third row
 & 
 &
-\makecell{Basic Vision--only} &
+\makecell{Basic \\ Vision--only} &
 \makecell{\textbf{0.228} \\ (0.129--0.321)} &
 \makecell{\textbf{0.247} \\ (0.180--0.330)} &
 \textbf{0.482} &
@@ -2072,7 +2070,7 @@ Basic Vision--only &
 % third row
 & 
 &
-\makecell{Basic Vision--only} &
+\makecell{Basic \\ Vision--only} &
 \makecell{\textbf{0.249} \\ (0.080--0.296)} &
 \makecell{0.192 \\ (0.127--0.289)} &
 \textbf{0.443} &
@@ -2100,8 +2098,7 @@ However, on the independent (Bonn) cohort (Tables~\ref{tab:independent_cohort_fi
 highest Dice, IoU, and Sensitivity. 
 However, its PPV\textsubscript{clusters} is almost twice as low as that of the baseline without a GNN block, 
 indicating a substantially larger number of false-positive clusters. 
-This is further reflected in the Specificity, which is approximately three times lower than the baseline and nearly 
-two orders of magnitude lower compared with the 5-GNN configuration.
+This is further reflected in the \textbf{Specificity}, which is approximately three times lower than the baseline and substantially lower compared to the 5-GNN configuration.
 
 These findings suggest that the number of GNN blocks must be selected with caution: deeper aggregation can cause 
 feature oversmoothing, which may negatively affect cluster-level precision, as clearly seen in the 5-GNN case. 
@@ -2160,7 +2157,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % third row
     &
     &
-    \makecell{Basic Vision--only} &
+    \makecell{Basic \\ Vision--only} &
     \makecell{0.368 \\ (0.248--0.505)} &
     \makecell{0.406 \\ (0.218--0.596)} &
     \textbf{0.489} &
@@ -2191,7 +2188,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % third row
     &
     &
-    \makecell{Basic Vision--only} &
+    \makecell{Basic \\ Vision--only} &
     \makecell{0.400 \\ (0.162--0.507)} &
     \makecell{\textbf{0.462} \\ (0.239--0.672)} &
     \textbf{0.586} &
@@ -2222,7 +2219,7 @@ the cost of all remaining metrics, indicating reduced prediction quality.
     % third row
     &
     &
-    \makecell{Basic Vision--only} &
+    \makecell{Basic \\ Vision--only} &
     \makecell{\textbf{0.397} \\ (0.138--0.502)} &
     \makecell{\textbf{0.507} \\ (0.151--0.647)} &
     \textbf{0.549} &
@@ -2245,14 +2242,14 @@ the cost of all remaining metrics, indicating reduced prediction quality.
 
     \end{table}
 
-    Overall, the results show that additional message passing can indeed increase sensitivity for sparse graphs by 
+Overall, the results show that additional message passing can indeed increase sensitivity for sparse graphs by 
 capturing more lesion candidates, but this benefit comes with a pronounced increase in false positives. 
 Therefore, while deeper aggregation offers potential advantages, it also highlights the need for further refinement 
 of GNN-based feature integration to avoid sacrificing precision.
 
 
 % Rewrite
-% \clearpage
+\clearpage
 \section{General conclusions}
 
 \begin{itemize}
@@ -2284,10 +2281,14 @@ of GNN-based feature integration to avoid sacrificing precision.
     contextual structure of textual prompts more reliably, ultimately leading to more detected lesions and a 
     higher number of correctly classified healthy patients.
 
-    \item From the \textbf{Linking MELD to GNN} chapter, we conclude that adding a GNN block that aggregates 
-    information from neighboring nodes helps the model accumulate contextual information more effectively. 
-    This leads to improved performance and higher sensitivity. In future work, integrating this block into 
-    the final architecture may further enhance results.
+    \item From the \textbf{Linking MELD to GNN} chapter, we conclude that adding a GNN block that aggregates information from neighboring nodes 
+    helps the model accumulate contextual information more effectively, leading to improved performance and higher sensitivity.
+    However, aggregating information across deeper GNN layers introduces an oversmoothing effect, which causes node representations 
+    to become less discriminative. As a result, \textbf{Specificity} and other segmentation metrics degrade sharply.
+    Consequently, the benefit of this GNN block is most pronounced for large and sparse graphs, as observed in our experiments,
+    while deeper aggregation is detrimental in denser graph settings. 
+    In future work, integrating this block into the final architecture in a controlled manner may further enhance results.
+
 
     \item From the \textbf{Final Experiments} chapter, we conclude that adding a GNN block ultimately helps 
     the model detect more lesions. However, it also increases the number of false-positive 

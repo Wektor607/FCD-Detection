@@ -13,26 +13,26 @@ can amplify subtle abnormal patterns that may be missed by purely local represen
 This benefit, however, comes at the cost of reduced Specificity, i.e., a higher false-positive rate on healthy controls.
 This is an important limitation for clinical use, since our evaluation does not include other epilepsy-related abnormalities or non-FCD lesion types; therefore, we cannot assess how often the model would spuriously highlight regions in patients with different pathologies.
 
-Importantly, the results also show that adding more GNN layers does not monotonically improve performance. 
-The effectiveness of GNN propagation depends strongly on the structure of the underlying MELD features. 
-For high-dimensional stages, where the surface graph is relatively sparse, message passing helps stabilize features and enrich 
-contextual information, making GNN layers particularly beneficial. 
-In contrast, for low-dimensional stages (such as stages 6–7), where the graph becomes denser and the representations 
-more compressed, additional propagation tends to oversmooth node features. 
-This blurs spatial distinctions and can ultimately degrade performance rather than enhance it.
+Importantly, the results show that adding more GNN layers does not monotonically improve performance.
+The effectiveness of message passing strongly depends on the structure of the underlying MELD feature stages.
+For higher-dimensional and sparser stages, neighborhood aggregation stabilizes features and enriches contextual information,
+making GNN layers beneficial.
+In contrast, for lower-dimensional stages (e.g., stages 6--7), where the graph becomes denser and representations are more compressed,
+additional propagation leads to oversmoothing, blurring spatial distinctions and ultimately degrading performance.
+
 
 In the warm--up experiments, we observed that freezing the visual backbone for the first few epochs can be beneficial. 
 A plausible explanation is that the model becomes less sensitive to prompt variability and even mildly incorrect prompts. 
 This behavior can be attributed to several factors:
 \begin{enumerate}
   \item \textbf{Partial but useful signal.} Even an inexact prompt still conveys coarse structural information (e.g., hemisphere or lobe). 
-  Such cues can narrow the search space and reduce the need to attend over the entire cortex.
+  Such prompts can narrow the search space and reduce the need to attend over the entire cortex.
 
   \item \textbf{Decoder robustness.} Owing to pretraining, the decoder can tolerate mild text--image mismatch. 
   When the prompt is uninformative, the model relies more on visual features and treats the text mainly as a weak attention prior.
 
   \item \textbf{Regularization effect.} Training with slightly noisy prompts discourages the model from overfitting to specific wording and promotes more general text--image associations. 
-  This acts as mild regularization: predictions become more conservative, reducing false positives, which can improve precision (e.g., PPV), while sensitivity and Dice often remain stable.
+  This acts as mild regularization: predictions become more conservative, reducing false positives, which can improve precision (e.g., PPV), while sensitivity often remain stable.
 \end{enumerate}
 
 Experiments with different forms of textual input showed that even coarse prompts (hemisphere- or lobe-only) can meaningfully improve lesion detection compared to purely vision-based baselines.
