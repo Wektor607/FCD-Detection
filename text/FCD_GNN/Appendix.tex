@@ -53,14 +53,21 @@ deterministically defined by the MELD icosphere hierarchy,
 \texttt{HexUnpool} performs no learnable interpolation and does not introduce 
 artifacts or distortions into the surface structure.
 
-\section*{Semantic similarity analysis} \label{sec:semantic_analysis}
+\section*{Semantic similarity analysis}
+\label{sec:semantic_analysis}
+
+This section provides a comparative analysis of the biomedical language models
+used in the experiments, with the goal of motivating their selection and
+highlighting differences in semantic behaviour that are relevant for
+anatomical text prompts.
 
 Table~\ref{tab:cosine_similarity_models} reports cosine similarities between
 the term ``frontal lobe'' and several related or distinct brain-region terms
-across multiple biomedical language models. In general, models pretrained on
-large biomedical or radiological corpora (e.g., BioClinicalBERT, PubMedBERT,
-RadBERT-RoBERTa) show more coherent behaviour across semantically related
-regions.
+across multiple biomedical language models.
+Models pretrained on large biomedical or radiological corpora (e.g.,
+BioClinicalBERT, PubMedBERT, RadBERT-RoBERTa) exhibit more consistent similarity
+patterns across semantically related regions, whereas models trained on
+general-domain text show less anatomically meaningful behaviour.
 
 \begin{table}[h!]
 \centering
@@ -106,7 +113,7 @@ This behaviour is typical across models and should not be interpreted as anatomi
 When selecting a model for our experiments, our aim is not to recover the underlying anatomical hierarchy but to identify a model that handles domain terminology in a stable and predictable manner. 
 In particular, we prioritise models that capture semantic relatedness between terms that occur in similar linguistic contexts and that distinguish compound expressions from more general ones. Such stability in semantic patterns is sufficient for our downstream pipeline.
 
-Based on these observations, \textbf{PubMedBERT}, \textbf{BioClinicalBERT} and \textbf{BlueBERT} demonstrate the most consistent and task-relevant behaviour and are therefore suitable for generating text embeddings in our framework. In contrast, \textbf{StanfordAIMI/RadBERT}, \textbf{BiomedVLP-CXR-BERT-general}, and \textbf{SapBERT} exhibit lower or less stable similarities among related terms and are consequently less suitable for our purposes.
+Based on these observations, \textbf{PubMedBERT} and \textbf{BlueBERT} demonstrate the most consistent and task-relevant behaviour and are therefore suitable for generating text embeddings in our framework. In contrast, \textbf{StanfordAIMI/RadBERT}, \textbf{BiomedVLP-CXR-BERT-general}, and \textbf{SapBERT} exhibit lower or less stable similarities among related terms and are consequently less suitable for our purposes.
 
 \clearpage
 \section*{Text distribution} \label{sec:text_distribution}

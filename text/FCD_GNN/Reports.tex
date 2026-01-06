@@ -87,7 +87,7 @@ Although \textbf{RadBERT} was used as the initial language model during the earl
 After observing that textual signals substantially influence lesion detection quality, we conducted an additional study comparing several biomedical and radiology-oriented LLMs (e.g., BlueBERT, PubMedBERT). 
 This analysis (reported in a separate chapter, including cosine-similarity evaluation of anatomical terminology) motivated the inclusion of multiple text-encoder variants in the experimental section.
 
-Across all variants, the geometry-based upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and the final segmentation head are always trained, while the encoders remain frozen (Fig.~\ref{fig:basic_model}). 
+Across all variants, the geometry-based upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and the final segmentation head are always trained, while the encoders remain frozen (Figure~\ref{fig:basic_model}). 
 The experimental variants differ only in (i) whether the \texttt{GuideDecoder} is inserted before the upsampling path and (ii) whether and which textual features are incorporated. 
 The pretrained \texttt{Exp1} model (described below) is used to initialize the decoder for all variants except the MELD-only baseline, which is trained from scratch.
 
@@ -101,7 +101,7 @@ We consider the following configurations:
     The \texttt{GuideDecoder} is omitted; visual features from the MELD encoder are passed directly into the geometry-based upsampling path 
     (\texttt{HexUnpool} + \texttt{SpiralConv}) and then to the segmentation head. 
     No textual input is used in this setting, so the model relies purely on image-derived features
-    (see Fig.~\ref{fig:exp1_arch}).
+    (see Figure~\ref{fig:exp1_arch}).
     
     \begin{figure}[h]
         \centering
@@ -115,7 +115,7 @@ We consider the following configurations:
     The U-Net–style MELD decoder has depth 7, i.e., 6 upsampling stages, so we use 6 \texttt{GuideDecoder} blocks placed at levels D6–D1 (from the coarsest to the finest). 
     The text branch is disabled in this variant, hence only self-attention is applied inside each \texttt{GuideDecoder}. 
     The upsampling path and segmentation head are otherwise identical to Exp1, so the main difference is the additional self-attention–based refinement of visual features before upsampling
-    (see Fig.~\ref{fig:exp2_arch}).
+    (see Figure~\ref{fig:exp2_arch}).
 
     \begin{figure}[h]
         \centering
@@ -468,7 +468,7 @@ cross-attention to the visual embeddings without immediately perturbing the unde
 This, in turn, reduces early-stage instability (especially under random prompt selection) and mitigates 
 the typical effect of severe class imbalance, where the model suppresses activations to avoid false 
 positives and produces near-empty masks. Consistently, the training and validation loss curves in 
-Fig.~\ref{fig:loss_mixed_warmup} show that, compared to training from scratch, the warm-up schedule 
+Figure~\ref{fig:loss_mixed_warmup} show that, compared to training from scratch, the warm-up schedule 
 moderates large early loss spikes and keeps the optimization trajectory more controlled during the 
 first epochs, indicating that the model continues to learn in this phase. After the warm-up, attention 
 is more focused, \textbf{Sensitivity} increases, and \textbf{IoU} is maintained.

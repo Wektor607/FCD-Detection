@@ -37,7 +37,7 @@ However, the detection of epileptogenic lesions, in particular \ac{fcd}, remains
     \label{unseen_fcds}
 \end{figure}
 
-Unlike tumors, which often show progressive growth and well--defined boundaries, epileptogenic lesions typically remain stable in size and present with subtle imaging features, as illustrated in Fig.~\ref{unseen_fcds}, complicating their identification even for expert neuroradiologists~\cite{walger2023ai_fcd}.
+Unlike tumors, which often show progressive growth and well--defined boundaries, epileptogenic lesions typically remain stable in size and present with subtle imaging features, as illustrated in Figure~\ref{unseen_fcds}, complicating their identification even for expert neuroradiologists~\cite{walger2023ai_fcd}.
 Earlier approaches~\cite{wagner2011morphometric_fcd, dev2019automatic_fcd, house2021automated_fcd} to automated FCD detection mainly used volumetric convolutional neural networks trained on 3D \ac{mri} data, such as T1-weighted and FLAIR images. 
 However, these methods were usually developed using relatively small datasets, often including only a few dozen to a few hundred patients, which limited their reliability and ability to generalize to unseen data. 
 In addition, volumetric CNN-based approaches do not directly model the cortical surface or its shape, even though FCD-related abnormalities mainly affect the cortex. 
@@ -86,7 +86,7 @@ The structure of this thesis is organized as follows:
 \begin{enumerate}
     \item Chapter~\ref{chapter:Related_works} introduces the core architectural paradigms used in this thesis: transformer architecture, graph neural networks, and large language models, and subsequently reviews state-of-the-art methods for \ac{fcd} detection, including volumetric CNN-based models, surface-based neural network approaches, and a multimodal segmentation model.
 
-    \item Chapter~\ref{chapter:Method} presents the proposed multimodal segmentation framework for epileptogenic lesion detection, detailing the surface-based visual features (from MELD preprocessing), the \acs{gnn} block, \acs{llm} textual embeddings, and their integration within the GuideDecoder, and describes the loss function and evaluation metrics.
+    \item Chapter~\ref{chapter:Method} presents the proposed multimodal segmentation framework for epileptogenic lesion detection, detailing the surface-based visual features (from MELD preprocessing), the \acs{gnn} block, LM textual embeddings, and their integration within the GuideDecoder, and describes the loss function and evaluation metrics.
 
     \item Chapter~\ref{chapter:Dataset} describes the Bonn and MELD datasets, FreeSurfer-based feature extraction and harmonization, the data-augmentation pipeline, and the variants of atlas-derived textual descriptions used in our study.
 

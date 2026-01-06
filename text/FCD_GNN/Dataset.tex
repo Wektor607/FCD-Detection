@@ -3,8 +3,14 @@
 \begin{document}
 \chapter{Dataset}
 \label{chapter:Dataset}
-We gratefully acknowledge the \textbf{\ac{meld} Project} for providing access to the dataset used in this work. 
-Without this resource, it would not have been possible to conduct a systematic evaluation of our model.
+We gratefully acknowledge the \textbf{\ac{meld} Project} for providing access to
+the dataset used in this work.
+Without this resource, it would not have been possible to conduct a systematic
+evaluation of our model.
+
+This chapter describes the datasets used in this work, including preprocessing
+steps, surface extraction, data augmentation strategies, and text description
+generation.
 
 \section{Bonn Dataset}
 
@@ -103,6 +109,13 @@ In this thesis, the \ac{meld} dataset is used as the \textbf{main cohort}.
 We follow the predefined \ac{meld} train/validation/test split for model development and report results on the corresponding \textbf{MELD test set}.
 
 The Bonn dataset is treated as an \textbf{independent cohort} and is used \textbf{only for testing}.
+
+In this thesis, the \ac{meld} dataset is used as the main cohort.
+We follow the predefined \ac{meld} train/validation/test split for model development
+and report results on the corresponding \ac{meld} test set.
+Although the Bonn dataset is formally included in the \ac{meld} collection, it is
+treated as an independent cohort and used exclusively for testing, following
+the original \ac{meld} evaluation protocol.
 
 % Although the overall \ac{meld} consortium includes data from Bonn, the Bonn cohort used in this work is kept separate from the \ac{meld} development split and serves only as an external test set.
 

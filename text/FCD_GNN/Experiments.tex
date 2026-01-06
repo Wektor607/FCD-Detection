@@ -4,160 +4,59 @@
 \chapter{Experiments}
 \label{chapter:Experiments}
 
-This chapter consists of several components. We begin by outlining key implementation 
-details of the proposed model, followed by a description of the web interface developed 
-to facilitate interaction with the different model variants. Finally, we present a series 
-of experiments, including systematic ablation studies and an analysis of how various design 
-choices influence model performance on both the main training cohort and an independent 
-validation dataset.
+This chapter presents the main experimental results, focusing on the influence
+of different textual prompts on model performance.
+It includes experiments with mixed and incorrect textual descriptions, as well
+as an analysis of how the addition of GNN blocks affects the final
+segmentation results and the challenges encountered in this setting.
 
-
-\section{Implementation Details}
-In this work, we aimed to use the same training parameters as the MELD authors 
-to ensure a fair and consistent comparison.
-The proporsed framework was trained with the following hyperparameters. 
-The training batch size was fixed at 8 and the validation batch size at 4. 
-The initial learning rate was set to $3 \times 10^{-4}$ and optimized using 
-the OneCycleLR scheduler (maximum learning rate $3 \times 10^{-3}$). 
-The schedule included a warm-up phase during the first 10\% of training steps, 
-followed by cosine annealing. 
-Training was performed for up to 100~epochs (minimum 20~epochs), 
-with early stopping applied if the validation performance did not improve for 20~epochs.  
-For evaluation, we trained an ensemble of five independently initialized models (seeds 42–46). 
-At test time, we averaged their per-vertex predictions to form the final output.  
-
-The model integrated surface-based graph features and contextual text embeddings. 
-Feature channel dimensions across the encoder stages were
-$[32,32,64,64,128,128,256]$, 
-with corresponding text sequence lengths
-$[128,64,64,32,32,16,16]$, 
-and a maximum text length of 256~tokens. 
-Deep supervision was employed with levels 
-$I_{ds} = [6,5,4,3,2,1]$ 
-and associated weights \\
-$w_{ds} = [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.0150765]$~\cite{Ripart2025MELD}. 
-The text encoder was initialized from RadBERT, 
-with a projection dimension of 768.  
-
-To address class imbalances, non-lesional hemispheres were undersampled, 
-ensuring that approximately one third of training examples contained a lesion. 
-Data augmentation strategies included: 
-
-\begin{table}[H]
-\centering
-\caption{Data augmentation strategies applied during training~\cite{Ripart2025MELD}.}
-\begin{tabular}{ll}
-    \toprule
-    \textbf{Transformation} & \textbf{Probability} \\
-    \midrule
-    Random flipping & 0.5 \\
-    Gaussian blur & 0.2 \\
-    Spinning & 0.2 \\
-    Warping & 0.2 \\
-    Brightness/contrast/gamma & 0.15 each \\
-    Gaussian noise & 0.15 \\
-    Low-resolution simulation & 0.25 \\
-    \bottomrule
-\end{tabular}
-\end{table}
-    
-\subsection*{Hardware} 
-All experiments were performed on the \emph{Bender} high-performance computing cluster at the University of Bonn, 
-equipped with NVIDIA A100 GPUs (80~GiB each) and AMD EPYC CPUs. 
-
-A detailed description of the system can be found in the official documentation\footnote{\url{https://www.hpc.uni-bonn.de/en/systems/bender}}. 
-Our implementation used PyTorch~2.1.0+cu121, TorchVision~0.16.0+cu121, TorchAudio~2.1.0+cu121, Torch Geometric~2.5.3, Torch Scatter~2.1.2, 
-TorchMetrics~0.11.4, and Python~3.9.18. 
-
-To ensure reproducibility, a complete software environment has been provided via Docker.
-The corresponding Dockerfiles and installation instructions are available in our GitHub repository\footnote{\url{https://github.com/Wektor607/FCD-Detection/tree/docker-inference-fix/meld_graph}}.
-
-\section{Web Interface}
-To make it easier to use different pretrained models, we developed a web interface that offers an accessible and intuitive way for users to interact with the lesion detection system.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/photo_1.png}
-    \caption{Main page of the web interface with a brief project description and navigation buttons.}
-\end{figure}
-
-The main page presents a brief overview of the project and includes navigation controls that let users explore the documentation or move on to the prediction page for processing a specific patient.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{pictures/photo_2.png}
-    \caption{Upload page where the user selects a model, adds a description, and uploads an HDF5 file for analysis. 
-    \textit{Note: the current prototype accepts only a single HDF5 file.}}
-
-\end{figure}
-
-The workflow begins on the upload page, where the user selects one of the trained models, optionally adds a short textual description, and uploads an HDF5 file for analysis. The current prototype supports the upload of a single HDF5 file at a time.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\textwidth]{pictures/photo_3.png}
-    \caption{Dropdown menu for selecting among trained models.}
-
-\end{figure}
-
-To support different use cases and experimental settings, the interface includes a model selection menu listing all available trained variants. 
-These include the baseline MELD model, two vision-only architectures (\texttt{Vision--only} and \texttt{Vision--only+SA}) with minor architectural differences, and the multimodal \texttt{Vision+LM} model trained on various textual inputs. 
-Each option is accompanied by a short explanation, similar in style to modern LLM model pickers, helping users choose between faster or more accurate configurations.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\textwidth]{pictures/photo_4.png}
-    \caption{Example of a successfully uploaded file ready for processing.}
-\end{figure}
-
-Once a file is uploaded successfully, the interface confirms that the case is ready for processing and allows the user to initiate inference.
-After the prediction is complete, the results page provides two complementary views of the output:
-\begin{enumerate}[label=(\roman*)]
-\item representative 2D MRI slices with the predicted lesion regions overlaid for quick inspection, and
-\item a 3D cortical surface visualization rendered for both hemispheres (left and right), shown from two complementary viewpoints (anterior and posterior) to improve interpretability and spatial understanding.
-\end{enumerate}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.6\textwidth]{pictures/photo_5.png}
-    \caption{Web interface showing the inference output: 2D MRI slice overlays and a 3D cortical surface rendering for both hemispheres (LH/RH) from complementary viewpoints (anterior/posterior). All outputs can be exported as PNG (2D/3D) and as a NIfTI volume for further analysis in 3D medical imaging tools.}
-    \label{fig:web_inference_result}
-\end{figure}
-
-All generated visualizations can be downloaded as PNG files (2D slices and 3D renderings), and the full volumetric prediction is additionally provided in NIfTI format for further analysis in standard 3D medical imaging software.
-This design supports both general users (rapid visual validation) and developers/researchers (downstream processing and quantitative evaluation).
-
-\clearpage
 \section{Basic Experiments}
-To systematically assess the contribution of each component of the proposed multimodal architecture, we gradually enabled individual modules of the decoder — geometry-based upsampling, self-attention, and finally text-conditioned cross-attention.
-This stepwise experimental design allows isolating the effect of textual guidance and ensuring that any improvement in lesion detection quality can be attributed to a specific architectural modification rather than confounding changes.
-% Before tuning various hyperparameters such as the number of text connections in the GuideDecoder, the number of unfrozen layers in the LLM (left for future experiments), and the number of connections to the GNN block, it is essential to first identify the best-performing base model to avoid unnecessary experiments and save time.
+To systematically assess the contribution of each component of the proposed
+multimodal architecture, we gradually enable individual decoder modules—
+geometry-based upsampling, self-attention, and finally text-conditioned
+cross-attention.
+This stepwise experimental design allows isolating the effect of textual
+guidance and ensures that any improvement in lesion detection quality can be
+attributed to a specific architectural modification rather than confounding
+changes.
 
-In all options, we freezed both encoders: the visual encoder (the \textbf{MELD} backbone) and the text encoder. 
-Although \textbf{RadBERT} was used as the initial language model during the early stages of this work, simply because it was the first domain-specific model that integrated well into the pipeline, the choice of text encoder was later examined more systematically. 
-After observing that textual signals substantially influence lesion detection quality, we conducted an additional study comparing several biomedical and radiology-oriented language models (e.g., BlueBERT, PubMedBERT). 
-This analysis (see Appendix~\nameref{sec:semantic_analysis}) motivated the inclusion of multiple text-encoder variants in the experimental section.
+In all configurations, we freeze both encoders: the visual encoder (the
+\textbf{MELD} backbone) and the text encoder.
+Although \textbf{RadBERT} was used as the initial language model during the early
+stages of this work—primarily because it was the first domain-specific model that
+integrated smoothly into the pipeline—the choice of text encoder was later
+examined more systematically.
+After observing that textual signals substantially influence lesion detection
+quality, we conducted an additional study comparing several biomedical and
+radiology-oriented language models.
 
-Across all variants, the geometry-based upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and the final segmentation head are always trained, while the encoders remain frozen (Fig.~\ref{fig:basic_model}). 
-The experimental variants differ only in (i) whether the \texttt{GuideDecoder} is inserted before the upsampling path and (ii) the type of atlas-derived textual input used. 
-The pretrained \texttt{\texttt{Vision--only}} model (described below) is used to initialize the decoder for all variants except the MELD-only baseline, which is trained from scratch.
+These language models differ in the domain and scale of their pretraining data:
+\textbf{RadBERT} and \textbf{BlueBERT} are pretrained on radiology reports and
+clinical text, while \textbf{PubMedBERT} is trained on large-scale biomedical
+literature.
+The results of this analysis (see Appendix~\nameref{sec:semantic_analysis})
+motivated the inclusion of multiple text-encoder variants in the experimental
+evaluation.
 
+Across all variants, the geometry-based upsampling path
+(\texttt{HexUnpool} + \texttt{SpiralConv}) and the final segmentation head are
+always trained, while both encoders remain frozen
+(Figure~\ref{fig:basic_model}).
+The experimental variants differ only in (i) whether the \texttt{GuideDecoder}
+is inserted before the upsampling path and (ii) the type of atlas-derived
+textual input used.
+The pretrained \texttt{Vision-only} model (described below) is used to initialize
+the decoder for all variants except the MELD-only baseline, which is trained
+from scratch.
 
 We consider the following configurations:
 
 \begin{itemize}
-    \item \textbf{MELD.} The pretrained \ac{meld} model was evaluated on the test set without any additional training or fine-tuning and is used as the baseline (see Fig.~\ref{fig:meld_arch}).
-    
-    \begin{figure}[H]
-        \centering
-        \includegraphics[width=0.8\textwidth]{pictures/MELDarchitecture.png}
-        \caption{Architecture of MELD: Proposed GC-nnU-Net model for lesion segmentation, with auxiliary distance regression and hemisphere classification tasks~\cite{Ripart2025MELD}.}
-        \label{fig:meld_arch}
-    \end{figure}
+    \item \textbf{MELD.} The pretrained \ac{meld} model was evaluated on the test set without any additional training or fine-tuning and is used as the baseline (see Figure~\ref{fig:meld_arch}).
 
     \item \textbf{Vision--only (Unpool + Spiral, no text).}
     In this configuration, the pretrained \ac{meld} model is used to provide multi--scale visual features extracted from its decoder at each stage.
-    The text branch and the self--/cross--attention modules of the \texttt{GuideDecoder} are disabled, while the geometry--based upsampling components are retained (see Fig.~\ref{fig:exp1_arch}).
+    The text branch and the self--/cross--attention modules of the \texttt{GuideDecoder} are disabled, while the geometry--based upsampling components are retained (see Figure~\ref{fig:exp1_arch}).
     The decoder features from \ac{meld} are reshaped and passed directly through the upsampling path (\texttt{HexUnpool} + \texttt{SpiralConv}) and then to the segmentation head.
     No textual input is used in this variant, so the prediction relies solely on image--derived features.
 
@@ -170,7 +69,7 @@ We consider the following configurations:
 
     \item \textbf{Vision--only+SA (GuideDecoder: self-attention only).}
     As in \texttt{Vision--only}, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
-    One \texttt{GuideDecoder} block is inserted at each decoder level (D6--D1), i.e., one block per upsampling stage, to refine the features using self--attention before the subsequent upsampling step (see Fig.~\ref{fig:exp2_arch}).
+    One \texttt{GuideDecoder} block is inserted at each decoder level (D6--D1), i.e., one block per upsampling stage, to refine the features using self--attention before the subsequent upsampling step (see Figure~\ref{fig:exp2_arch}).
     The text branch remains disabled; therefore, cross--attention is not applied and each \texttt{GuideDecoder} performs self--attention only.
     The upsampling path and segmentation head are kept identical to \texttt{Vision--only}.
 
@@ -183,7 +82,7 @@ We consider the following configurations:
     
     \item \textbf{Vision+LM (GuideDecoder + Text).}
     As in \texttt{Vision--only} and \texttt{Vision--only+SA}, multi--scale visual features are extracted from the pretrained \ac{meld} decoder and used as input to the \texttt{GuideDecoder}.
-    In contrast to \texttt{Vision--only+SA}, the full \texttt{GuideDecoder} is enabled, i.e., self--attention on image tokens and cross--attention between image and text embeddings are applied (see Fig.~\ref{fig:basic_model}).
+    In contrast to \texttt{Vision--only+SA}, the full \texttt{GuideDecoder} is enabled, i.e., self--attention on image tokens and cross--attention between image and text embeddings are applied (see Figure~\ref{fig:basic_model}).
     The only difference across variants is the textual conditioning (Table~\ref{tab:text_variants}):
     % For healthy subjects (no lesion present), the textual input is set to \textit{``No lesion detected.''}
 
@@ -217,7 +116,7 @@ We consider the following configurations:
 
 Table~\ref{tab:main_cohort} presents the median performance on the \ac{meld} test set (main cohort).
 In the RadBERT group, defined as all variants using the default RadBERT language encoder 
-(without alternative LLMs such as BlueBERT or PubMedBERT), the prompt combining 
+(without alternative LMs such as BlueBERT or PubMedBERT), the prompt combining 
 \textit{hemisphere and lobe-region} terms detected the most lesions, though with only slightly higher Dice, PPV$_\text{pixels}$, and IoU.
 Across all models, the PubMedBERT variant achieved the highest number of detected lesions, likely due 
 to better domain-context understanding (see Table~\ref{tab:cosine_similarity_models} in the Appendix). 
@@ -367,7 +266,7 @@ We also report specificity, defined as the proportion of healthy controls with n
 Across all \textit{Vision+LM models}, specificity was higher than that of MELD by $\sim$36--42 \ac{p.p.}.
 This indicates that the text--conditioned models distinguish healthy from non--healthy cases substantially better.
 
-Throughout this section, we do not focus on the median PPV$_{\text{clusters}}$, which is the primary metric reported in the original MELD study.
+Throughout this chapter, we do not focus on the median PPV$_{\text{clusters}}$, which is the primary metric reported in the original MELD study.
 As shown in Table~\ref{tab:main_cohort}, the median PPV$_{\text{clusters}}$ attains high values across many configurations (often reaching 0.667, with overlapping confidence intervals), providing limited discrimination between models.
 In contrast, the mean PPV$_{\text{clusters}}$ exhibits more variation across configurations and is therefore more informative for comparing the methods in our setting.
 MELD achieves the highest mean PPV$_{\text{clusters}}$ on the main cohort, with a small margin of $\sim$2--3 \ac{p.p.} over the next two models and a much larger gap to the remaining ones.
@@ -520,7 +419,7 @@ Overall, the \textit{hemi + lobe + PubMedBERT} model achieved the highest sensit
 
 \subsection*{Examples}
 Below, we present two representative cases in which the proposed model produces improved predictions.
-Each figure shows (from left to right) the ground-truth lesion mask, the prediction of the baseline MELD model, and the prediction of the proposed \texttt{Vision+LM} model\footnote{ Throughout this section, \texttt{Vision+LM} corresponds to Exp3.} with PubMedBERT using the \texttt{hemi+lobe} prompt.
+Each figure shows (from left to right) the ground-truth lesion mask, the prediction of the baseline MELD model, and the prediction of the proposed \texttt{Vision+LM} model\footnote{ Throughout this chapter, \texttt{Vision+LM} corresponds to Exp3.} with PubMedBERT using the \texttt{hemi+lobe} prompt.
 
 \begin{figure}[H]
     \centering
@@ -546,7 +445,7 @@ Finally, we present an example comparing the same \texttt{Vision+LM} model condi
 
 % \clearpage
 \section{Mixed Text}
-This section investigates training with \textit{mixed text prompts} and the effect of a short decoder warm--up phase.
+This chapter investigates training with \textit{mixed text prompts} and the effect of a short decoder warm--up phase.
 We start from the \texttt{Vision+LM} architecture and compare two training schedules:
 \begin{enumerate}
   \item \textbf{Decoder open from the start}: the \texttt{GuideDecoder} is initialized with pretrained weights from \textit{Vision--only} and optimized from the first epoch.
@@ -555,7 +454,7 @@ We start from the \texttt{Vision+LM} architecture and compare two training sched
 \end{enumerate}
 
 We train the model with different atlas--based prompt variants, where one prompt type is randomly sampled per sample during training.
-All experiments in this section use \textbf{RadBERT} as the text encoder.
+All experiments in this chapter use \textbf{RadBERT} as the text encoder.
 Finally, we evaluate the trained models using intentionally mismatched (incorrect) prompts to assess robustness to prompt variability.
 
 
@@ -766,7 +665,7 @@ We now evaluate models with \emph{incorrect} prompts, including the \texttt{no\_
 Across both Tables~\ref{tab:wrong_main_cohort_mix_no_freeze} and~\ref{tab:wrong_main_cohort_mix_freeze}, models that were trained on correct 
 textual descriptions but tested with intentionally incorrect ones still follow a consistent trend. 
 Overall, when evaluated with intentionally incorrect prompts, performance decreases as expected, but the degradation is often modest and in some settings remains comparable to that obtained with correct descriptions.
-A possible explanation for this behavior is discussed in Section~\ref{chapter:Discussion}.
+A possible explanation for this behavior is discussed in chapter~\ref{chapter:Discussion}.
 
 Using the \texttt{no\_text} setting (i.e., providing a fixed placeholder prompt, \textit{full brain}, 
 for both patients and healthy controls) does not substantially degrade overall performance; 
@@ -1432,7 +1331,7 @@ the number of detected lesions.
 
 % \clearpage
 % \subsection*{Mixed Text Part 2}
-% In this section, we conducted two additional experiments using the Mixed model with several different text description types. Notably, for the “no text” condition we did not provide a fixed phrase such as “No lesion detected.” Instead, we randomly generated a text description composed of a hemisphere name and a lobe name. Each part was sampled according to predefined probabilities, computed from the training-set distribution, as shown below:
+% In this chapter, we conducted two additional experiments using the Mixed model with several different text description types. Notably, for the “no text” condition we did not provide a fixed phrase such as “No lesion detected.” Instead, we randomly generated a text description composed of a hemisphere name and a lobe name. Each part was sampled according to predefined probabilities, computed from the training-set distribution, as shown below:
 
 % \begin{verbatim}
 % {
@@ -1927,7 +1826,7 @@ Vision--only: 7 layers &
 \clearpage
 \section{Final Experiments}
 
-Based on the observations from the previous sections, we proceed with a set of follow--up
+Based on the observations from the previous chapters, we proceed with a set of follow--up
 experiments using the full multimodal architecture with GNN blocks. Specifically, we consider
 the following experimental setup:
 \begin{enumerate}[label=(\roman*), leftmargin=*]
@@ -2246,68 +2145,5 @@ Overall, the results show that additional message passing can indeed increase se
 capturing more lesion candidates, but this benefit comes with a pronounced increase in false positives. 
 Therefore, while deeper aggregation offers potential advantages, it also highlights the need for further refinement 
 of GNN-based feature integration to avoid sacrificing precision.
-
-
-% Rewrite
-\clearpage
-\section{General conclusions}
-
-\begin{itemize}
-
-    \item From the \textbf{Basic Experiments} chapter, we conclude that:
-    \begin{itemize}
-
-        \item \textbf{Vision+LM\_hemi+lobe\_regions} provides the most balanced performance and achieves the 
-        \textbf{highest sensitivity}. Incorporating hemisphere and lobe-region information constrains the 
-        search space and improves localization.
-
-        \item \textbf{Vision+LM\_hemi+lobe+PubMedBERT} achieves the highest \textbf{Sensitivity} and \textbf{Specificity} on both cohorts. 
-        The concise prompt without irrelevant context, combined with PubMedBERT’s domain-specific pretraining, 
-        improves detection performance while only slightly reducing segmentation metrics (Dice/IoU/PPV).
-
-        \item \textbf{Vision+LM\_full\_desc} underperforms relative to the hemi+lobe variants, suggesting that 
-        long atlas-style descriptions introduce noise and redundancy. In contrast, shorter and more targeted 
-        prompts generalize better.
-
-    \end{itemize}
-
-    \item From the \textbf{Mixed Text} chapter, we conclude that training the model on mixed-type descriptions 
-    yields better results than the \textbf{MELD} baseline, but remains slightly worse than models trained on a 
-    single, well-specified prompt type. Notably, replacing correct descriptions with incorrect ones does not 
-    collapse performance, demonstrating the robustness and stability of the proposed architecture.
-
-    Furthermore, freezing the decoder for the first several epochs allows the model to focus on aligning 
-    vision and text embeddings before full end-to-end training. This warm-up phase helps the model learn the 
-    contextual structure of textual prompts more reliably, ultimately leading to more detected lesions and a 
-    higher number of correctly classified healthy patients.
-
-    \item From the \textbf{Linking MELD to GNN} chapter, we conclude that adding a GNN block that aggregates information from neighboring nodes 
-    helps the model accumulate contextual information more effectively, leading to improved performance and higher sensitivity.
-    However, aggregating information across deeper GNN layers introduces an oversmoothing effect, which causes node representations 
-    to become less discriminative. As a result, \textbf{Specificity} and other segmentation metrics degrade sharply.
-    Consequently, the benefit of this GNN block is most pronounced for large and sparse graphs, as observed in our experiments,
-    while deeper aggregation is detrimental in denser graph settings. 
-    In future work, integrating this block into the final architecture in a controlled manner may further enhance results.
-
-
-    \item From the \textbf{Final Experiments} chapter, we conclude that adding a GNN block ultimately helps 
-    the model detect more lesions. However, it also increases the number of false-positive 
-    predictions, which negatively affects the overall quality. Therefore, the idea of aggregating information 
-    within sparse graphs requires further refinement.
-
-    \item From the \textbf{Text Distribution} chapter (see Appendix), we conclude that conditioning on 
-    fine-grained region names as textual inputs tends to induce overfitting, because the underlying label 
-    distribution is heavily imbalanced and long-tailed. Frequent categories dominate the learning signal, 
-    while numerous rare classes lack sufficient variability for robust generalization.
-
-    \item From the \textbf{Semantic Similarity Analysis of Frontal Lobe Regions} chapter (see Appendix), 
-    we conclude that the choice of text encoder is crucial. Biomedical language models pretrained on 
-    domain-specific corpora (e.g., PubMedBERT, RadBERT, BioClinicalBERT) produce higher semantic coherence 
-    between anatomically related brain regions, whereas general-purpose models exhibit inconsistent similarity 
-    patterns. This shows that semantically aligned text embeddings can improve multimodal fusion and 
-    ultimately enhance the model’s interpretability and performance.
-
-\end{itemize}
-
 
 \end{document}

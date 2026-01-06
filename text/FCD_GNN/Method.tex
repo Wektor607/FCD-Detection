@@ -3,14 +3,21 @@
 \begin{document}
 \chapter{Method}
 \label{chapter:Method}
-As mentioned earlier, the design of our architecture is inspired by the work of~\cite{Zhong2023Ariadne}. 
+
+This chapter presents the proposed method, including the model architecture,
+its individual components, as well as the loss functions and evaluation metrics
+used for training.
+
+As mentioned earlier, the design of the proposed architecture is inspired by the
+work of~\cite{Zhong2023Ariadne}.
 Our implementation differs in two key aspects:
 \begin{itemize}
-\item we increased the depth of the feature extraction pathway, and 
-\item we introduced a GNN-based block to more effectively aggregate visual features at higher resolutions.
+\item the depth of the feature extraction pathway is increased, and
+\item a GNN-based block is introduced to more effectively aggregate visual
+features at higher resolutions.
 \end{itemize}
-The overall architecture is shown in Figure~\ref{fig:architecture}, 
-and each component is described in detail below.
+An overview of the overall architecture is shown in
+Figure~\ref{fig:architecture}, and each component is described in detail below.
 
 \begin{figure}[htbp]
     \centering
@@ -197,14 +204,26 @@ L_{dist} = \frac{1}{n} \sum_{i=1}^{n} \frac{|d_i - \hat{y}_{i,0}|}{d_i + 1}.
 \end{equation}
 
 \subsection*{Classification Loss}
-And in the last case, we add a weakly-supervised classification head to mitigate the uncertainty between lesion masks and actual lesions. Each subject is labeled as positive if any vertex belongs to a lesion. The classification head aggregates features across the deepest level (level 1) and predicts a subject-level label $\hat{c}$. The classification loss is then computed as binary cross-entropy~\cite{Ripart2025MELD}:
+In the final configuration, we add a weakly supervised classification head to
+mitigate the uncertainty between lesion masks and actual lesions.
+Each subject is labeled as positive if any of its vertices belongs to a lesion.
+The classification head aggregates features across all vertices at the deepest
+level (level~1), producing a single subject-level prediction $\hat{c}$.
+The classification loss is computed at the subject level and summed over a
+mini-batch of $n$ samples~\cite{Ripart2025MELD}.
 \begin{equation}
 L_{class} = - \sum_{i=1}^{n} c_i \log(\hat{c}_i) + (1-c_i)\log(1-\hat{c}_i).
 \end{equation}
 
 \subsection*{Deep Supervision}
-To encourage gradient flow and stabilize training, we adopt deep supervision at intermediate decoder levels $I_{ds} = \{6,5,4,3,2,1\}$. 
-At each level $i$, auxiliary predictions are generated and the same combination of cross-entropy, dice, and distance losses is applied. These auxiliary losses are weighted by $w^i_{ds}$ and added to the total objective~\cite{Ripart2025MELD}:
+To encourage gradient flow and stabilize training, we adopt deep supervision at
+intermediate decoder levels $I_{ds} = \{6,5,4,3,2,1\}$.
+At each level $i$, auxiliary predictions are generated and the same combination
+of cross-entropy, dice, and distance losses is applied.
+These auxiliary losses are weighted by $w^i_{ds}$ and added to the total
+objective. The deep supervision weights $w_{ds}^i$ are fixed hyperparameters adopted from
+the MELD framework, where their values are explicitly specified~\cite{Ripart2025MELD}.
+
 \begin{equation}
 \sum_{i \in I_{ds}} w^i_{ds}(L^i_{ce} + L^i_{dice} + L^i_{dist}).
 \end{equation}

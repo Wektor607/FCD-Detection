@@ -4,48 +4,100 @@
 \chapter{Related Works}
 \label{chapter:Related_works}
 
-This section firstly reviews the transformer architecture, which is a fundamental component of modern vision models and large language models (LLMs).
+This chapter firstly reviews the transformer architecture, which is a fundamental component of modern vision models and large language models (LLMs).
 Then it introduces graph neural networks (GNNs) and LLMs, followed by an overview of existing approaches to \ac{fcd} detection and text-guided medical image segmentation for tumor detection tasks, with a focus on their fusion strategies, and limitations.
 
 \section{Transformer Architecture}
 The transformer architecture, introduced in the seminal work by Vaswani et al.~\cite{Vaswani2017Attention}, is based entirely on attention mechanisms and does not rely on recurrence or convolution. 
-Its core component is the \textbf{\textit{self-attention layer}}, which models long-range interactions between elements of a sequence. 
-Given input embeddings $X$, the model computes query, key, and value matrices $Q = XW^Q$, $K = XW^K$, and $V = XW^V$, where $W^Q$, $W^K$, and $W^V$ are learnable projections respectively. 
-The self-attention operation is defined as:
+A standard Transformer consists of an encoder and a decoder, each composed of stacked layers combining attention mechanisms and position-wise feed-forward networks (see Figure~\ref{transformer_architecture}).
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.4\textwidth]{pictures/TransformerArchitecture.png}
+    \caption{The Transformer -- model architecture~\cite{Vaswani2017Attention}.}
+    \label{transformer_architecture}
+\end{figure}
+
+Let $X \in \mathbb{R}^{N \times d_{\text{model}}}$ denote the input sequence embeddings,
+where $N$ is the sequence length and $d_{\text{model}}$ is the embedding dimensionality.
+Since the Transformer has no inherent notion of order, positional encodings are added to $X$
+to inject information about token positions. A commonly used fixed sinusoidal positional encoding is defined as
+\begin{align}
+\text{PE}(pos, 2i) &= \sin\!\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right), \\
+\text{PE}(pos, 2i+1) &= \cos\!\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right),
+\end{align}
+where $pos$ denotes the position in the sequence and $i$ indexes the embedding dimensions.
+The positional encodings have the same dimensionality as $X$
+and are combined with the input embeddings by element-wise addition.
+
+Each encoder layer contains a multi-head self-attention module followed by a position-wise
+feed-forward network, with residual connections and layer normalization applied after each sub-layer.
+The core operation is scaled dot-product self-attention (see Figure~\ref{attention_architecture}), defined as
 \begin{equation}
-    \mathrm{Attention}(Q, K, V) = 
-    \mathrm{softmax}\left(\frac{QK^{\top}}{\sqrt{d_k}}\right)V,
+\text{Attention}(Q, K, V) = \text{softmax}\!\left( \frac{QK^\top}{\sqrt{d_k}} \right)V,
+\label{eq:self_attention}
 \end{equation}
 where $d_k$ is the dimensionality of the key vectors.
 
-To enhance representational capacity, transformers employ 
-\textbf{\textit{multi-head attention}}, which performs several attention operations
-in parallel:
+In self-attention, the query, key, and value matrices are obtained by linear projections of the same input $X$:
 \begin{equation}
-    \mathrm{MultiHead}(Q,K,V) = 
-    \mathrm{Concat}(\mathrm{head}_1,\dots,\mathrm{head}_h)\, W^O,
+Q = X W^{Q}, \quad
+K = X W^{K}, \quad
+V = X W^{V},
+\label{eq:qkv_projection}
 \end{equation}
-where each head computes self-attention using its own learnable
-projections:
-\begin{equation}
-    \mathrm{head}_i = 
-    \mathrm{Attention}(QW_i^{Q},\, KW_i^{K},\, VW_i^{V}),
-\end{equation}
-with parameter matrices 
-$W_i^{Q} \in \mathbb{R}^{d_{\text{model}} \times d_k}$,
-$W_i^{K} \in \mathbb{R}^{d_{\text{model}} \times d_k}$, and 
-$W_i^{V} \in \mathbb{R}^{d_{\text{model}} \times d_v}$.
-The output projection 
-\begin{equation}
-    W^O \in \mathbb{R}^{h d_v \times d_{\text{model}}},
-\end{equation}
-mixes information across all $h$ heads and restores the dimensionality back to 
-$d_{\text{model}}$.
+with learnable projection matrices
+$W^{Q}, W^{K} \in \mathbb{R}^{d_{\text{model}} \times d_k}$ and
+$W^{V} \in \mathbb{R}^{d_{\text{model}} \times d_v}$.
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.6\textwidth]{pictures/AttentionArchitecture.png}
+    \caption{(left) Scaled Dot-Product Attention. (right) Multi-Head Attention consists of several attention layers running in parallel~\cite{Vaswani2017Attention}.}
+    \label{attention_architecture}
+\end{figure}
 
-Originally developed for natural language processing, transformer-based models have since been adapted to computer vision (e.g., ViT~\cite{Dosovitskiy2020ViT}, Swin Transformer~\cite{Liu2021Swin}) and to a variety of multimodal learning settings.
-In text-guided medical image segmentation, transformers are commonly used either as text encoders or as fusion modules, where cross-attention integrates semantic cues from textual descriptions with spatial image representations.
-This capacity to incorporate global contextual information makes transformers particularly suitable for multimodal medical tasks, although their performance often depends on the availability of sufficiently large and diverse training datasets.
+To increase representational capacity, Transformers employ multi-head attention (see Figure~\ref{attention_architecture}),
+which performs $h$ attention operations in parallel:
+\begin{equation}
+\text{MultiHead}(Q, K, V)
+= \text{Concat}(\text{head}_1, \dots, \text{head}_h)\, W^{O},
+\label{eq:multihead}
+\end{equation}
+where
+\begin{equation}
+\text{head}_i = \text{Attention}(X W_i^{Q}, X W_i^{K}, X W_i^{V}),
+\label{eq:head}
+\end{equation}
+and $W^{O} \in \mathbb{R}^{h d_v \times d_{\text{model}}}$ projects the concatenated outputs
+back to the model dimension.
+
+Each attention block is followed by a position-wise feed-forward network (FFN),
+applied independently to each sequence element:
+\begin{equation}
+\text{FFN}(x) = \sigma(x W_1 + b_1) W_2 + b_2,
+\end{equation}
+where $\sigma(\cdot)$ denotes a non-linear activation function. In the original Transformer formulation, $\sigma(\cdot)$ is the ReLU activation.
+
+In addition to self-attention, Transformers support \emph{cross-attention},
+which enables information exchange between two different modalities or sequences.
+In cross-attention, the queries are derived from one input $X_q$,
+while keys and values are obtained from another input $X_k$:
+\begin{equation}
+Q = X_q W^{Q}, \quad
+K = X_k W^{K}, \quad
+V = X_k W^{V}.
+\label{eq:cross_attention}
+\end{equation}
+
+Originally developed for natural language processing,
+Transformer--based models have since been successfully adapted to computer vision
+(e.g., Vision Transformers and hierarchical variants)
+and to multimodal learning scenarios.
+In text-guided medical image segmentation,
+Transformers are commonly used either as text encoders or as fusion modules,
+where cross-attention integrates semantic information from textual descriptions
+with spatial image representations.
 
 \section{Graph Neural Networks}
 Graph Neural Networks (GNNs)~\cite{Scarselli2008GNN} provide a principled framework for learning on
@@ -75,36 +127,81 @@ while GraphSAGE~\cite{Hamilton2017GraphSAGE} generalizes aggregation through
 mean, pooling, or LSTM-based operators, enabling inductive learning on unseen 
 graphs.
 
-Hierarchical GNN architectures extend this idea to multi-resolution settings,
-analogous to U-Net models~\cite{Ronneberger2015UNet} in Euclidean domains and
+Hierarchical GNN architectures extend the message-passing paradigm to multi-resolution settings, analogous to U-Net models~\cite{Ronneberger2015UNet} in Euclidean domains and
 graph U-Net architectures~\cite{Gao2019GraphUNet}. 
 They downsample and upsample graphs using pooling and unpooling operators, which
 enable coarse-to-fine feature extraction on complex surfaces. 
-This paradigm is particularly relevant for cortical-surface analysis, where the
-brain can be represented as a multi-resolution mesh.  
+Unlike grid-based pooling in CNNs, graph pooling operates on irregular structures
+and therefore requires an explicit strategy for reducing the number of nodes
+while preserving important topological and semantic information.
+
+In pooling layers, a coarser graph is constructed by selecting or aggregating nodes from the original graph, thereby reducing the graph resolution.
+This can be achieved through different mechanisms, such as
+node clustering, score-based node selection, or predefined hierarchical mappings.
+Formally, pooling maps node features $H \in \mathbb{R}^{N \times d}$
+to a reduced representation $H' \in \mathbb{R}^{N' \times d'}$ with $N' < N$,
+while also defining a corresponding coarser adjacency structure.
+
+Unpooling operations perform the inverse transformation by projecting features
+from the coarse graph back to a finer resolution.
+This is commonly implemented using stored assignment indices or interpolation operators,
+allowing features from coarse nodes to be distributed to their corresponding fine-scale nodes.
+Skip connections between pooling and unpooling stages are often employed,
+analogous to U-Net architectures, to preserve high-resolution information
+and stabilize gradient flow.
+
+Such hierarchical pooling--unpooling schemes enable GNNs to capture
+both local geometric details and global contextual information,
+which is particularly important for cortical surface analysis,
+where anatomical structures are naturally represented at multiple spatial scales.
 
 Building on these principles, the MELD project~\cite{Ripart2025MELD} applies a
 GNN-U-Net architecture to multi-resolution cortical graphs and demonstrates that
 graph-based convolutions are effective for detecting subtle morphological
 abnormalities associated with \ac{fcd}.  
 
-In this thesis, we build upon these principles to integrate cortical surface
+In this thesis, these principles are leveraged to integrate cortical surface
 features with textual clinical information, enabling multimodal segmentation
 within a unified GNN-based framework.
-
 
 \section{Large Language Models} 
 \ac{llm}s are typically based on transformer architectures and are trained on large text corpora to learn contextual semantic representations.
 
-Given a sequence of token embeddings $X = (x_1,\dots,x_T)$, an LLM encoder 
-produces hidden states
+Given an input text sequence, the LLM first applies a tokenizer that converts the
+raw text into a sequence of discrete tokens.
+Each token is represented by an integer index from a fixed vocabulary
+$\mathcal{V}$, defined as the set of all tokens supported by the tokenizer.
+These indices are mapped to continuous vectors via a learned embedding matrix
+$E \in \mathbb{R}^{|\mathcal{V}| \times d}$, where $|\mathcal{V}|$ denotes the
+vocabulary size and $d$ the embedding dimensionality.
+The embedding matrix $E$ is a trainable parameter of the model and is learned
+jointly with the remaining LLM weights during pretraining through gradient-based
+optimization.
+
+For a token with index $i$, the corresponding token embedding is obtained as
+\begin{equation}
+    x_i = E[i],
+\end{equation}
+i.e., by selecting the $i$-th row of the embedding matrix.
+This yields a sequence of token embeddings
+$\mathbf{X} = (x_1, \dots, x_T)$.
+
+The LLM encoder subsequently maps these token embeddings to contextualized
+representations by means of stacked self-attention layers.
+At each transformer layer, token embeddings are projected into query, key, and
+value vectors, and interactions between all token pairs are computed via scaled
+dot-product attention.
+This mechanism allows each token to attend to all other tokens in the sequence
+and to integrate information from the global context.
+After multiple transformer layers, the encoder produces a sequence of hidden
+states
 \begin{equation}
     H = (h_1, \dots, h_T),
 \end{equation}
-where each vector $h_i$ is a context-dependent representation of token $x_i$.
-This means that $h_i$ is computed not only from the embedding of $x_i$ itself 
-but also from information coming from other tokens in the sequence, which is 
-achieved by the self-attention mechanism.
+where each vector $h_i$ represents the final context-dependent embedding of token
+$x_i$, jointly encoding its semantic content and its relationships to surrounding
+tokens.
+
 
 LLMs are typically trained using one of two objectives.
 In \textit{causal} language modeling (used in GPT-style models), the model 
@@ -127,7 +224,7 @@ provide contextual text embeddings that can guide segmentation models through
 cross-attention or contrastive alignment~\cite{Radford2021CLIP}, improving robustness and interpretability 
 in multimodal medical applications.
 
-\section{State-of-the-Art Methods}
+\section{State-of-the-Art in FCD Detection}
 Building on early vision-based approaches in medical imaging, initial automated methods for FCD detection relied on convolutional neural networks operating directly on MRI data.
 Dev et al.~\cite{dev2019automatic_fcd} proposed a fully convolutional neural network with an encoder--decoder structure and skip connections, conceptually similar to a U-Net, for the automatic detection and localization of \ac{fcd} from volumetric MRI.
 Their approach performs voxel--wise segmentation on multimodal MRI data, enabling direct lesion identification without manual feature engineering.
@@ -143,59 +240,40 @@ Despite their architectural differences, both approaches operate purely in volum
 As a result, they remain sensitive to noise, imaging artifacts, and inter-scanner variability, and do not explicitly model cortical morphometric characteristics such as cortical thickness, curvature, or gray--white matter blurring, which are key markers of FCD.
 These limitations make subtle lesions particularly difficult to detect and motivate the use of surface-based representations that better capture cortical anatomy.
 
-A more recent and substantial advancement is represented by the \ac{meld} Graph model~\cite{Ripart2025MELD}, 
-which models the cerebral cortex as a multi-resolution graph and applies a \ac{gnn}-U-Net architecture for lesion segmentation.
-Trained on the largest multi-center FCD dataset available to date, the MELD model represents the current state of the art in surface-based FCD detection and demonstrates competitive performance across multiple evaluation settings, while substantially improving robustness to inter--site variability between imaging centers.
-Owing to its strong performance to date and its surface-based representation of cortical features, the MELD Graph model serves as a well-established vision backbone for the present study.
+A more recent and substantial advancement is represented by the \ac{meld} Graph
+model~\cite{Ripart2025MELD}, which formulates FCD detection as a surface-based
+segmentation problem on the cerebral cortex.
+Starting from cortical surface reconstructions obtained with standard
+neuroimaging pipelines (e.g., FreeSurfer~\cite{Fischl2012FreeSurfer}), the cortex is discretized into a
+mesh, where vertices correspond to cortical surface points and edges encode
+local neighborhood relationships.
+Each vertex is associated with a set of morphometric and intensity-based
+attributes, including cortical thickness, curvature, gray--white matter
+contrast, and other surface-derived features known to be relevant for FCD
+characterization.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{pictures/MELDarchitecture.png}
+    \caption{Architecture of MELD: Proposed GC-nnU-Net model for lesion segmentation, with auxiliary distance regression and hemisphere classification tasks~\cite{Ripart2025MELD}.}
+    \label{fig:meld_arch}
+\end{figure}
+
+These surface meshes are represented as multi-resolution graphs, enabling the
+application of a \ac{gnn}-U-Net architecture (see Figure~\ref{fig:meld_arch}) that performs hierarchical
+feature aggregation and pooling directly on the cortical surface.
+Trained on the largest multi-center FCD dataset available to date, the MELD
+Graph model represents the current state of the art in surface-based FCD
+detection and demonstrates strong robustness to inter-site variability between
+imaging centers.
+Owing to its surface-based representation of cortical anatomy and its strong
+empirical performance, the MELD Graph model serves as a well-established vision
+backbone for the present study.
 
 Recent progress in multimodal learning suggests that incorporating textual information alongside visual features can improve performance in data--limited medical imaging tasks.
 In particular, Ariadne’s Thread~\cite{Zhong2023Ariadne} demonstrated that integrating textual descriptions via a cross--attention mechanism leads to consistent performance gains for tumor detection, even when only a small number of annotated training samples is available.
 This finding is especially relevant for FCD detection, where annotated data are scarce and lesion appearance is highly heterogeneous.
 Motivated by these results, we investigate whether similar benefits can be achieved by augmenting a strong surface-based vision model with textual anatomical information.
-% Specifically, we adopt the pretrained MELD Graph model as the visual backbone and extend it with atlas-derived textual descriptions within an architecture inspired by Ariadne’s Thread.
-
-% Early work on \ac{fcd} detection focused exclusively on vision-based methods~\cite{Durgam2025LungCancer, Abdusalomov2023BrainTumor, Sharma2025KidneyCT, Mehmood2025BreastCancer}. 
-% It is noteworthy that one of the newest models, the \ac{meld} Graph~\cite{Ripart2025MELD}, represents the surface of the cerebral cortex as a graph with multiple resolutions and applies a \ac{gnn}-U-Net to segment lesions. It provides high 
-% sensitivity and specificity by identifying characteristic peaks (more than 20\% in saliency) and determining calibration reliability using the expected 
-% calibration error. However, it has not been tested on patients with multiple \ac{fcd}s, it lacks cross-attentional mechanisms for more complete integration of 
-% features, and it does not integrate textual clinical information or evaluate zero-shot generalization across FCD subtypes.
-
-% A second line of research explores language-guided segmentation by embedding text semantics into the segmentation pipeline. 
-% Early methods~\cite{Tomar2022TGANet, Li2023LViT} simply tokenized text and merged embeddings with image features via attention, 
-% but struggled to capture high-level semantics. 
-% More recent approaches~\cite{Lee2023TextGuided, Zhong2023Ariadne} employ deep pretrained text encoders (e.g., CXR-BERT~\cite{CXR-BERT}) fused with ConvNeXt-Tiny~\cite{Liu2022ConvNeXt} image features. 
-% In~\cite{Li2024LGMSeg}, the authors introduce two novel modules: the Target-sensitive Semantic Distance Module (TSDM), 
-% which computes contrastive distances between segmentation masks to focus on disease-related regions, 
-% and the Language-guided Target Enhancement Module (LTEM), which applies cross-attention to reinforce critical image areas. 
-% A bi-directional contrastive loss (averaged cross-entropy in both ``image $\rightarrow$ text'' and ``text $\rightarrow$ image'' directions) yields more fine-grained guidance 
-% and enables models trained on 25\% of the data to outperform single-modal baselines trained on full datasets. 
-% However, these improvements come at the cost of higher architectural complexity and a strong reliance on high-quality textual annotations, 
-% which may limit robustness and generalizability in real-world clinical settings.
-
-% To address unpaired multi-modal data, MulModSeg~\cite{Li2025Mulmodseg} conditions text embeddings on imaging modality using frozen CLIP~\cite{Radford2021CLIP}/BioBERT~\cite{Lee2019BioBERT}/Med-CLIP~\cite{Wang2022MedCLIP} encoders 
-% combined with medical prompts, and alternates training between vision and text branches (3D-UNet\cite{Cicek2016UNet3D} or SwinUNETR~\cite{Hatamizadeh2022SwinUNETR}). This scheme improves generalization 
-% without requiring paired \ac{ct}/MR scans. Experiments show that varying the \ac{ct}:MR ratio in training data shifts performance, underscoring the importance 
-% of balanced modality representation. However, effectiveness depends critically on prompt template design and alternating-training convergence.
-
-% Finally, weakly supervised methods such as SimTxtSeg~\cite{Xie2024SimTxtSeg} leverage simple text cues 
-% (e.g., ``lesion in the left hemisphere'') to guide segmentation without requiring pixel-level annotations. 
-% SimTxtSeg was evaluated using standard segmentation metrics, including Dice similarity coefficient (DSC), 
-% Intersection over Union (IoU), Positive Predictive Value (PPV), Normalized Surface Dice (NSD), and the 
-% 95\% Hausdorff Distance (HD95), alongside cross-entropy loss. These results demonstrate that even coarse 
-% textual hints can substantially improve mask quality over vision-only baselines. However, such approaches 
-% typically rely on consistent, high-quality text labels and have not yet been validated on rare pathologies 
-% such as \ac{fcd}.
-
-% Building on these insights, we draw inspiration from Ariadne’s Thread~\cite{Zhong2023Ariadne}, which employs 
-% lightweight text prompts and a GuideDecoder to segment infected regions in chest X-rays. Remarkably, this method 
-% achieves over a 6\% Dice improvement compared to unimodal baselines while using only 10\% of the training set, 
-% highlighting the potential of multimodal prompting in low-data regimes. For our FCD task, we adopt the \ac{meld} 
-% Graph model as a pretrained backbone, since it was trained on the largest dataset among the methods surveyed, 
-% providing a robust basis for feature extraction and downstream adaptation.
-
-% As far as we know, no prior work has applied text-guided segmentation to the \ac{fcd} detection task, underscoring the novelty of our approach. 
-% In this work, we demonstrate that incorporating textual information benefits \ac{fcd} detection. 
-% To this end, we integrate atlas-derived textual descriptions with visual features in a multi-resolution GNN framework, using cross-attention fusion and contrastive alignment to improve robustness and detection accuracy across heterogeneous datasets.
 
 \end{document}
 
