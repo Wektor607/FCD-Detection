@@ -15,7 +15,7 @@ interaction with the different model variants.
 In this work, we aim to follow the training protocol of the MELD authors to
 ensure a fair and consistent comparison.
 The proposed framework was trained using the following hyperparameters.
- 
+
 The training batch size was fixed at 8 and the validation batch size at 4. 
 The initial learning rate was set to $3 \times 10^{-4}$ and optimized using 
 the OneCycleLR scheduler (maximum learning rate $3 \times 10^{-3}$). 
@@ -73,44 +73,55 @@ To ensure reproducibility, a complete software environment has been provided via
 The corresponding Dockerfiles and installation instructions are available in our GitHub repository\footnote{\url{https://github.com/Wektor607/FCD-Detection/tree/docker-inference-fix/meld_graph}}.
 
 \section{Web Interface}
-To make it easier to use different pretrained models, we developed a web interface that offers an accessible and intuitive way for users to interact with the lesion detection system.
+To facilitate the use of different pretrained models, we developed a web interface that provides an accessible and intuitive way to interact with the lesion detection system.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/photo_1.png}
     \caption{Main page of the web interface with a brief project description and navigation buttons.}
+    \label{fig:web_main_page}
 \end{figure}
 
-The main page presents a brief overview of the project and includes navigation controls that let users explore the documentation or move on to the prediction page for processing a specific patient.
+The main page presents a brief overview of the project and includes navigation controls that let users explore the documentation or move on to the prediction page for processing a specific patient (see Fig.~\ref{fig:web_main_page}).
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{pictures/photo_2.png}
     \caption{Upload page where the user selects a model, adds a description, and uploads an HDF5 file for analysis. 
     \textit{Note: the current prototype accepts only a single HDF5 file.}}
-
+    \label{fig:web_upload_page}
 \end{figure}
 
-The workflow begins on the upload page, where the user selects one of the trained models, optionally adds a short textual description, and uploads an HDF5 file for analysis. The current prototype supports the upload of a single HDF5 file at a time.
+The workflow begins on the upload page, where the user selects one of the trained models,
+optionally provides a short textual description, and uploads an HDF5 file for analysis (see Fig.~\ref{fig:web_upload_page}).
+
+For multimodal models, the description field is mapped to a textual input channel.
+If the field is left empty, a default neutral description (e.g., ``full brain'') is used,
+representing the absence of explicit anatomical guidance.
+This allows comparing informative and non-informative textual conditions
+without changing the model architecture.
+Vision-only models ignore the description field entirely.
+The current prototype supports the upload of a single HDF5 file at a time.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{pictures/photo_3.png}
+    \includegraphics[width=0.48\textwidth]{pictures/photo_3.png}
     \caption{Dropdown menu for selecting among trained models.}
-
+    \label{fig:web_model_selection}
 \end{figure}
 
 To support different use cases and experimental settings, the interface includes a model selection menu listing all available trained variants. 
 These include the baseline MELD model, two vision-only architectures (\texttt{Vision--only} and \texttt{Vision--only+SA}) with minor architectural differences, and the multimodal \texttt{Vision+LM} model trained on various textual inputs. 
-Each option is accompanied by a short explanation, similar in style to modern LM model pickers, helping users choose between faster or more accurate configurations.
+Each option is accompanied by a short explanation, similar in style to modern LM model pickers, helping users choose between faster or more accurate configurations (see Fig.~\ref{fig:web_model_selection}).
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.6\textwidth]{pictures/photo_4.png}
+    \includegraphics[width=0.48\textwidth]{pictures/photo_4.png}
     \caption{Example of a successfully uploaded file ready for processing.}
+    \label{fig:web_file_uploaded}
 \end{figure}
 
-Once a file is uploaded successfully, the interface confirms that the case is ready for processing and allows the user to initiate inference.
+Once a file is uploaded successfully, the interface confirms that the case is ready for processing and allows the user to initiate inference (see Fig.~\ref{fig:web_file_uploaded}).
 After the prediction is complete, the results page provides two complementary views of the output:
 \begin{enumerate}[label=(\roman*)]
 \item representative 2D MRI slices with the predicted lesion regions overlaid for quick inspection, and
@@ -124,7 +135,46 @@ After the prediction is complete, the results page provides two complementary vi
     \label{fig:web_inference_result}
 \end{figure}
 
-All generated visualizations can be downloaded as PNG files (2D slices and 3D renderings), and the full volumetric prediction is additionally provided in NIfTI format for further analysis in standard 3D medical imaging software.
+All generated visualizations can be downloaded as PNG files (2D slices and 3D renderings), and the full volumetric prediction is additionally provided in NIfTI format for further analysis in standard 3D medical imaging software (see Fig.~\ref{fig:web_inference_result}).
+For the 2D view, the interface displays a fixed, pre-rendered image showing three representative
+MRI slice views with overlaid predictions, intended for qualitative illustration.
+The 2D output is not interactive, and slice selection or navigation is not supported in the current prototype.
+
 This design supports both general users (rapid visual validation) and developers/researchers (downstream processing and quantitative evaluation).
+
+To demonstrate the influence of textual input on the final prediction, we selected a single patient and applied two different text descriptions: 
+(i) \textit{``Left hemisphere''} and 
+(ii) \textit{``Left hemisphere, Limbic lobe''}. 
+Despite using identical imaging data, the resulting predictions differ notably. 
+This comparison demonstrates that different textual descriptions, while using identical imaging data, can lead to noticeably different prediction outcomes (see Fig.~\ref{fig:text_influence}).
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pictures/example_hemi.png}
+        \caption{Text input: ``Left hemisphere''}
+        \label{fig:text_hemi}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pictures/example_hemi_lobe.png}
+        \caption{Text input: ``Left hemisphere, Limbic lobe''}
+        \label{fig:text_hemi_lobe}
+    \end{subfigure}
+    \caption{Comparison of model predictions for the same patient using different textual descriptions. More anatomically specific input leads to better localization of the predicted lesion.}
+    \label{fig:text_influence}
+\end{figure}
+
+
+\paragraph{Implementation Details}
+From a technical perspective, the interface follows a client--server design.
+The frontend is implemented in React and provides model selection, data upload,
+and visualization components.
+The backend is implemented using FastAPI and handles file validation, preprocessing,
+and model inference.
+Communication between frontend and backend is performed via REST endpoints,
+with inference results returned as volumetric predictions and pre-rendered visualizations.
 
 \end{document}
