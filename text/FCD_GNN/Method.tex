@@ -46,7 +46,7 @@ seven hierarchical levels. Each level is represented as a tensor of shape $(H, N
 \end{itemize}
 
 To aggregate higher-order geometric information, we process the selected feature layers individually through a dedicated \textbf{GNN Block}.  
-This design choice is based on empirical findings (see Chapter~\ref{chapter:Experiments}), where incorporating the lowest-resolution layers led to oversmoothing and diluted discriminative information, while using only the higher-resolution layers provided the best trade-off between expressivity and stability.
+This design choice is based on empirical findings (see Chapter~\ref{chapter:Experiments}), where incorporating the lowest-resolution layers led to oversmoothing and degradation of discriminative information, while using only the higher-resolution layers provided the best trade-off between expressivity and stability.
  
 
 \begin{figure}[htbp]
