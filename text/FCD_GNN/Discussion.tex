@@ -30,17 +30,20 @@ This suggests that long atlas-style descriptions introduce redundancy and noise,
 whereas shorter, more targeted prompts provide a clearer guidance signal to the model.
 
 \subsection*{Role of GNN-based aggregation}
-Ahe analysis of experiments linking MELD features to a GNN block reveals a
+The analysis of experiments linking MELD features to a GNN block reveals a
 nuanced picture.
 Aggregating information from neighboring nodes improves the model’s ability to
 detect lesions, as reflected by increased sensitivity and lesion-level coverage.
 This indicates that message passing can amplify subtle abnormal patterns that may
 be missed by purely local representations.
 
-However, this benefit comes at the cost of reduced specificity, manifested as an
-increased false-positive rate on healthy controls.
-This is an important limitation for clinical use, since our evaluation does not include other epilepsy-related abnormalities or non-FCD lesion types.
-Therefore, we cannot assess how often the model would spuriously highlight regions in patients with different pathologies.
+However, this benefit comes at the cost of reduced specificity, manifested as an increased
+false--positive rate on healthy controls. In a clinical setting, such false positives are
+particularly problematic, as they may lead to unnecessary follow-up or misinterpretation.
+This constitutes an important limitation for clinical use, since our evaluation does not
+include other epilepsy-related abnormalities or non-FCD lesion types. Therefore, we cannot
+assess how often the model would spuriously highlight regions in patients with different
+pathologies.
 
 Importantly, increasing the depth of GNN propagation does not lead to monotonic
 performance improvements.
@@ -88,16 +91,15 @@ consistent across experiments, the results should be interpreted as a
 methodological proof of concept demonstrating the benefit of fusing visual and
 textual information, rather than as a clinically deployable solution.
 In this work, textual input is limited to structured, atlas-derived descriptions
-with explicit anatomical labels.
-Importantly, the performance gains cannot be attributed to the text providing
-explicit supervision about lesion presence: for healthy subjects, the text
-indicates ``no lesion detected'', whereas for patients with FCD, including the
-``wrong text'' setups, the text only provides coarse spatial information (e.g.,
-hemisphere or lobe) and does not encode whether a lesion is present.
+with explicit anatomical labels. 
+Importantly, the performance gains cannot be attributed to the text acting as an explicit
+supervisory signal for lesion presence. Instead, for patients with FCD, including the
+``wrong text'' setups, the textual input provides coarse anatomical context (e.g., hemisphere
+or lobe), which constrains the spatial search space without encoding whether a lesion is
+present. 
 The main effect of textual guidance is therefore a spatial regularization of the
 search space, which can improve sensitivity but may also increase false positives
 when the anatomical prior is inaccurate.
-
 
 \subsection*{Limitations and future directions}
 Several limitations must be acknowledged. 

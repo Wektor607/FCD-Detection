@@ -208,7 +208,7 @@ In the final configuration, we add a weakly supervised classification head to
 mitigate the uncertainty between lesion masks and actual lesions.
 Each subject is labeled as positive if any of its vertices belongs to a lesion.
 The classification head aggregates features across all vertices at the deepest
-level (level~1), producing a single subject-level prediction $\hat{c}$.
+level, producing a single subject-level prediction $\hat{c}$.
 The classification loss is computed at the subject level and summed over a
 mini-batch of $n$ samples~\cite{Ripart2025MELD}.
 \begin{equation}
@@ -218,8 +218,8 @@ L_{class} = - \sum_{i=1}^{n} c_i \log(\hat{c}_i) + (1-c_i)\log(1-\hat{c}_i).
 \subsection*{Deep Supervision}
 To encourage gradient flow and stabilize training, we adopt deep supervision at
 intermediate decoder levels $I_{ds} = \{6,5,4,3,2,1\}$.
-At each level $i$, auxiliary predictions are generated and the same combination
-of cross-entropy, dice, and distance losses is applied.
+At each level $i$, auxiliary predictions are generated, and cross-entropy, Dice,
+and distance losses are applied to these outputs.
 These auxiliary losses are weighted by $w^i_{ds}$ and added to the total
 objective. The deep supervision weights $w_{ds}^i$ are fixed hyperparameters adopted from
 the MELD framework, where their values are explicitly specified~\cite{Ripart2025MELD}.
