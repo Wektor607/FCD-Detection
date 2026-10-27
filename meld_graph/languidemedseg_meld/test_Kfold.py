@@ -48,6 +48,8 @@ def get_cfg() -> argparse.Namespace:
     parser.add_argument("--meld_check", action="store_true", help="enable MELD test check mode")
     parser.add_argument("--ckpt_prefix", default=None, type=str, help="optional checkpoint prefix to load")
     parser.add_argument("--ckpt_path", default=None, type=str, help="comma-separated list of checkpoints for ensemble")
+    parser.add_argument("--dry_run", default=0, type=int, help="limit to first N subjects for quick testing (0 = disabled)")
+    parser.add_argument("--find_thresholds", action="store_true", help="run threshold search on trainval before testing")
 
     cli = parser.parse_args()
     if cli.config is None:
@@ -57,12 +59,17 @@ def get_cfg() -> argparse.Namespace:
     cfg.meld_check = cli.meld_check
     cfg.ckpt_path = cli.ckpt_path
     cfg.ckpt_prefix = cli.ckpt_prefix
+    cfg.dry_run = cli.dry_run
+    cfg.find_thresholds = cli.find_thresholds
     return cfg
 
 def prepare_dataloader(args, tokenizer, cohort, text_emb) -> DataLoader:
     df = pd.read_csv(args.split_path, sep=",")
     # test_ids = df[(df["split"] == "test") & (df["subject_id"].str.contains("FCD"))]["subject_id"].tolist()
     test_ids = df[(df["split"] == "test")]["subject_id"].tolist()
+    if getattr(args, "dry_run", 0) > 0:
+        test_ids = test_ids[:args.dry_run]
+        print(f"[DRY RUN] Using first {args.dry_run} subjects: {test_ids}")
     print("CSV and SPLIT path: ", args.csv_path, args.split_path)
     ds_test = EpilepDataset(
         csv_path=args.csv_path,
@@ -201,13 +208,16 @@ def run_ensemble_inference(dl_test: DataLoader, models: List[torch.nn.Module], e
 def find_optimal_threshold_on_val(
     args, models, eva, device, cohort, tokenizer, text_emb,
     aggregations=("mean", "median", "min"),
+    sensitivity_weight: float = 1.5,
+    min_sensitivity: float = 0.70,
 ):
     """Ensemble inference on trainval to find optimal distance filter threshold.
 
-    Uses full ensemble on trainval subjects, computes per-cluster distance stats,
-    then sweeps thresholds using per-PATIENT sensitivity/specificity (not per-cluster).
+    Two strategies are printed for each aggregation:
+      - Weighted J:   argmax(sensitivity_weight * sens + spec - 1)  — prioritises sensitivity
+      - Constrained:  argmax(spec) subject to sens >= min_sensitivity
 
-    Returns dict: {aggregation: (best_threshold, best_j, sensitivity, specificity)}
+    Returns dict: {aggregation: threshold} using the Weighted J strategy.
     """
     df = pd.read_csv(args.split_path, sep=",")
     trainval_ids = df[df.split == "trainval"]["subject_id"].tolist()
@@ -227,6 +237,7 @@ def find_optimal_threshold_on_val(
     dl_val = DataLoader(
         ds_val, batch_size=args.valid_batch_size, shuffle=False,
         num_workers=2, pin_memory=True, worker_init_fn=worker_init_fn,
+        persistent_workers=True,
     )
 
     val_sids, val_labels, val_dist_maps, val_probs, val_pred_dists = \
@@ -280,47 +291,70 @@ def find_optimal_threshold_on_val(
     thresholds = np.arange(-0.2, 1.01, 0.01)
     results = {}
 
-    print(f"\n{'='*65}")
-    print(f"OPTIMAL THRESHOLDS ON VALIDATION (per-patient Youden's J)")
-    print(f"{'='*65}")
-    print(f" {'Aggregation':>11} | {'Threshold':>9} | {'Sensitivity':>11} | {'Specificity':>11} | {'Youden J':>8}")
-    print("-" * 65)
+    W = sensitivity_weight
+    col_w  = f"{'Weighted J':>10} (w={W:.1f})"
+    col_c  = f"{'Constrained':>11} (sens>={min_sensitivity:.0%})"
+    hdr_w  = f"{'Agg':>6} | {'Thresh':>6} | {'Sens':>7} | {'Spec':>7} | {'wJ':>7}"
+    hdr_c  = f"{'Agg':>6} | {'Thresh':>6} | {'Sens':>7} | {'Spec':>7}"
+    sep    = "-" * 40
+
+    print(f"\n{'='*85}")
+    print(f"OPTIMAL THRESHOLDS ON VALIDATION")
+    print(f"  Left : Weighted J (sensitivity_weight={W:.1f})")
+    print(f"  Right: Constrained (max specificity s.t. sensitivity >= {min_sensitivity:.0%})")
+    print(f"{'='*85}")
+    print(f"{hdr_w}    ||    {hdr_c}")
+    print(f"{sep}    ||    {sep}")
 
     for agg in aggregations:
         col = f"pred_dist_{agg}"
-        best_j, best_thresh, best_sens, best_spec = -1, 0, 0, 0
 
+        # Pre-compute sens/spec for every threshold
+        sweep = []
         for thresh in thresholds:
             patients_with_tp = 0
             ctrl_with_no_fp = 0
-
             for s in subject_clusters:
                 surviving = [c for c in s["clusters"] if c[col] < thresh]
                 has_tp = any(c["label"] == "TP" for c in surviving)
                 has_fp = any(c["label"] == "FP" for c in surviving)
-
                 if not s["is_control"]:
                     if has_tp:
                         patients_with_tp += 1
                 else:
                     if not has_fp:
                         ctrl_with_no_fp += 1
-
             sens = patients_with_tp / total_patients if total_patients > 0 else 0.0
             spec = ctrl_with_no_fp / total_ctrl if total_ctrl > 0 else 0.0
-            j = sens + spec - 1.0
+            sweep.append((thresh, sens, spec))
 
-            if j > best_j:
-                best_j, best_thresh, best_sens, best_spec = j, thresh, sens, spec
+        # Strategy 1: Weighted J
+        best_wj, best_wj_thresh, best_wj_sens, best_wj_spec = -9, 0.0, 0.0, 0.0
+        for thresh, sens, spec in sweep:
+            wj = W * sens + spec - 1.0
+            if wj > best_wj:
+                best_wj, best_wj_thresh, best_wj_sens, best_wj_spec = wj, thresh, sens, spec
 
-        results[agg] = (best_thresh, best_j, best_sens, best_spec)
-        print(f" {agg:>11} | {best_thresh:>9.2f} | {best_sens:>10.1%} | {best_spec:>10.1%} | {best_j:>8.3f}")
+        # Strategy 2: Constrained — best specificity with sens >= min_sensitivity
+        candidates = [(thresh, sens, spec) for thresh, sens, spec in sweep if sens >= min_sensitivity]
+        if candidates:
+            best_c_thresh, best_c_sens, best_c_spec = max(candidates, key=lambda x: x[2])
+        else:
+            best_c_thresh, best_c_sens, best_c_spec = best_wj_thresh, best_wj_sens, best_wj_spec
 
-    print(f"{'='*65}")
+        results[agg] = best_wj_thresh  # default: use weighted J
+        print(
+            f" {agg:>6} | {best_wj_thresh:>6.2f} | {best_wj_sens:>6.1%} | {best_wj_spec:>6.1%} | {best_wj:>7.3f}"
+            f"    ||"
+            f"  {agg:>6} | {best_c_thresh:>6.2f} | {best_c_sens:>6.1%} | {best_c_spec:>6.1%}"
+        )
+
+    print(f"{'='*85}")
+    print(f"[INFO] val_results uses Weighted J thresholds by default. Update manually if preferred.")
     return results
 
 
-def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_preds, eva, ckpt_prefix: str, cohort: MeldCohort, dataset_type: str, dataset_name: str, text_emb: bool, all_pred_dists: torch.Tensor = None, val_threshold: float = None, val_aggregation: str = "mean"):
+def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_preds, eva, ckpt_prefix: str, cohort: MeldCohort, dataset_type: str, dataset_name: str, text_emb: bool, all_pred_dists: torch.Tensor = None, val_threshold: float = None, val_aggregation: str = "mean", label_method: str = ""):
     dice_scores, iou_scores, ppv_scores, ppv_clusters_scores = [], [], [], []
     results = []
     cluster_dist_analysis = []  # for distance-based filtering analysis
@@ -365,7 +399,7 @@ def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_p
             probs_flat_cpu = probs_flat.detach().cpu().numpy()
         else:
             probs_flat_cpu = probs_flat
-        
+
         ###############################
         cluster_ids = probs_flat_cpu[probs_flat_cpu > 0].astype(np.int32)
         ids, counts = np.unique(cluster_ids, return_counts=True)
@@ -375,7 +409,7 @@ def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_p
 
         max_cluster = int(counts[0]) if len(counts) else 0
         # можно залогировать для контролей
-        if is_control:
+        if False:  # per-sample cluster debug disabled
             print(sid, "n_clusters=", len(counts), "max_cluster=", max_cluster, "top_sizes=", counts[:5])
         ###############################
         # if "_C_" in sid:
@@ -425,14 +459,14 @@ def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_p
         iou = tp / (tp + fp + fn + 1e-8)
         ppv = tp / (tp + fp + 1e-8)
         ppv_clusters = n_tp_clusters / (n_tp_clusters + n_fp_clusters + 1e-8)
-        
+
         if not is_control:
             dice_scores.append(float(dices[1].detach().cpu()))
             ppv_scores.append(float(ppv))
             iou_scores.append(float(iou))
             ppv_clusters_scores.append(float(ppv_clusters))
 
-            print(f"[{sid}] Dice lesional={dices[1]:.3f}, IoU={iou:.3f}, PPV={ppv:.3f}, TP={tp}, FP={fp}, FN={fn}, TN={tn}")
+            # per-sample print disabled
             results.append({
                 "subject_id": sid,
                 "number FP clusters": n_fp_clusters,
@@ -478,7 +512,8 @@ def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_p
     avg_fp_ctrl = float(np.mean(fp_control_clusters)) if fp_control_clusters else 0.0
     avg_fp_fcd  = float(np.mean(fp_fcd_clusters))     if fp_fcd_clusters     else 0.0
 
-    print("\n=== ENSEMBLE OVERALL TEST METRICS ===")
+    header = f"=== ENSEMBLE OVERALL TEST METRICS{' [' + label_method + ']' if label_method else ''} ==="
+    print(f"\n{header}")
     print(f"Dice : {d_med:.3f} (95% CI {d_lo:.3f}-{d_hi:.3f})")
     print(f"PPV_pixels  : {p_med:.3f} (95% CI {p_lo:.3f}-{p_hi:.3f})")
     print(f"PPV_clusters_mean  : {ppv_clusters:.3f}")
@@ -494,7 +529,7 @@ def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_p
     df = pd.DataFrame(results)
     if not text_emb:
         data_name = "no_text"
-    
+
     df.to_csv(f"{ckpt_prefix}_{data_type}_{args.atlas_type}_{data_name}_{val_aggregation}_results.csv", index=False)
 
     # --- Distance head cluster analysis ---
@@ -541,124 +576,6 @@ def postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_p
 
             print(f"{thresh:>10.2f} | {tp_kept:>7} / {len(tp_rows):>8} | {fp_kept:>7} / {len(fp_rows):>8} | {fp_ctrl_kept:>12} / {len(fp_ctrl):>13} | {sens:>10.1%} | {spec:>10.1%}")
 
-
-# def pixelwise_gating_sweep(
-#     all_subject_ids, all_labels, all_dist_maps, all_preds, all_pred_dists,
-#     eva, ckpt_prefix, cohort,
-# ):
-#     """Sweep pixel-wise gating parameters (threshold, temperature).
-
-#     For each (thresh, temp) combination, applies gate = sigmoid(-(dist - thresh) / temp)
-#     to raw segmentation probs BEFORE clustering, then computes sensitivity/specificity.
-#     """
-#     from scipy.special import expit  # sigmoid
-
-#     thresholds = np.arange(0.1, 0.85, 0.05)
-#     temperatures = [0.01, 0.05, 0.1, 0.2, 0.5]
-
-#     n_subjects = all_labels.shape[0]
-
-#     # Pre-compute per-subject data that doesn't change across sweep
-#     subject_data = []
-#     for i in range(n_subjects):
-#         sid = all_subject_ids[i]
-#         pred = all_preds[i]
-#         tgt = all_labels[i]
-#         dist_map_subj = all_dist_maps[i]
-#         is_control = ("FCD" not in sid) or (tgt.sum() == 0)
-
-#         pred_left = pred[0].detach().cpu().numpy().astype("float32")
-#         pred_right = pred[1].detach().cpu().numpy().astype("float32")
-#         pred_np = np.concatenate([pred_left, pred_right], axis=-1)
-#         pred_dist = all_pred_dists[i].numpy()
-
-#         boundary_zone = dist_map_subj.detach().cpu().numpy() if isinstance(dist_map_subj, torch.Tensor) else np.array(dist_map_subj)
-#         boundary_zone = boundary_zone < 20
-
-#         subject_data.append({
-#             "sid": sid,
-#             "pred_np": pred_np,
-#             "pred_dist": pred_dist,
-#             "boundary_zone": boundary_zone,
-#             "is_control": is_control,
-#         })
-
-#     total_patients = sum(1 for s in subject_data if not s["is_control"])
-#     total_ctrl = sum(1 for s in subject_data if s["is_control"])
-
-#     print(f"\n{'='*80}")
-#     print(f"PIXEL-WISE GATING SWEEP ({len(thresholds)} thresholds x {len(temperatures)} temperatures)")
-#     print(f"Patients: {total_patients}, Controls: {total_ctrl}")
-#     print(f"{'='*80}")
-
-#     sweep_results = []
-
-#     for temp in temperatures:
-#         for thresh in thresholds:
-#             gate_params = (thresh, temp)
-#             patients_with_tp = 0
-#             ctrl_with_no_fp = 0
-
-#             for s in subject_data:
-#                 gate = expit(-(s["pred_dist"] - thresh) / temp)
-#                 gated_pred = s["pred_np"] * gate.astype("float32")
-
-#                 mini = {s["sid"]: {"result": gated_pred}}
-#                 out = eva.threshold_and_cluster(data_dictionary=mini, save_prediction=False)
-#                 probs_flat = out[s["sid"]]["cluster_thresholded"]
-
-#                 if isinstance(probs_flat, torch.Tensor):
-#                     probs_flat = probs_flat.detach().cpu().numpy()
-
-#                 bz = s["boundary_zone"]
-#                 difference = np.setdiff1d(np.unique(probs_flat), np.unique(probs_flat[bz]))
-#                 difference = difference[difference > 0]
-#                 n_fp = len(difference)
-#                 correct = np.unique(probs_flat[bz])
-#                 correct = correct[correct > 0]
-#                 n_tp = len(correct)
-
-#                 if not s["is_control"]:
-#                     if n_tp > 0:
-#                         patients_with_tp += 1
-#                 else:
-#                     if n_fp == 0:
-#                         ctrl_with_no_fp += 1
-
-#             sens = patients_with_tp / total_patients if total_patients > 0 else 0.0
-#             spec = ctrl_with_no_fp / total_ctrl if total_ctrl > 0 else 0.0
-#             j_index = sens + spec - 1.0
-
-#             sweep_results.append({
-#                 "threshold": float(thresh),
-#                 "temperature": float(temp),
-#                 "sensitivity": sens,
-#                 "specificity": spec,
-#                 "youden_j": j_index,
-#             })
-
-#             print(f"  thresh={thresh:.2f}, temp={temp:.2f} | Sens={sens:.1%} | Spec={spec:.1%} | J={j_index:.3f}")
-
-#     df_sweep = pd.DataFrame(sweep_results)
-#     sweep_csv = f"{ckpt_prefix}_pixelwise_gating_sweep.csv"
-#     df_sweep.to_csv(sweep_csv, index=False)
-#     print(f"\n[INFO] Saved pixel-wise gating sweep to {sweep_csv}")
-
-#     # Print best result per temperature
-#     print("\n=== BEST PIXEL-WISE GATING PER TEMPERATURE ===")
-#     print(f"{'temp':>6} | {'threshold':>9} | {'Sensitivity':>11} | {'Specificity':>11} | {'Youden J':>8}")
-#     print("-" * 55)
-#     for temp in temperatures:
-#         df_temp = df_sweep[df_sweep["temperature"] == temp]
-#         best = df_temp.loc[df_temp["youden_j"].idxmax()]
-#         print(f"{best['temperature']:>6.2f} | {best['threshold']:>9.2f} | {best['sensitivity']:>10.1%} | {best['specificity']:>10.1%} | {best['youden_j']:>8.3f}")
-
-#     # Overall best
-#     best_overall = df_sweep.loc[df_sweep["youden_j"].idxmax()]
-#     print(f"\nBEST OVERALL: thresh={best_overall['threshold']:.2f}, temp={best_overall['temperature']:.2f}, "
-#           f"Sens={best_overall['sensitivity']:.1%}, Spec={best_overall['specificity']:.1%}, J={best_overall['youden_j']:.3f}")
-
-
 def main():
     args = get_cfg()
     eva, cohort, exp_flags = config.inference_config()
@@ -667,31 +584,47 @@ def main():
     print("start testing on device:", device)
 
     models, tokenizer = load_ensemble_models(args.ckpt_prefix, args, eva, exp_flags, device)
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # CHANGED from False on True
-    text_emb = True # True
-    print(f"[INFO] Text_emb={text_emb}")
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    text_emb = True     # DONT FORGET TO CHANGE ON TRUE
+    print(f"[INFO] Text_emb={text_emb}, atlas_type={args.atlas_type}")
 
-    # --- Step 1: Find optimal threshold on validation (out-of-fold) ---
-    # VAL_AGGREGATION = "mean"  # "mean", "median", or "min"
-    # val_results = find_optimal_threshold_on_val(
-    #     args, models, eva, device, cohort, tokenizer, text_emb,
-    #     aggregations=(VAL_AGGREGATION, "median", "min"),
-    # )
-    # val_threshold = None
-    # if val_results and VAL_AGGREGATION in val_results:
-    #     val_threshold = val_results[VAL_AGGREGATION][0]
-    #     print(f"\n[INFO] Using {VAL_AGGREGATION} threshold from validation: {val_threshold:.3f}")
+    AGGREGATIONS = ("mean", "median", "min")
 
-    # --- Step 2: Run test with the threshold from validation ---
+    if args.find_thresholds:
+        val_results = find_optimal_threshold_on_val(
+            args, models, eva, device, cohort, tokenizer, text_emb,
+            aggregations=AGGREGATIONS,
+        )
+    else:
+        # Last found thresholds (Weighted J, sensitivity_weight=1.5):
+        # mean=0.48 (Sens=70.0%, Spec=95.5%), median=0.48 (Sens=69.6%, Spec=95.5%), min=0.16 (Sens=67.1%, Spec=94.4%)
+        val_results = {
+            "mean":   0.58,#0.55,
+            "median": 0.66,#0.55,
+            "min":    0.26,#0.20,
+        }
+        print(f"[INFO] Using hardcoded thresholds: {val_results}  (re-run with --find_thresholds to update)")
+
+    # --- Step 2: Run test ---
     dl_test = prepare_dataloader(args, tokenizer, cohort, text_emb)
     all_subject_ids, all_labels, all_dist_maps, all_probs, all_pred_dists = run_ensemble_inference(dl_test, models, eva, device, cohort, prefix=args.ckpt_prefix)
 
-    VAL_AGGREGATION = "median"  # "mean", "median", or "min"
-    val_threshold = 0.61 # median: 0.61, min: 0.22, mean: 0.63  
-    postprocess_and_save(args, all_subject_ids, all_labels, all_dist_maps, all_probs, eva, args.ckpt_prefix, cohort, args.split_path, args.csv_path, text_emb, all_pred_dists=all_pred_dists, val_threshold=val_threshold, val_aggregation=VAL_AGGREGATION)
-    print(f"{VAL_AGGREGATION} distance threshold applied: {val_threshold:.3f}")
+    # --- Without gating ---
+    postprocess_and_save(
+        args, all_subject_ids, all_labels, all_dist_maps, all_probs, eva,
+        args.ckpt_prefix, cohort, args.split_path, args.csv_path, text_emb,
+        all_pred_dists=all_pred_dists, val_threshold=None, val_aggregation="no_gating",
+        label_method="NO GATING",
+    )
+
+    # --- With gating: one run per aggregation ---
+    for agg in AGGREGATIONS:
+        thresh = val_results.get(agg)
+        postprocess_and_save(
+            args, all_subject_ids, all_labels, all_dist_maps, all_probs, eva,
+            args.ckpt_prefix, cohort, args.split_path, args.csv_path, text_emb,
+            all_pred_dists=all_pred_dists, val_threshold=thresh, val_aggregation=agg,
+            label_method=f"GATING {agg} threshold={thresh:.2f}" if thresh is not None else f"GATING {agg} (no threshold)",
+        )
 
 if __name__ == "__main__":
     main()

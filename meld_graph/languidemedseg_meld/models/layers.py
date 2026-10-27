@@ -65,7 +65,13 @@ class GuideDecoderLayer(nn.Module):
         self.norm2 = nn.LayerNorm(in_channels)
         self.txt_norm = nn.LayerNorm(in_channels)
 
-        self.scale = nn.Parameter(torch.tensor(1.421), requires_grad=True)
+        self.scale = nn.Parameter(torch.tensor(1.421), requires_grad=True)  # scalar gate
+        # self.gate = nn.Sequential(                  # context-aware gate (new)
+        #     nn.Linear(2 * in_channels, in_channels),
+        #     nn.GELU(),
+        #     nn.Linear(in_channels, 1),
+        # )
+        # nn.init.constant_(self.gate[-1].bias, -2.0)
 
     def _chunked_attention(
         self,
@@ -127,6 +133,7 @@ class GuideDecoderLayer(nn.Module):
         else:
             vis2, _ = self.self_attn(q, k, value=vis2)
 
+
         vis2 = self.self_attn_norm(vis2)
         vis = x + vis2
 
@@ -143,6 +150,12 @@ class GuideDecoderLayer(nn.Module):
 
             vis2 = self.cross_attn_norm(vis2)
             vis = vis + self.scale * vis2
+            # vis_pool = vis.mean(dim=1)                                           # [B, C]
+            # txt_pool = txt.mean(dim=1)                                           # [B, C]
+            # gate = torch.sigmoid(
+            #     self.gate(torch.cat([vis_pool, txt_pool], dim=-1))
+            # ).unsqueeze(1)                                                       # [B, 1, 1]
+            # vis = vis + gate * vis2
 
         return vis
 
@@ -172,6 +185,7 @@ class GuideDecoder(nn.Module):
         unpool: Callable[..., torch.Tensor],
         spiral_conv: List[Callable[..., torch.Tensor]],
         chunk: bool = False,
+        self_cross_mech: bool = False,
     ) -> torch.Tensor:
         """
         vis:       [B, N, C]
@@ -185,10 +199,11 @@ class GuideDecoder(nn.Module):
 
         # TODO: Make a hyperparameter
         # text-guided version
-        if self.att_mechanism:
+        if self_cross_mech:
             vis_coarse = self.guide_layer(vis, txt, chunk)
         else:
         # Non text-guided version
+            # print(vis.shape)
             vis_coarse = vis.clone()
 
         # split hemispheres

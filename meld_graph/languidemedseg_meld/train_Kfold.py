@@ -24,7 +24,7 @@ from transformers import AutoTokenizer
 
 import utils.config as config
 from utils.data import EpilepDataset
-from utils.utils import LesionOversampleSampler
+# from utils.utils import LesionOversampleSampler  # removed: replaced by shuffle=True in DataLoader
 
 
 class TeeStream:
@@ -149,16 +149,12 @@ def make_dataloaders(args, tokenizer, cohort, train_fold_ids: List[str], val_fol
                 text_emb=True,
                 training_mode=False)
                 # text_prob_json="/data/preprocessed/mixed/train_prob.json")
-    hc_set = set([sid for sid in train_fold_ids if sid.split("_")[3].startswith("C")])
-    labels = [0 if sid in hc_set else 1 for sid in ds_train.subject_ids]
-    sampler = LesionOversampleSampler(labels, seed=fold_seed)
-    
-    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, sampler=sampler, 
-                          num_workers=args.train_batch_size, 
-                          pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
-    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False, 
-                          num_workers=args.valid_batch_size, 
-                          pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=True)
+    dl_train = DataLoader(ds_train, batch_size=args.train_batch_size, shuffle=True,
+                          num_workers=args.train_batch_size,
+                          pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=False)
+    dl_valid = DataLoader(ds_valid, batch_size=args.valid_batch_size, shuffle=False,
+                          num_workers=args.valid_batch_size,
+                          pin_memory=True, worker_init_fn=worker_init_fn, persistent_workers=False)
     
     return dl_train, dl_valid
 

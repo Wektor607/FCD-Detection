@@ -161,7 +161,8 @@ class LanGuideMedSeg(nn.Module):
 
         # Climb from deep to shallow stages (list of B Data objects per stage)
         current_graphs: List[Data] = graph_features[-1].to_data_list()
-
+        # print("Encoder stages:", [g.to_data_list()[0].x.shape for g in graph_features])
+        # sys.exit(0)
         # Each decoder maps stage N → N-1, then N-1 → N-2, etc.
         for idx, (decoder, unpool, spiral_conv) in enumerate(
             zip(self.decoders, self.unpool_layers, self.decoder_conv_layers)
@@ -188,8 +189,12 @@ class LanGuideMedSeg(nn.Module):
         
                 # TODO: hyperparameter
                 chunk: bool = vis_feat.size(1) > 40962
+                self_cross_mech = True
+                # self_cross_mech: bool = vis_feat.size(1) < 10242
+                chunk = False
+                
                 out_feat: torch.Tensor = decoder(
-                    vis_feat, skip_feat, txt_emb, unpool, spiral_conv, chunk
+                    vis_feat, skip_feat, txt_emb, unpool, spiral_conv, chunk, self_cross_mech
                 )  # [1, N_out, C_to]
                 x_lvl: torch.Tensor = out_feat.squeeze(0)  # [N_to, C_to]
 

@@ -617,6 +617,7 @@ class LanGuideMedSegWrapper(pl.LightningModule):
 
     def on_train_epoch_start(self) -> None:
         self._clear_stage_buffers("train")
+        self._maybe_set_dataset_epoch()
 
     def on_validation_epoch_start(self) -> None:
         self._clear_stage_buffers("val")
@@ -640,3 +641,38 @@ class LanGuideMedSegWrapper(pl.LightningModule):
         ]
         for m in metrics:
             getattr(self, f"{stage}_{m}").clear()
+    def _maybe_set_dataset_epoch(self) -> None:
+        """Call dataset.set_epoch(...) if the train dataset supports it."""
+        if self.trainer is None:
+            return
+
+        # Try to get train dataloader from datamodule first
+        dl = None
+        if getattr(self.trainer, "datamodule", None) is not None:
+            try:
+                dl = self.trainer.datamodule.train_dataloader()
+            except Exception:
+                dl = None
+
+        # Fallback: try trainer's train_dataloader
+        if dl is None:
+            dl = getattr(self.trainer, "train_dataloader", None)
+
+        # dataloader can be a list (multiple loaders)
+        if isinstance(dl, (list, tuple)):
+            dl = dl[0]
+
+        if dl is None or not hasattr(dl, "dataset"):
+            return
+
+        ds = dl.dataset
+        # If wrapped (Subset, etc.), you may need to unwrap
+        if hasattr(ds, "dataset") and hasattr(ds, "indices"):
+            # torch.utils.data.Subset
+            ds0 = ds.dataset
+            if hasattr(ds0, "set_epoch"):
+                ds0.set_epoch(self.current_epoch)
+            return
+
+        if hasattr(ds, "set_epoch"):
+            ds.set_epoch(self.current_epoch)

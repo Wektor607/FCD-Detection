@@ -36,5 +36,7 @@ WANDB_MODE=disabled python3 languidemedseg_meld/test_Kfold.py \
   --config languidemedseg_meld/config/training.yaml \
   --ckpt_prefix save_model/exp1
 # exp3_no_gnn_mixed_freeeze
-# WANDB_MODE=disabled python3 test.py  --meld_check
-# --meld_check
+# MELD gated by its own distance head (run compute_meld_distance_maps.py --split_path <split> first):
+# WANDB_MODE=disabled python3 languidemedseg_meld/test.py --config languidemedseg_meld/config/training.yaml --meld_check --dist_source meld
+# MELD gated by the Vision+LM distance head:
+# WANDB_MODE=disabled python3 languidemedseg_meld/test.py --config languidemedseg_meld/config/training.yaml --meld_check --dist_source vlm --ckpt_prefix save_model/exp3_mixed_no_gnn_radbert

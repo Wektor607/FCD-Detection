@@ -54,10 +54,14 @@ DATA:
   # csv_path        : data/input/preprocessed/MELD_BONN_lobe.csv
   # csv_path        : data/input/preprocessed/MELD_BONN_mixed.csv
   # csv_path        : data/input/preprocessed/MELD_BONN_mixed_updated.csv
-  csv_path          : data/input/preprocessed/MELD_BONN_lobe_text.csv
-  # csv_path        : data/input/preprocessed/BONN_clinical_hemisphere_lobe_filtered_updated.csv
-  # csv_path        : data/input/preprocessed/BONN_clinical_hemisphere_filtered_updated.csv
 
-  split_path      : data/input/preprocessed/MELD_splits.csv 
+  # csv_path          : data/input/preprocessed/MELD_BONN_hemisphere_text.csv
+  # csv_path          : data/input/preprocessed/MELD_BONN_lobe_text.csv
+  # csv_path          : data/input/preprocessed/MELD_BONN_hemisphere_lobe_text.csv
+  
+  # csv_path        : data/input/preprocessed/BONN_clinical_hemisphere_filtered_updated.csv
+  csv_path        : data/input/preprocessed/BONN_clinical_hemisphere_lobe_filtered_updated.csv
+
+  # split_path      : data/input/preprocessed/MELD_splits.csv 
   # split_path      : data/input/preprocessed/BONN_splits_full_test.csv
-  # split_path      : data/input/preprocessed/BONN_clinical_splits.csv
+  split_path      : data/input/preprocessed/BONN_clinical_splits.csv
