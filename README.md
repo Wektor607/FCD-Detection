@@ -23,13 +23,13 @@ Setup, training and testing instructions: [meld_graph/README.md](meld_graph/READ
 
 This erratum concerns our MICCAI 2026 paper
 [*Text Guidance and Distance Gating Improve Detection and Segmentation of Focal Cortical Dysplasia*](https://papers.miccai.org/miccai-2026/paper/5707_paper.pdf).
+Some of the reported baseline results were inflated due to data leakage. The results of our
+proposed approach and our main conclusions are unaffected.
 
 The **MELD rows with distance gating (mean / med / min) in Table 4** are incorrect. When evaluating
 the MELD baseline, `languidemedseg_meld/test.py --meld_check` gated MELD's clusters with the **ground-truth**
-distance-to-lesion maps instead of predicted distances: if no model was passed, it silently fell
-back to the ground truth. With ground-truth distances the gate keeps every cluster that touches the
-lesion and removes every cluster in the controls, which is why MELD + gating showed 100%
-specificity without any loss of sensitivity.
+distance-to-lesion maps instead of predicted distances, which led to 100% specificity without any
+loss of sensitivity.
 
 The script is fixed: the distance source must now be given explicitly (`--dist_source meld` for
 MELD Graph's own distance head, `--dist_source vlm` for our model), and the script raises an error
